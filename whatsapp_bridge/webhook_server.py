@@ -245,6 +245,19 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
+        if parsed.path == "/events":
+            con = db()
+            rows = con.execute(
+                "SELECT id, raw_json, received_at FROM webhook_events ORDER BY id DESC LIMIT 20"
+            ).fetchall()
+            con.close()
+            body = rows_to_json(rows)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         self.send_json(404, {"error": "not found"})
 
     def do_POST(self):
