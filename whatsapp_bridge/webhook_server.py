@@ -64,6 +64,10 @@ def db():
     return con
 
 
+def has_any(text, terms):
+    return any(x in text for x in terms)
+
+
 def classify(text):
     t = (text or "").lower()
     spam_terms = [
@@ -80,49 +84,70 @@ def classify(text):
         "кредит",
         "реклама сайта",
     ]
-    if any(x in t for x in spam_terms):
+    if has_any(t, spam_terms):
         return {
             "segment": "low_relevance",
             "priority": "P4",
             "escalation_required": 0,
             "next_action": "Do not spend sales time unless they clarify a real villa request.",
         }
-    if any(x in t for x in ["investor", "investment", "fund", "jv", "roi", "proof of funds", "инвест", "инвести", "доходность"]):
+    if has_any(t, ["register client", "register my client", "client registration", "registration", "зарегистр", "регистрация клиента"]):
+        return {
+            "segment": "client_registration",
+            "priority": "P1",
+            "escalation_required": 1,
+            "next_action": "Register client, collect name/country/timing, and confirm viewing or next step.",
+        }
+    if has_any(t, ["contract", "title", "chanote", "permit", "lawyer", "legal", "leasehold", "freehold", "due diligence", "ownership", "договор", "чанот", "юрист", "документ", "лизхолд", "фрихолд", "собствен"]):
+        return {
+            "segment": "trust_legal",
+            "priority": "P2",
+            "escalation_required": 1,
+            "next_action": "Acknowledge due diligence, qualify villa/client seriousness, and prepare legal pack only after qualification.",
+        }
+    if has_any(t, ["quality", "materials", "engineering", "insulation", "sound", "roof", "windows", "construction quality", "specs", "качество", "материал", "инженер", "изоляц", "крыша", "окна", "строительств"]):
+        return {
+            "segment": "quality_engineering",
+            "priority": "P2",
+            "escalation_required": 0,
+            "next_action": "Explain quality as daily-living proof and offer engineering/materials pack or technical viewing.",
+        }
+    if has_any(t, ["investor", "investment", "fund", "jv", "roi", "proof of funds", "buyback", "co-invest", "инвест", "инвести", "доходность"]):
         return {
             "segment": "investor",
             "priority": "P1",
             "escalation_required": 1,
             "next_action": "Escalate to Vladimir/partner; offer a short call and send investor materials only after qualification.",
         }
-    if any(x in t for x in ["viewing", "visit", "appointment", "show", "смотреть", "посмотреть", "показ", "встреч", "визит"]):
+    if has_any(t, ["viewing", "visit", "appointment", "show", "смотреть", "посмотреть", "показ", "встреч", "визит"]):
         return {
             "segment": "viewing_request",
             "priority": "P1",
             "escalation_required": 1,
             "next_action": "Offer two viewing slots and confirm whether they are buyer or agent.",
         }
-    if any(x in t for x in ["ready", "completed", "finish", "move in", "готов", "когда будет", "срок", "заселиться", "переехать"]):
+    if has_any(t, ["ready", "completed", "finish", "completion", "move in", "move-in", "готов", "когда будет", "срок", "заселиться", "переехать"]):
         return {
             "segment": "ready_villa_buyer",
             "priority": "P1",
             "escalation_required": 0,
             "next_action": "Explain C9 readiness, active construction of next villas, and offer private preview.",
         }
-    if any(x in t for x in ["agent", "broker", "agency", "commission", "register client", "realtor", "агент", "брокер", "комисс", "регистрация клиента"]):
+    if has_any(t, ["agent", "broker", "agency", "commission", "realtor", "агент", "брокер", "комисс"]):
         return {
             "segment": "broker",
             "priority": "P2",
             "escalation_required": 0,
             "next_action": "Send broker pack: availability, 6% commission, client registration.",
         }
-    if any(x in t for x in ["bisp", "british", "school", "kids", "children", "family", "relocation", "long term", "школ", "дет", "семь", "переезд", "жить"]):
+    if has_any(t, ["bisp", "british", "school", "kids", "children", "family", "relocation", "long term", "школ", "дет", "семь", "переезд", "жить"]):
         return {
             "segment": "family_bisp_buyer",
             "priority": "P1",
             "escalation_required": 0,
             "next_action": "Position as long-term family living near BISP; ask timing and offer preview.",
         }
-    if any(x in t for x in ["price", "payment", "schedule", "availability", "available", "цена", "прайс", "платеж", "доступ", "свобод"]):
+    if has_any(t, ["price", "payment", "schedule", "availability", "available", "цена", "прайс", "платеж", "доступ", "свобод"]):
         return {
             "segment": "price_payment",
             "priority": "P2",
@@ -262,6 +287,46 @@ def draft_reply(contact, last_text=""):
             "and whether you are considering construction-stage participation or ownership of a completed asset.\n\n"
             "We can share the current project status and arrange a call. What time works for you today or tomorrow?"
         )
+    if segment == "client_registration":
+        if ru:
+            return (
+                "Отлично, давайте зарегистрируем клиента и подготовим следующий шаг.\n\n"
+                "Пришлите, пожалуйста: имя клиента, страну/город, желаемую дату просмотра и какой формат он ищет - "
+                "готовую/почти готовую виллу или виллу в строительстве. После этого подтвердим регистрацию."
+            )
+        return (
+            "Great, let us register the client and prepare the next step.\n\n"
+            "Please send the client name, country/city, preferred viewing date, and whether they are looking for a ready/near-ready villa "
+            "or a villa under construction. Then we will confirm the registration."
+        )
+    if segment == "trust_legal":
+        if ru:
+            return (
+                "Понимаю вопрос. Для серьезного покупателя юридическая и строительная проверка важна не меньше, чем планировка.\n\n"
+                "Земля находится у Hugs Management Co., Ltd.; структура сделки предусматривает договор на виллу и leasehold на земельный участок. "
+                "Для предметного обсуждения можем подготовить юридический пакет и отдельный созвон с командой проекта.\n\n"
+                "У вас уже есть юрист/консультант, который будет смотреть документы?"
+            )
+        return (
+            "I understand the question. For a serious buyer, legal and construction due diligence is as important as the layout.\n\n"
+            "The land is held by Hugs Management Co., Ltd.; the transaction structure uses a villa sale agreement and leasehold for the land plot. "
+            "For a serious review, we can prepare a legal package and arrange a call with the project team.\n\n"
+            "Do you already have a lawyer/advisor who will review the documents?"
+        )
+    if segment == "quality_engineering":
+        if ru:
+            return (
+                "Качество для нас - не только отделка. В Canopy Hills оно связано с тем, как дом будет жить каждый день: "
+                "пространство, вид, термо- и шумоизоляция, инженерия, хранение, крыша, окна, материалы и удобство для семьи.\n\n"
+                "Лучше всего это видно на месте: в шоу-юнитe, на строящейся вилле и затем на первой готовой вилле C9. "
+                "Могу отправить краткий engineering/materials pack или предложить приватный просмотр."
+            )
+        return (
+            "For us, quality is not only about finishes. At Canopy Hills it is about how the house works for daily life: "
+            "space, views, thermal and sound insulation, engineering, storage, roof, windows, materials and family comfort.\n\n"
+            "The best proof is on site: the show unit, the villa under construction, and then the first completed villa C9. "
+            "I can share a short engineering/materials pack or arrange a private viewing."
+        )
     if segment == "viewing_request":
         if ru:
             return (
@@ -351,6 +416,64 @@ def draft_reply(contact, last_text=""):
     )
 
 
+def suggested_materials(segment):
+    materials = {
+        "client_registration": [
+            "Client registration note: full name, country/city, agent name, preferred viewing date.",
+            "Location pin after viewing is confirmed: https://maps.app.goo.gl/imEAqyCVY6d15wmy9?g_st=ipc",
+            "Relevant unit one-pager after villa preference is known.",
+        ],
+        "trust_legal": [
+            "Legal/DD pack only after qualification: Hugs Management structure, land/title/permit docs, draft agreements.",
+            "Sample C9 agreements if appropriate: Land Lease Agreement and Villa Sale and Purchase Agreement.",
+            "Escalate to Vladimir/Andrey before sending sensitive documents.",
+        ],
+        "quality_engineering": [
+            "Engineering and Sustainability pack.",
+            "Interiors and Finishes pack.",
+            "Construction/show unit/C9 proof photos or technical viewing.",
+        ],
+        "investor": [
+            "No detailed investor offer before qualification.",
+            "After call: C1 investor note / current project status / DD documents.",
+            "Escalate to Vladimir/Andrey.",
+        ],
+        "viewing_request": [
+            "Location pin after time is confirmed: https://maps.app.goo.gl/imEAqyCVY6d15wmy9?g_st=ipc",
+            "Access instruction: enter through the soi next to The Big Bear Kitchen.",
+            "Current availability if buyer asks what to view.",
+        ],
+        "ready_villa_buyer": [
+            "C9 progress media / private preview invite.",
+            "Current availability and PRICE May 2026.",
+            "Project status one-pager: C9 near-ready, C7/C8 started, C6/C1-C3 availability logic.",
+        ],
+        "broker": [
+            "SalesKit: https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5",
+            "PRICE May 2026.",
+            "Commission 6% and client registration rules.",
+        ],
+        "family_bisp_buyer": [
+            "ENG/RUS presentation depending on language.",
+            "Location/surroundings and BISP-family positioning.",
+            "Private viewing or C9 preview invite.",
+        ],
+        "price_payment": [
+            "PRICE May 2026.",
+            "Specific villa one-pager after C6/C1/C2/C3/C9 preference.",
+            "Payment schedule if requested.",
+        ],
+        "low_relevance": ["No materials."],
+        "new_inbound": ["No materials before buyer/agent qualification unless explicitly requested."],
+    }
+    return materials.get(segment, materials["new_inbound"])
+
+
+def render_materials(segment):
+    items = "".join(f"<li>{escape(item)}</li>" for item in suggested_materials(segment))
+    return f"<ul>{items}</ul>"
+
+
 def render_playbook():
     body = """
     <section class="panel">
@@ -366,6 +489,9 @@ def render_playbook():
           <tr><td>ready_villa_buyer</td><td>P1</td><td>Move from curiosity to private preview</td><td>Explain C9 readiness and active construction</td></tr>
           <tr><td>family_bisp_buyer</td><td>P1</td><td>Anchor BISP / long-term living positioning</td><td>Ask relocation timing and offer preview</td></tr>
           <tr><td>investor</td><td>P1</td><td>Escalate to principal conversation</td><td>Offer call before sending detailed terms</td></tr>
+          <tr><td>client_registration</td><td>P1</td><td>Protect broker/client attribution</td><td>Collect client name, origin, timing, villa preference</td></tr>
+          <tr><td>trust_legal</td><td>P2</td><td>Handle due diligence calmly</td><td>Qualify seriousness before legal pack</td></tr>
+          <tr><td>quality_engineering</td><td>P2</td><td>Prove premium construction quality</td><td>Offer engineering pack or technical viewing</td></tr>
           <tr><td>broker</td><td>P2</td><td>Activate agent channel</td><td>Send agent pack, 6% commission, client registration</td></tr>
           <tr><td>price_payment</td><td>P2</td><td>Clarify product fit</td><td>Ask ready vs under-construction and buyer vs client</td></tr>
           <tr><td>new_inbound</td><td>P3</td><td>Qualify role</td><td>Ask buyer/family or agent/client</td></tr>
@@ -507,6 +633,10 @@ def render_lead(wa_id):
         '<section class="panel draft">',
         "<h2>Suggested reply</h2>",
         f"<pre>{escape(draft_reply(contact_dict, last_text))}</pre>",
+        "</section>",
+        '<section class="panel">',
+        "<h2>Suggested materials</h2>",
+        render_materials(contact_dict.get("segment") or "new_inbound"),
         "</section>",
         '<section class="panel">',
         "<h2>Messages</h2>",
