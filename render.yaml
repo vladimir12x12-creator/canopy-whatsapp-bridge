@@ -2,15 +2,11 @@ services:
   - type: web
     name: canopy-whatsapp-bridge
     runtime: python
-    plan: starter
+    plan: free
     buildCommand: "pip install -r whatsapp_bridge/requirements.txt"
     startCommand: "WHATSAPP_BRIDGE_HOST=0.0.0.0 WHATSAPP_BRIDGE_PORT=$PORT python whatsapp_bridge/webhook_server.py"
     envVars:
       - key: VERIFY_TOKEN
         sync: false
       - key: WHATSAPP_BRIDGE_DB
-        value: /var/data/leads.sqlite
-    disk:
-      name: canopy-whatsapp-bridge-data
-      mountPath: /var/data
-      sizeGB: 1
+        value: /tmp/leads.sqlite
