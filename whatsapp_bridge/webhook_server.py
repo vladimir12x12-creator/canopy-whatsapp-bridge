@@ -66,40 +66,68 @@ def db():
 
 def classify(text):
     t = (text or "").lower()
-    if any(x in t for x in ["investor", "investment", "fund", "jv", "roi", "proof of funds", "инвест"]):
+    spam_terms = [
+        "seo",
+        "website development",
+        "digital marketing",
+        "loan",
+        "crypto",
+        "job",
+        "vacancy",
+        "resume",
+        "работу",
+        "резюме",
+        "кредит",
+        "реклама сайта",
+    ]
+    if any(x in t for x in spam_terms):
+        return {
+            "segment": "low_relevance",
+            "priority": "P4",
+            "escalation_required": 0,
+            "next_action": "Do not spend sales time unless they clarify a real villa request.",
+        }
+    if any(x in t for x in ["investor", "investment", "fund", "jv", "roi", "proof of funds", "инвест", "инвести", "доходность"]):
         return {
             "segment": "investor",
             "priority": "P1",
             "escalation_required": 1,
-            "next_action": "Prepare investor response; escalate if they request call or terms.",
+            "next_action": "Escalate to Vladimir/partner; offer a short call and send investor materials only after qualification.",
         }
-    if any(x in t for x in ["ready", "completed", "finish", "move in", "готов", "когда будет", "срок"]):
+    if any(x in t for x in ["viewing", "visit", "appointment", "show", "смотреть", "посмотреть", "показ", "встреч", "визит"]):
+        return {
+            "segment": "viewing_request",
+            "priority": "P1",
+            "escalation_required": 1,
+            "next_action": "Offer two viewing slots and confirm whether they are buyer or agent.",
+        }
+    if any(x in t for x in ["ready", "completed", "finish", "move in", "готов", "когда будет", "срок", "заселиться", "переехать"]):
         return {
             "segment": "ready_villa_buyer",
             "priority": "P1",
             "escalation_required": 0,
-            "next_action": "Send C9 readiness / private viewing response.",
+            "next_action": "Explain C9 readiness, active construction of next villas, and offer private preview.",
         }
-    if any(x in t for x in ["agent", "broker", "agency", "commission", "register client", "агент", "комисс"]):
+    if any(x in t for x in ["agent", "broker", "agency", "commission", "register client", "realtor", "агент", "брокер", "комисс", "регистрация клиента"]):
         return {
             "segment": "broker",
             "priority": "P2",
             "escalation_required": 0,
             "next_action": "Send broker pack: availability, 6% commission, client registration.",
         }
-    if any(x in t for x in ["bisp", "british", "school", "kids", "children", "family", "школ", "дет"]):
+    if any(x in t for x in ["bisp", "british", "school", "kids", "children", "family", "relocation", "long term", "школ", "дет", "семь", "переезд", "жить"]):
         return {
             "segment": "family_bisp_buyer",
-            "priority": "P2",
+            "priority": "P1",
             "escalation_required": 0,
-            "next_action": "Send family/BISP positioning and offer private C9 viewing.",
+            "next_action": "Position as long-term family living near BISP; ask timing and offer preview.",
         }
-    if any(x in t for x in ["price", "payment", "schedule", "цена", "прайс", "платеж"]):
+    if any(x in t for x in ["price", "payment", "schedule", "availability", "available", "цена", "прайс", "платеж", "доступ", "свобод"]):
         return {
             "segment": "price_payment",
             "priority": "P2",
             "escalation_required": 0,
-            "next_action": "Send current availability and ask which villa/payment scenario they need.",
+            "next_action": "Send availability/price context and ask whether they consider ready villa, under-construction villa, or larger C1-C3.",
         }
     return {
         "segment": "new_inbound",
@@ -213,40 +241,140 @@ def send_csv(handler, body, filename):
     handler.wfile.write(body)
 
 
-def draft_reply(contact):
+def is_russian_text(text):
+    return any("а" <= ch.lower() <= "я" or ch.lower() == "ё" for ch in (text or ""))
+
+
+def draft_reply(contact, last_text=""):
     segment = contact.get("segment") or "new_inbound"
+    ru = is_russian_text(last_text)
     if segment == "investor":
+        if ru:
+            return (
+                "Добрый день! Спасибо за интерес к Canopy Hills.\n\n"
+                "По инвестиционным сценариям лучше коротко созвониться: там важно понять сумму, горизонт и какой формат вам ближе - "
+                "участие в строительстве конкретной виллы или покупка готового актива.\n\n"
+                "Можем отправить актуальный статус проекта и договориться о звонке. Когда вам удобно сегодня/завтра?"
+            )
         return (
-            "Hi, thank you for your interest in Canopy Hills. "
-            "We can share the current construction status, available investment scenarios, "
-            "and arrange a call if you would like to discuss terms in detail."
+            "Hi, thank you for your interest in Canopy Hills.\n\n"
+            "For investment scenarios, it is better to have a short call first: we need to understand the amount, horizon, "
+            "and whether you are considering construction-stage participation or ownership of a completed asset.\n\n"
+            "We can share the current project status and arrange a call. What time works for you today or tomorrow?"
+        )
+    if segment == "viewing_request":
+        if ru:
+            return (
+                "Добрый день! Да, можем организовать приватный показ.\n\n"
+                "Подскажите, пожалуйста, вы рассматриваете виллу для себя/семьи или представляете клиента? "
+                "И какой день вам удобнее для просмотра?"
+            )
+        return (
+            "Hi, yes, we can arrange a private viewing.\n\n"
+            "May I ask if you are considering a villa for yourself/family, or representing a client? "
+            "And which day would be convenient for you to visit?"
         )
     if segment == "ready_villa_buyer":
+        if ru:
+            return (
+                "Добрый день! Спасибо за обращение.\n\n"
+                "Первая вилла уже близка к готовности, и мы можем показать её приватно. "
+                "Также сейчас начато строительство следующих вилл, поэтому проект уже можно смотреть не только по рендерам.\n\n"
+                "Вы рассматриваете покупку для себя/семьи или для клиента?"
+            )
         return (
-            "Hi, thank you for reaching out. Our first villa is moving toward show-ready status, "
-            "and we can arrange a private preview. May I ask if you are looking for a home for your family "
-            "or reviewing options for a client?"
+            "Hi, thank you for reaching out.\n\n"
+            "Our first villa is close to completion and can be shown privately. Construction of the next villas has also started, "
+            "so the project can now be reviewed beyond renders.\n\n"
+            "Are you considering a villa for yourself/family, or for a client?"
         )
     if segment == "broker":
+        if ru:
+            return (
+                "Добрый день! Спасибо за сообщение.\n\n"
+                "Мы работаем с агентами на комиссии 6%. Можем отправить актуальную доступность, прайс и правила регистрации клиента.\n\n"
+                "Подскажите, пожалуйста, у вас уже есть конкретный клиент под проект или вы хотите получить материалы для базы?"
+            )
         return (
-            "Hi, thank you for contacting Canopy Hills. We work with agents on a 6% commission basis. "
-            "Please let us know whether you would like the latest availability, price list, and client registration details."
+            "Hi, thank you for contacting Canopy Hills.\n\n"
+            "We work with agents on a 6% commission basis. We can share current availability, price list, and client registration details.\n\n"
+            "Do you already have a specific client for the project, or would you like the materials for your database?"
         )
     if segment == "family_bisp_buyer":
+        if ru:
+            return (
+                "Добрый день! Спасибо за интерес.\n\n"
+                "Canopy Hills как раз рассчитан на долгосрочную семейную жизнь рядом с British International School: "
+                "просторные виллы, вид, тишина, приватность и вся повседневная инфраструктура рядом.\n\n"
+                "Подскажите, вы уже живёте на Пхукете или планируете переезд к новому учебному году?"
+            )
         return (
-            "Hi, thank you for your interest. Canopy Hills is designed for long-term family living near BISP, "
-            "with spacious villas, views, privacy, and everyday infrastructure nearby. "
-            "Would you like to arrange a private viewing?"
+            "Hi, thank you for your interest.\n\n"
+            "Canopy Hills is designed for long-term family living near British International School: spacious villas, views, privacy, "
+            "quiet surroundings, and everyday infrastructure nearby.\n\n"
+            "Are you already living in Phuket, or planning to relocate for the new school year?"
         )
     if segment == "price_payment":
+        if ru:
+            return (
+                "Добрый день! Можем отправить актуальную доступность и цены.\n\n"
+                "Чтобы дать релевантную информацию, подскажите, пожалуйста: вы рассматриваете виллу для себя или представляете клиента? "
+                "И вам важнее готовая/почти готовая вилла или можно рассматривать виллы в строительстве?"
+            )
         return (
-            "Hi, thank you for your message. I can share the current availability and payment options. "
-            "Are you considering a villa for yourself, or are you representing a client?"
+            "Hi, we can share current availability and pricing.\n\n"
+            "To send the most relevant information, may I ask if you are considering a villa for yourself or representing a client? "
+            "And are you looking for a ready/near-ready villa, or also considering villas under construction?"
+        )
+    if segment == "low_relevance":
+        if ru:
+            return (
+                "Добрый день. Спасибо за сообщение.\n\n"
+                "Если ваш запрос связан с покупкой виллы в Canopy Hills, пожалуйста, напишите, что именно вы рассматриваете, "
+                "и мы вернёмся с актуальной информацией."
+            )
+        return (
+            "Hi, thank you for your message.\n\n"
+            "If your request is related to purchasing a villa at Canopy Hills, please let us know what you are considering, "
+            "and we will share the relevant information."
+        )
+    if ru:
+        return (
+            "Добрый день! Спасибо за интерес к Canopy Hills.\n\n"
+            "Подскажите, пожалуйста, вы рассматриваете виллу для себя/семьи или представляете клиента? "
+            "После этого я отправлю наиболее релевантную информацию по доступности, цене и просмотру."
         )
     return (
-        "Hi, thank you for contacting Canopy Hills. May I ask if you are looking for a villa for yourself, "
-        "or are you representing a client?"
+        "Hi, thank you for contacting Canopy Hills.\n\n"
+        "May I ask if you are looking for a villa for yourself/family, or representing a client? "
+        "Then I can send the most relevant availability, pricing, and viewing details."
     )
+
+
+def render_playbook():
+    body = """
+    <section class="panel">
+      <h2>First response rule</h2>
+      <p>Do not oversell in the first message. Acknowledge, classify the lead, ask one qualifying question, and offer one clear next step.</p>
+    </section>
+    <section class="panel">
+      <h2>Segments</h2>
+      <table>
+        <thead><tr><th>Segment</th><th>Priority</th><th>Goal</th><th>Next step</th></tr></thead>
+        <tbody>
+          <tr><td>viewing_request</td><td>P1</td><td>Convert to appointment</td><td>Offer two viewing slots; confirm buyer or agent</td></tr>
+          <tr><td>ready_villa_buyer</td><td>P1</td><td>Move from curiosity to private preview</td><td>Explain C9 readiness and active construction</td></tr>
+          <tr><td>family_bisp_buyer</td><td>P1</td><td>Anchor BISP / long-term living positioning</td><td>Ask relocation timing and offer preview</td></tr>
+          <tr><td>investor</td><td>P1</td><td>Escalate to principal conversation</td><td>Offer call before sending detailed terms</td></tr>
+          <tr><td>broker</td><td>P2</td><td>Activate agent channel</td><td>Send agent pack, 6% commission, client registration</td></tr>
+          <tr><td>price_payment</td><td>P2</td><td>Clarify product fit</td><td>Ask ready vs under-construction and buyer vs client</td></tr>
+          <tr><td>new_inbound</td><td>P3</td><td>Qualify role</td><td>Ask buyer/family or agent/client</td></tr>
+          <tr><td>low_relevance</td><td>P4</td><td>Protect sales time</td><td>Only answer if they clarify villa-related request</td></tr>
+        </tbody>
+      </table>
+    </section>
+    """
+    return page("Canopy Lead Response Playbook", body)
 
 
 def page(title, body):
@@ -296,6 +424,7 @@ def page(title, body):
     .p1 {{ color: var(--hot); font-weight: 650; }}
     .p2 {{ color: var(--warn); font-weight: 650; }}
     .p3 {{ color: var(--muted); font-weight: 650; }}
+    .p4 {{ color: var(--muted); font-weight: 650; }}
     .panel {{ background: var(--paper); border: 1px solid var(--line); padding: 16px; margin-bottom: 18px; }}
     .msg {{ padding: 12px 0; border-bottom: 1px solid var(--line); }}
     .msg:last-child {{ border-bottom: 0; }}
@@ -330,7 +459,7 @@ def render_inbox():
     body = [
         '<div class="toolbar">',
         '<div class="muted">Staging WhatsApp inbox. Refresh the page after sending a test message.</div>',
-        '<div><a href="/leads">JSON leads</a> · <a href="/events">Webhook events</a></div>',
+        '<div><a href="/playbook">Response playbook</a> · <a href="/leads">JSON leads</a> · <a href="/events">Webhook events</a></div>',
         "</div>",
         "<table>",
         "<thead><tr><th>Lead</th><th>Segment</th><th>Priority</th><th>Last message</th><th>Next action</th></tr></thead>",
@@ -366,6 +495,7 @@ def render_lead(wa_id):
     if not contact:
         return page("Lead not found", '<p><a href="/inbox">Back to inbox</a></p><p>Lead not found.</p>')
     contact_dict = dict(contact)
+    last_text = dict(messages[-1]).get("text", "") if messages else ""
     chunks = [
         '<p><a href="/inbox">Back to inbox</a></p>',
         '<section class="panel">',
@@ -376,7 +506,7 @@ def render_lead(wa_id):
         "</section>",
         '<section class="panel draft">',
         "<h2>Suggested reply</h2>",
-        f"<pre>{escape(draft_reply(contact_dict))}</pre>",
+        f"<pre>{escape(draft_reply(contact_dict, last_text))}</pre>",
         "</section>",
         '<section class="panel">',
         "<h2>Messages</h2>",
@@ -477,6 +607,14 @@ class Handler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/" or parsed.path == "/inbox":
             body = render_inbox()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if parsed.path == "/playbook":
+            body = render_playbook()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
