@@ -2,6 +2,8 @@
 import json
 import os
 import sqlite3
+import csv
+import io
 from html import escape
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -190,6 +192,25 @@ def store_payload(payload):
 
 def rows_to_json(rows):
     return json.dumps([dict(r) for r in rows], ensure_ascii=False, indent=2).encode("utf-8")
+
+
+def rows_to_csv(headers, rows):
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(headers)
+    for row in rows:
+        item = dict(row)
+        writer.writerow([item.get(header, "") for header in headers])
+    return out.getvalue().encode("utf-8-sig")
+
+
+def send_csv(handler, body, filename):
+    handler.send_response(200)
+    handler.send_header("Content-Type", "text/csv; charset=utf-8")
+    handler.send_header("Content-Disposition", f'inline; filename="{filename}"')
+    handler.send_header("Content-Length", str(len(body)))
+    handler.end_headers()
+    handler.wfile.write(body)
 
 
 def draft_reply(contact):
@@ -410,6 +431,49 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+            return
+        if parsed.path == "/leads.csv":
+            headers = [
+                "wa_id",
+                "profile_name",
+                "segment",
+                "priority",
+                "last_message_at",
+                "next_action",
+                "escalation_required",
+                "updated_at",
+            ]
+            con = db()
+            rows = con.execute(
+                "SELECT * FROM contacts ORDER BY priority ASC, last_message_at DESC"
+            ).fetchall()
+            con.close()
+            send_csv(self, rows_to_csv(headers, rows), "canopy_leads.csv")
+            return
+        if parsed.path == "/messages.csv":
+            headers = [
+                "id",
+                "wa_id",
+                "direction",
+                "message_type",
+                "text",
+                "received_at",
+            ]
+            con = db()
+            rows = con.execute(
+                "SELECT id, wa_id, direction, message_type, text, received_at FROM messages ORDER BY received_at DESC"
+            ).fetchall()
+            con.close()
+            send_csv(self, rows_to_csv(headers, rows), "canopy_messages.csv")
+            return
+        if parsed.path == "/events.csv":
+            headers = ["id", "received_at", "raw_json"]
+            con = db()
+            rows = con.execute(
+                "SELECT id, received_at, raw_json FROM webhook_events ORDER BY id DESC LIMIT 200"
+            ).fetchall()
+            con.close()
+            send_csv(self, rows_to_csv(headers, rows), "canopy_events.csv")
             return
         if parsed.path == "/" or parsed.path == "/inbox":
             body = render_inbox()
