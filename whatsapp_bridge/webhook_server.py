@@ -105,6 +105,13 @@ def classify(text):
             "escalation_required": 1,
             "next_action": "Acknowledge due diligence, qualify villa/client seriousness, and prepare legal pack only after qualification.",
         }
+    if has_any(t, ["details", "send materials", "project materials", "sales kit", "salekit", "brochure", "presentation", "deck", "pdf", "send info", "send more", "learn more", "share with my client", "подроб", "пришлите материалы", "отправьте материалы", "материалы по проекту", "презентац", "брошюр", "информац"]):
+        return {
+            "segment": "materials_request",
+            "priority": "P2",
+            "escalation_required": 0,
+            "next_action": "Send welcome capsule with 4 renders and SalesKit link, then qualify buyer vs agent/client.",
+        }
     if has_any(t, ["quality", "materials", "engineering", "insulation", "sound", "roof", "windows", "construction quality", "specs", "качество", "материал", "инженер", "изоляц", "крыша", "окна", "строительств"]):
         return {
             "segment": "quality_engineering",
@@ -313,6 +320,28 @@ def draft_reply(contact, last_text=""):
             "For a serious review, we can prepare a legal package and arrange a call with the project team.\n\n"
             "Do you already have a lawyer/advisor who will review the documents?"
         )
+    if segment == "materials_request":
+        if ru:
+            return (
+                "Конечно, отправлю короткую информацию по Canopy Hills и несколько рендеров, которые удобно переслать клиенту или коллеге.\n\n"
+                "Canopy Hills Villas - камерный поселок из 9 премиальных вилл на холме в Ko Kaeo, напротив British International School Phuket. "
+                "Проект создан для долгосрочной семейной жизни: просторные дома 650-745 м², панорамные виды, приватность, тишина и повседневная инфраструктура рядом.\n\n"
+                "Главное отличие - сочетание BISP-location, больших площадей, вида и качества строительства: продуманная инженерия, "
+                "термо- и шумоизоляция, качественные материалы, зоны хранения и планировки для реальной жизни семьи.\n\n"
+                "Сейчас первая вилла C9 выходит на готовность к началу-середине августа, строительство следующих вилл уже начато.\n\n"
+                "SalesKit: https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5\n\n"
+                "Подскажите, пожалуйста, у вас уже есть конкретный клиент под Canopy Hills или вы хотите получить материалы для базы?"
+            )
+        return (
+            "Sure, I will share a short Canopy Hills summary and several renders that are easy to forward to a client or colleague.\n\n"
+            "Canopy Hills Villas is a private estate of 9 premium hillside villas in Ko Kaeo, opposite British International School Phuket. "
+            "The project is designed for long-term family living: spacious 650-745 sqm homes, panoramic views, privacy, quiet surroundings and everyday infrastructure nearby.\n\n"
+            "The key difference is the combination of BISP location, large living spaces, views and construction quality: thoughtful engineering, "
+            "thermal and sound insulation, high-quality materials, storage areas and layouts made for real family life.\n\n"
+            "The first villa C9 is moving toward completion by early/mid August, and construction of the next villas has already started.\n\n"
+            "SalesKit: https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5\n\n"
+            "Do you already have a specific client for Canopy Hills, or would you like the materials for your database?"
+        )
     if segment == "quality_engineering":
         if ru:
             return (
@@ -433,6 +462,12 @@ def suggested_materials(segment):
             "Interiors and Finishes pack.",
             "Construction/show unit/C9 proof photos or technical viewing.",
         ],
+        "materials_request": [
+            "Welcome capsule text RU/EN.",
+            "4 approved renders: overall, terrace/view, living/kitchen, evening exterior.",
+            "SalesKit: https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5",
+            "Then ask: specific client or materials for database?",
+        ],
         "investor": [
             "No detailed investor offer before qualification.",
             "After call: C1 investor note / current project status / DD documents.",
@@ -491,6 +526,7 @@ def render_playbook():
           <tr><td>investor</td><td>P1</td><td>Escalate to principal conversation</td><td>Offer call before sending detailed terms</td></tr>
           <tr><td>client_registration</td><td>P1</td><td>Protect broker/client attribution</td><td>Collect client name, origin, timing, villa preference</td></tr>
           <tr><td>trust_legal</td><td>P2</td><td>Handle due diligence calmly</td><td>Qualify seriousness before legal pack</td></tr>
+          <tr><td>materials_request</td><td>P2</td><td>Send forwardable intro package</td><td>Welcome capsule + 4 renders + SalesKit, then qualify</td></tr>
           <tr><td>quality_engineering</td><td>P2</td><td>Prove premium construction quality</td><td>Offer engineering pack or technical viewing</td></tr>
           <tr><td>broker</td><td>P2</td><td>Activate agent channel</td><td>Send agent pack, 6% commission, client registration</td></tr>
           <tr><td>price_payment</td><td>P2</td><td>Clarify product fit</td><td>Ask ready vs under-construction and buyer vs client</td></tr>
