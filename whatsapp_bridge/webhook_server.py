@@ -519,6 +519,47 @@ def safe_graph_post(access_token, graph_version, path, payload):
 def canopy_template_payload(template_key):
     sales_kit_url = "https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5"
     templates = {
+        "agent_saleskit_intro_image": {
+            "name": "canopy_agent_saleskit_intro_image",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {
+                    "type": "HEADER",
+                    "format": "IMAGE",
+                    "example": {
+                        "header_handle": [
+                            "https://drive.google.com/uc?export=download&id=12oifyEV0kgHLomQM2mI211qXEy9hDEC2"
+                        ]
+                    },
+                },
+                {
+                    "type": "BODY",
+                    "text": (
+                        "Hi {{1}}, sharing a quick broker pack for Canopy Hills Villas Phuket.\n\n"
+                        "Canopy Hills is a club estate of 9 premium hillside villas in Ko Kaeo, "
+                        "opposite British International School Phuket.\n\n"
+                        "Designed for families relocating to Phuket or living on the island full-time: "
+                        "spacious 4+1 and 5+1 bedroom villas, approx. 650-768 sqm built-up, panoramic views, "
+                        "privacy, quiet green surroundings and daily infrastructure nearby.\n\n"
+                        "Current availability to discuss: C1, C2, C3 and C6. Villa C9 is nearly ready, "
+                        "with private viewings expected in early/mid August. C7-C8 construction has started.\n\n"
+                        "Price range: from approx. THB 57.5M. Agent commission: 6%.\n\n"
+                        "If you have a client focused on BISP, long-term family living and a near-ready "
+                        "premium villa, we can pre-arrange a private C9 viewing for early/mid August."
+                    ),
+                    "example": {"body_text": [["there"]]},
+                },
+                {
+                    "type": "BUTTONS",
+                    "buttons": [
+                        {"type": "URL", "text": "Open Sales Kit", "url": sales_kit_url},
+                        {"type": "QUICK_REPLY", "text": "Register client"},
+                        {"type": "QUICK_REPLY", "text": "Arrange viewing"},
+                    ],
+                },
+            ],
+        },
         "agent_saleskit_intro": {
             "name": "canopy_agent_saleskit_intro",
             "language": "en_US",
