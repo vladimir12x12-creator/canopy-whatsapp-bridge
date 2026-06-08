@@ -33,6 +33,8 @@ Build and test the WhatsApp Cloud API automation on a non-live number before tou
 - Webhook was verified successfully during temporary tunnel test.
 - Webhook field `messages` was subscribed.
 - Local webhook prototype stores inbound webhook payloads in SQLite.
+- Render staging bridge is deployed at `https://canopy-whatsapp-bridge.onrender.com`.
+- Permanent storage requires a paid Render web service plus persistent disk. Free Render web services use an ephemeral filesystem and lose local SQLite data after sleep/restart/redeploy.
 
 ## Local Webhook Prototype
 
@@ -51,9 +53,10 @@ Endpoints:
 
 ## Current Blockers
 
-1. Permanent HTTPS webhook endpoint.
-   - Temporary Cloudflare quick tunnel was only for testing and is not production.
-   - Meta currently needs a stable callback URL.
+1. Permanent storage for leads/messages.
+   - The service uses SQLite.
+   - On Render Free, `/tmp` and other local filesystem changes are ephemeral.
+   - Production-ready option: Render Starter web service plus a 1GB persistent disk mounted at `/var/data`, with `WHATSAPP_BRIDGE_DB=/var/data/leads.sqlite`.
 
 2. Permanent/system-user access token.
    - Needed for outbound API sending.
@@ -80,14 +83,38 @@ Pick one permanent webhook option:
    - Maximum control.
    - More operations overhead.
 
-Recommended next step: use a small hosted Python service for staging, then upgrade if volume requires it.
+Recommended next step: keep testing on the staging number, but move the bridge to persistent storage before using it as the operational lead inbox.
 
 ## Next Technical Steps
 
-1. Choose hosting target.
-2. Deploy `webhook_server.py` or an equivalent service.
-3. Set Meta webhook callback URL to the permanent `/webhook` endpoint.
-4. Re-run Meta webhook verification.
-5. Send a real inbound message to the staging number.
-6. Confirm it appears in SQLite / lead inbox.
-7. Add outbound sender only after a permanent token exists.
+1. Confirm paid Render Starter + 1GB persistent disk for reliable storage.
+2. Sync updated `render.yaml`.
+3. Confirm `https://canopy-whatsapp-bridge.onrender.com/inbox` keeps leads after restart.
+4. Generate permanent system-user token for `CanopyBot`.
+5. Add `WHATSAPP_ACCESS_TOKEN` to Render environment variables.
+6. Send a real outbound test message to Vladimir's staging WhatsApp.
+7. Add media sending and template support.
+
+## Permanent Token Path
+
+Use the existing system user `CanopyBot`:
+
+1. Open Meta Business Settings for business `1452386178649897`.
+2. Go to `Users` -> `System users`.
+3. Select `CanopyBot`.
+4. Make sure the WhatsApp Business Account `2097915004106030` is assigned to this system user with messaging/management access.
+5. Click `Generate token`.
+6. Select app `VMB` / app ID `1693287358483119`.
+7. Select permissions:
+   - `whatsapp_business_messaging`
+   - `whatsapp_business_management`
+8. Generate the token.
+9. Do not paste the token into normal chat history. Put it directly into Render as `WHATSAPP_ACCESS_TOKEN`, or into a local shell variable only for a one-off test.
+
+Local outbound smoke test after token exists:
+
+```bash
+WHATSAPP_ACCESS_TOKEN='...' \
+WHATSAPP_PHONE_NUMBER_ID=1183823618137845 \
+python3 whatsapp_bridge/send_text.py 66628512432 'Test message from Canopy WhatsApp Cloud API staging.'
+```

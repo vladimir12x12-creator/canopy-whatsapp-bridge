@@ -23,6 +23,9 @@ def utc_now():
 
 
 def db():
+    db_dir = os.path.dirname(DB_PATH)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
     con = sqlite3.connect(DB_PATH)
     con.row_factory = sqlite3.Row
     con.execute(
@@ -324,22 +327,20 @@ def draft_reply(contact, last_text=""):
         if ru:
             return (
                 "Конечно, отправлю короткую информацию по Canopy Hills и несколько рендеров, которые удобно переслать клиенту или коллеге.\n\n"
-                "Canopy Hills Villas - камерный поселок из 9 премиальных вилл на холме в Ko Kaeo, напротив British International School Phuket. "
-                "Проект создан для долгосрочной семейной жизни: просторные дома 650-745 м², панорамные виды, приватность, тишина и повседневная инфраструктура рядом.\n\n"
-                "Главное отличие - сочетание BISP-location, больших площадей, вида и качества строительства: продуманная инженерия, "
+                "Canopy Hills Villas - клубный поселок из 9 премиальных вилл на холме напротив British International School Phuket. "
+                "Проект создан для долгосрочной семейной жизни: просторные виллы 650-745 м², панорамные виды, приватность, тишина и повседневная инфраструктура рядом.\n\n"
+                "Главное отличие - сочетание BISP-location, просторных помещений, вида и качества строительства: продуманная инженерия, "
                 "термо- и шумоизоляция, качественные материалы, зоны хранения и планировки для реальной жизни семьи.\n\n"
-                "Сейчас первая вилла C9 выходит на готовность к началу-середине августа, строительство следующих вилл уже начато.\n\n"
-                "SalesKit: https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5\n\n"
+                "Вилла C9 будет готова в начале августа, строительство следующих вилл уже начато.\n\n"
                 "Подскажите, пожалуйста, у вас уже есть конкретный клиент под Canopy Hills или вы хотите получить материалы для базы?"
             )
         return (
             "Sure, I will share a short Canopy Hills summary and several renders that are easy to forward to a client or colleague.\n\n"
-            "Canopy Hills Villas is a private estate of 9 premium hillside villas in Ko Kaeo, opposite British International School Phuket. "
+            "Canopy Hills Villas is a club-style estate of 9 premium hillside villas opposite British International School Phuket. "
             "The project is designed for long-term family living: spacious 650-745 sqm homes, panoramic views, privacy, quiet surroundings and everyday infrastructure nearby.\n\n"
-            "The key difference is the combination of BISP location, large living spaces, views and construction quality: thoughtful engineering, "
+            "The key difference is the combination of BISP location, spacious interiors, views and construction quality: thoughtful engineering, "
             "thermal and sound insulation, high-quality materials, storage areas and layouts made for real family life.\n\n"
-            "The first villa C9 is moving toward completion by early/mid August, and construction of the next villas has already started.\n\n"
-            "SalesKit: https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5\n\n"
+            "Villa C9 will be ready in early August, and construction of the next villas has already started.\n\n"
             "Do you already have a specific client for Canopy Hills, or would you like the materials for your database?"
         )
     if segment == "quality_engineering":
@@ -465,7 +466,8 @@ def suggested_materials(segment):
         "materials_request": [
             "Welcome capsule text RU/EN.",
             "4 approved renders: overall, terrace/view, living/kitchen, evening exterior.",
-            "SalesKit: https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5",
+            "Agents: forwardable broker intro plus SalesKit link.",
+            "Clients: relevant RU/EN/CH presentation, not full SalesKit.",
             "Then ask: specific client or materials for database?",
         ],
         "investor": [
