@@ -257,6 +257,38 @@ def store_payload(payload):
 
 
 def send_whatsapp_text(to, body):
+    payload = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": to,
+        "type": "text",
+        "text": {"preview_url": True, "body": body},
+    }
+    response = send_whatsapp_payload(payload)
+    store_outbound_message(to, "text", body, response, "Outbound text sent from bridge.")
+    return response
+
+
+def send_whatsapp_template(to, template_name, language_code="en_US", components=None):
+    template = {
+        "name": template_name,
+        "language": {"code": language_code},
+    }
+    if components:
+        template["components"] = components
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": to,
+        "type": "template",
+        "template": template,
+    }
+    response = send_whatsapp_payload(payload)
+    label = f"template:{template_name}:{language_code}"
+    store_outbound_message(to, "template", label, response, "Outbound template sent from bridge.")
+    return response
+
+
+def send_whatsapp_payload(payload):
     access_token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
     phone_number_id = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "").strip()
     graph_version = os.environ.get("WHATSAPP_GRAPH_VERSION", "v25.0").strip()
@@ -265,13 +297,6 @@ def send_whatsapp_text(to, body):
     if not phone_number_id:
         raise RuntimeError("WHATSAPP_PHONE_NUMBER_ID is not set")
     url = f"https://graph.facebook.com/{graph_version}/{phone_number_id}/messages"
-    payload = {
-        "messaging_product": "whatsapp",
-        "recipient_type": "individual",
-        "to": to,
-        "type": "text",
-        "text": {"preview_url": True, "body": body},
-    }
     req = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
@@ -290,6 +315,10 @@ def send_whatsapp_text(to, body):
     except urllib.error.URLError as exc:
         raise RuntimeError(str(exc.reason)) from exc
 
+    return response
+
+
+def store_outbound_message(to, message_type, text, response, next_action):
     now = utc_now()
     message_id = ""
     if response.get("messages"):
@@ -299,12 +328,13 @@ def send_whatsapp_text(to, body):
         """
         INSERT OR IGNORE INTO messages
           (id, wa_id, direction, message_type, text, raw_json, received_at)
-        VALUES (?, ?, 'outbound', 'text', ?, ?, ?)
+        VALUES (?, ?, 'outbound', ?, ?, ?, ?)
         """,
         (
             message_id or f"outbound:{to}:{now}",
             to,
-            body,
+            message_type,
+            text,
             json.dumps(response, ensure_ascii=False),
             now,
         ),
@@ -314,16 +344,15 @@ def send_whatsapp_text(to, body):
         INSERT INTO contacts
           (wa_id, profile_name, segment, priority, last_message_at,
            escalation_required, next_action, updated_at)
-        VALUES (?, '', 'outbound_test', 'P3', ?, 0, 'Outbound message sent from bridge.', ?)
+        VALUES (?, '', 'outbound_test', 'P3', ?, 0, ?, ?)
         ON CONFLICT(wa_id) DO UPDATE SET
           last_message_at = excluded.last_message_at,
           updated_at = excluded.updated_at
         """,
-        (to, now, now),
+        (to, now, next_action, now),
     )
     con.commit()
     con.close()
-    return response
 
 
 def graph_get(access_token, graph_version, path, query):
@@ -832,6 +861,22 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def read_authorized_json(self):
+        if not SEND_API_TOKEN:
+            self.send_json(503, {"error": "BRIDGE_SEND_TOKEN is not configured"})
+            return None
+        provided = self.headers.get("X-Bridge-Token", "")
+        if provided != SEND_API_TOKEN:
+            self.send_json(403, {"error": "forbidden"})
+            return None
+        length = int(self.headers.get("Content-Length", "0"))
+        raw = self.rfile.read(length)
+        try:
+            return json.loads(raw.decode("utf-8"))
+        except json.JSONDecodeError:
+            self.send_json(400, {"error": "invalid json"})
+            return None
+
     def do_GET(self):
         parsed = urlparse(self.path)
         params = parse_qs(parsed.query)
@@ -979,19 +1024,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         path = urlparse(self.path).path
         if path == "/send-text":
-            if not SEND_API_TOKEN:
-                self.send_json(503, {"error": "BRIDGE_SEND_TOKEN is not configured"})
-                return
-            provided = self.headers.get("X-Bridge-Token", "")
-            if provided != SEND_API_TOKEN:
-                self.send_json(403, {"error": "forbidden"})
-                return
-            length = int(self.headers.get("Content-Length", "0"))
-            raw = self.rfile.read(length)
-            try:
-                payload = json.loads(raw.decode("utf-8"))
-            except json.JSONDecodeError:
-                self.send_json(400, {"error": "invalid json"})
+            payload = self.read_authorized_json()
+            if payload is None:
                 return
             to = str(payload.get("to", "")).strip()
             text = str(payload.get("text", "")).strip()
@@ -1000,6 +1034,27 @@ class Handler(BaseHTTPRequestHandler):
                 return
             try:
                 result = send_whatsapp_text(to, text)
+            except Exception as exc:
+                self.send_json(502, {"error": str(exc)})
+                return
+            self.send_json(200, {"ok": True, "meta": result})
+            return
+        if path == "/send-template":
+            payload = self.read_authorized_json()
+            if payload is None:
+                return
+            to = str(payload.get("to", "")).strip()
+            template_name = str(payload.get("template", "") or payload.get("name", "")).strip()
+            language_code = str(payload.get("language", "") or payload.get("language_code", "") or "en_US").strip()
+            components = payload.get("components")
+            if not to or not template_name:
+                self.send_json(400, {"error": "to and template are required"})
+                return
+            if components is not None and not isinstance(components, list):
+                self.send_json(400, {"error": "components must be a list when provided"})
+                return
+            try:
+                result = send_whatsapp_template(to, template_name, language_code, components)
             except Exception as exc:
                 self.send_json(502, {"error": str(exc)})
                 return

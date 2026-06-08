@@ -7,7 +7,7 @@ import urllib.request
 
 
 GRAPH_VERSION = os.environ.get("WHATSAPP_GRAPH_VERSION", "v25.0")
-PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "1183823618137845")
+PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "1021241121083612")
 ACCESS_TOKEN = os.environ.get("WHATSAPP_ACCESS_TOKEN", "")
 
 
@@ -50,4 +50,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

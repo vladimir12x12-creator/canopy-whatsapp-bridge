@@ -15,14 +15,15 @@ Build and test the WhatsApp Cloud API automation on a non-live number before tou
 
 ## Staging Cloud API Number
 
-- Number: `+66 98 098 7456`
-- Meta asset: `Canopy Hills Villas Phuket`
-- WABA ID: `2097915004106030`
-- Phone Number ID: `1183823618137845`
+- Number: `+1 555 639 8541`
+- Meta asset: `Test WhatsApp Business Account`
+- WABA ID: `2253327871868025`
+- Phone Number ID: `1021241121083612`
 - Meta app used: `VMB`
 - App ID: `1693287358483119`
 - Business ID: `1452386178649897`
 - API version shown by Meta: `v25.0`
+- Allowed test recipient used for Vladimir: `+66 62 851 2432` / `66628512432`
 
 ## Completed
 
@@ -34,7 +35,9 @@ Build and test the WhatsApp Cloud API automation on a non-live number before tou
 - Webhook field `messages` was subscribed.
 - Local webhook prototype stores inbound webhook payloads in SQLite.
 - Render staging bridge is deployed at `https://canopy-whatsapp-bridge.onrender.com`.
-- Permanent storage requires a paid Render web service plus persistent disk. Free Render web services use an ephemeral filesystem and lose local SQLite data after sleep/restart/redeploy.
+- Render service is on a paid plan with persistent SQLite storage at `/var/data/leads.sqlite`.
+- Outbound text endpoint works technically, but first business-initiated messages should use WhatsApp approved templates. A direct free-text test can be accepted by Meta and still not appear if the 24-hour customer-service window is not open.
+- Outbound template sending was verified with Meta's `hello_world` template.
 
 ## Local Webhook Prototype
 
@@ -50,22 +53,15 @@ Endpoints:
 - `POST /webhook` - inbound WhatsApp webhook receiver.
 - `GET /leads` - classified contacts.
 - `GET /messages?wa_id=...` - messages for one contact.
+- `POST /send-text` - protected outbound free-text send. Use only inside a 24-hour customer-service window.
+- `POST /send-template` - protected outbound template send for first contact or closed windows.
 
 ## Current Blockers
 
-1. Permanent storage for leads/messages.
-   - The service uses SQLite.
-   - On Render Free, `/tmp` and other local filesystem changes are ephemeral.
-   - Production-ready option: Render Starter web service plus a 1GB persistent disk mounted at `/var/data`, with `WHATSAPP_BRIDGE_DB=/var/data/leads.sqlite`.
-
-2. Permanent/system-user access token.
-   - Needed for outbound API sending.
-   - Temporary token generation did not proceed from the Developer console UI.
-   - Use Business Settings / System Users path after passkey if needed.
-
-3. WhatsApp payment method.
+1. WhatsApp payment method.
    - Required for business-initiated conversations and template sends.
    - Not required for receiving inbound webhook messages.
+   - This still matters before moving to the live number.
 
 ## Hosting Decision Needed
 
@@ -87,13 +83,11 @@ Recommended next step: keep testing on the staging number, but move the bridge t
 
 ## Next Technical Steps
 
-1. Confirm paid Render Starter + 1GB persistent disk for reliable storage.
-2. Sync updated `render.yaml`.
-3. Confirm `https://canopy-whatsapp-bridge.onrender.com/inbox` keeps leads after restart.
-4. Generate permanent system-user token for `CanopyBot`.
-5. Add `WHATSAPP_ACCESS_TOKEN` to Render environment variables.
-6. Send a real outbound test message to Vladimir's staging WhatsApp.
-7. Add media sending and template support.
+1. Create Canopy-specific WhatsApp message templates in Meta.
+2. Add media sending support for approved renders/videos/doc links.
+3. Build lead scenario flows for agent/client/junk classification.
+4. Test the flow fully on the staging WABA.
+5. Decide when and how to move from the test number to the live ad number `+66 61 997 8591`.
 
 ## Permanent Token Path
 
@@ -102,7 +96,7 @@ Use the existing system user `CanopyBot`:
 1. Open Meta Business Settings for business `1452386178649897`.
 2. Go to `Users` -> `System users`.
 3. Select `CanopyBot`.
-4. Make sure the WhatsApp Business Account `2097915004106030` is assigned to this system user with messaging/management access.
+4. Make sure the WhatsApp Business Account `2253327871868025` is assigned to this system user with messaging/management access.
 5. Click `Generate token`.
 6. Select app `VMB` / app ID `1693287358483119`.
 7. Select permissions:
@@ -115,6 +109,15 @@ Local outbound smoke test after token exists:
 
 ```bash
 WHATSAPP_ACCESS_TOKEN='...' \
-WHATSAPP_PHONE_NUMBER_ID=1183823618137845 \
+WHATSAPP_PHONE_NUMBER_ID=1021241121083612 \
 python3 whatsapp_bridge/send_text.py 66628512432 'Test message from Canopy WhatsApp Cloud API staging.'
+```
+
+Protected template test from Render Shell:
+
+```bash
+curl -sS -X POST https://canopy-whatsapp-bridge.onrender.com/send-template \
+  -H "Content-Type: application/json" \
+  -H "X-Bridge-Token: $BRIDGE_SEND_TOKEN" \
+  --data '{"to":"66628512432","template":"hello_world","language":"en_US"}'
 ```
