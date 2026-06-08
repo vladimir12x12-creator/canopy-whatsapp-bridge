@@ -257,9 +257,9 @@ def store_payload(payload):
 
 
 def send_whatsapp_text(to, body):
-    access_token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "")
-    phone_number_id = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "")
-    graph_version = os.environ.get("WHATSAPP_GRAPH_VERSION", "v25.0")
+    access_token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
+    phone_number_id = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "").strip()
+    graph_version = os.environ.get("WHATSAPP_GRAPH_VERSION", "v25.0").strip()
     if not access_token:
         raise RuntimeError("WHATSAPP_ACCESS_TOKEN is not set")
     if not phone_number_id:
