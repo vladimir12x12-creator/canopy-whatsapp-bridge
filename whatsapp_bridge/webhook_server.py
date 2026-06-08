@@ -326,7 +326,31 @@ def send_whatsapp_text(to, body):
     return response
 
 
-def whatsapp_diagnostics():
+def graph_get(access_token, graph_version, path, query):
+    url = f"https://graph.facebook.com/{graph_version}/{path}?{query}"
+    req = urllib.request.Request(
+        url,
+        headers={"Authorization": f"Bearer {access_token}"},
+        method="GET",
+    )
+    with urllib.request.urlopen(req, timeout=30) as res:
+        return json.loads(res.read().decode("utf-8"))
+
+
+def safe_graph_get(access_token, graph_version, path, query):
+    try:
+        return {"ok": True, "data": graph_get(access_token, graph_version, path, query)}
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8")
+        try:
+            return {"ok": False, "meta_error": json.loads(error_body)}
+        except json.JSONDecodeError:
+            return {"ok": False, "meta_error": error_body[:500]}
+    except urllib.error.URLError as exc:
+        return {"ok": False, "error": str(exc.reason)}
+
+
+def whatsapp_diagnostics(waba_id=""):
     access_token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
     phone_number_id = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "").strip()
     graph_version = os.environ.get("WHATSAPP_GRAPH_VERSION", "v25.0").strip()
@@ -340,31 +364,24 @@ def whatsapp_diagnostics():
         result["error"] = "WHATSAPP_ACCESS_TOKEN or WHATSAPP_PHONE_NUMBER_ID is not set"
         return result
 
-    url = (
-        f"https://graph.facebook.com/{graph_version}/{phone_number_id}"
-        "?fields=id,display_phone_number,verified_name,quality_rating,platform_type"
+    phone_check = safe_graph_get(
+        access_token,
+        graph_version,
+        phone_number_id,
+        "fields=id,display_phone_number,verified_name,quality_rating,platform_type",
     )
-    req = urllib.request.Request(
-        url,
-        headers={"Authorization": f"Bearer {access_token}"},
-        method="GET",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=30) as res:
-            meta = json.loads(res.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        error_body = exc.read().decode("utf-8")
-        try:
-            result["meta_error"] = json.loads(error_body)
-        except json.JSONDecodeError:
-            result["meta_error"] = error_body[:500]
-        return result
-    except urllib.error.URLError as exc:
-        result["error"] = str(exc.reason)
-        return result
+    result["phone_number_check"] = phone_check
 
-    result["ok"] = True
-    result["phone_number"] = meta
+    if waba_id:
+        result["waba_id"] = waba_id
+        result["waba_phone_numbers"] = safe_graph_get(
+            access_token,
+            graph_version,
+            f"{waba_id}/phone_numbers",
+            "fields=id,display_phone_number,verified_name,quality_rating,platform_type",
+        )
+
+    result["ok"] = phone_check.get("ok", False)
     return result
 
 
@@ -846,7 +863,7 @@ class Handler(BaseHTTPRequestHandler):
             )
             return
         if parsed.path == "/whatsapp-diagnostics":
-            diagnostics = whatsapp_diagnostics()
+            diagnostics = whatsapp_diagnostics(params.get("waba_id", [""])[0])
             self.send_json(200 if diagnostics.get("ok") else 502, diagnostics)
             return
         if parsed.path == "/leads":
