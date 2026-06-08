@@ -108,6 +108,13 @@ def classify(text):
             "escalation_required": 1,
             "next_action": "Escalate to Vladimir/partner; offer a short call and send investor materials only after qualification.",
         }
+    if has_any(t, ["details", "send materials", "project materials", "sales kit", "salekit", "brochure", "presentation", "deck", "pdf", "send info", "send more", "share with my client", "подроб", "пришлите материалы", "отправьте материалы", "материалы по проекту", "презентац", "брошюр", "информац"]):
+        return {
+            "segment": "materials_request",
+            "priority": "P2",
+            "escalation_required": 0,
+            "next_action": "Send welcome capsule with approved renders/media, then qualify buyer vs agent/client.",
+        }
     if has_any(t, ["quality", "engineering", "insulation", "sound", "roof", "windows", "construction quality", "specs", "качество", "инженер", "изоляц", "крыша", "окна", "строительств"]):
         return {
             "segment": "quality_engineering",
@@ -121,13 +128,6 @@ def classify(text):
             "priority": "P2",
             "escalation_required": 1,
             "next_action": "Acknowledge due diligence, qualify villa/client seriousness, and prepare legal pack only after qualification.",
-        }
-    if has_any(t, ["details", "send materials", "project materials", "sales kit", "salekit", "brochure", "presentation", "deck", "pdf", "send info", "send more", "share with my client", "подроб", "пришлите материалы", "отправьте материалы", "материалы по проекту", "презентац", "брошюр", "информац"]):
-        return {
-            "segment": "materials_request",
-            "priority": "P2",
-            "escalation_required": 0,
-            "next_action": "Send welcome capsule with 4 renders and SalesKit link, then qualify buyer vs agent/client.",
         }
     if has_any(t, ["viewing", "visit", "appointment", "show", "смотреть", "посмотреть", "показ", "встреч", "визит"]):
         return {
@@ -716,6 +716,19 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.write(body)
             else:
                 self.send_json(403, {"error": "verification failed"})
+            return
+        if parsed.path == "/health":
+            self.send_json(
+                200,
+                {
+                    "ok": True,
+                    "db_path": DB_PATH,
+                    "graph_version": os.environ.get("WHATSAPP_GRAPH_VERSION", "v25.0"),
+                    "phone_number_id": os.environ.get("WHATSAPP_PHONE_NUMBER_ID", ""),
+                    "render_git_commit": os.environ.get("RENDER_GIT_COMMIT", ""),
+                    "render_service_name": os.environ.get("RENDER_SERVICE_NAME", ""),
+                },
+            )
             return
         if parsed.path == "/leads":
             con = db()
