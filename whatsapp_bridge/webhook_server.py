@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import mimetypes
 import os
 import sqlite3
 import csv
@@ -9,6 +10,7 @@ import urllib.request
 from html import escape
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlparse
 
 DB_PATH = os.environ.get(
@@ -20,6 +22,9 @@ PORT = int(os.environ.get("WHATSAPP_BRIDGE_PORT", "8088"))
 VERIFY_TOKEN = os.environ.get("VERIFY_TOKEN", "")
 SEND_API_TOKEN = os.environ.get("BRIDGE_SEND_TOKEN", "")
 DEFAULT_WABA_ID = os.environ.get("WHATSAPP_WABA_ID", "2253327871868025")
+DEFAULT_APP_ID = os.environ.get("WHATSAPP_APP_ID", "1693287358483119")
+BASE_URL = os.environ.get("BRIDGE_PUBLIC_BASE_URL", "https://canopy-whatsapp-bridge.onrender.com").rstrip("/")
+ASSET_DIR = Path(__file__).resolve().parent / "assets"
 
 
 def utc_now():
@@ -516,6 +521,63 @@ def safe_graph_post(access_token, graph_version, path, payload):
         return {"ok": False, "error": str(exc.reason)}
 
 
+def graph_upload_file_handle(access_token, graph_version, app_id, file_path):
+    path = Path(file_path)
+    file_type = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
+    file_size = path.stat().st_size
+    start_query = urlencode(
+        {
+            "file_name": path.name,
+            "file_length": str(file_size),
+            "file_type": file_type,
+        }
+    )
+    start_url = f"https://graph.facebook.com/{graph_version}/{app_id}/uploads?{start_query}"
+    start_req = urllib.request.Request(
+        start_url,
+        headers={"Authorization": f"OAuth {access_token}"},
+        method="POST",
+    )
+    with urllib.request.urlopen(start_req, timeout=30) as res:
+        session = json.loads(res.read().decode("utf-8"))
+
+    upload_id = session.get("id")
+    if not upload_id:
+        raise RuntimeError(f"Meta upload session did not return id: {session}")
+
+    upload_url = f"https://graph.facebook.com/{graph_version}/{upload_id}"
+    upload_req = urllib.request.Request(
+        upload_url,
+        data=path.read_bytes(),
+        headers={
+            "Authorization": f"OAuth {access_token}",
+            "file_offset": "0",
+            "Content-Type": file_type,
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(upload_req, timeout=60) as res:
+        uploaded = json.loads(res.read().decode("utf-8"))
+
+    handle = uploaded.get("h")
+    if not handle:
+        raise RuntimeError(f"Meta upload did not return header handle: {uploaded}")
+    return {"handle": handle, "session": session, "uploaded": uploaded, "file_type": file_type, "file_size": file_size}
+
+
+def safe_graph_upload_file_handle(access_token, graph_version, app_id, file_path):
+    try:
+        return {"ok": True, "data": graph_upload_file_handle(access_token, graph_version, app_id, file_path)}
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8")
+        try:
+            return {"ok": False, "meta_error": json.loads(error_body)}
+        except json.JSONDecodeError:
+            return {"ok": False, "meta_error": error_body[:500]}
+    except (urllib.error.URLError, OSError, RuntimeError) as exc:
+        return {"ok": False, "error": str(exc)}
+
+
 def canopy_template_payload(template_key):
     sales_kit_url = "https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5"
     templates = {
@@ -528,9 +590,7 @@ def canopy_template_payload(template_key):
                     "type": "HEADER",
                     "format": "IMAGE",
                     "example": {
-                        "header_handle": [
-                            "https://drive.google.com/uc?export=download&id=12oifyEV0kgHLomQM2mI211qXEy9hDEC2"
-                        ]
+                        "header_handle": ["__META_HEADER_HANDLE__"]
                     },
                 },
                 {
@@ -621,11 +681,13 @@ def create_canopy_template(template_key):
     access_token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
     graph_version = os.environ.get("WHATSAPP_GRAPH_VERSION", "v25.0").strip()
     waba_id = os.environ.get("WHATSAPP_WABA_ID", DEFAULT_WABA_ID).strip()
+    app_id = os.environ.get("WHATSAPP_APP_ID", DEFAULT_APP_ID).strip()
     payload = canopy_template_payload(template_key)
     result = {
         "ok": False,
         "graph_version": graph_version,
         "waba_id": waba_id,
+        "app_id": app_id,
         "template_key": template_key,
         "payload_name": payload.get("name") if payload else "",
     }
@@ -635,6 +697,17 @@ def create_canopy_template(template_key):
     if not access_token or not waba_id:
         result["error"] = "WHATSAPP_ACCESS_TOKEN or WHATSAPP_WABA_ID is not set"
         return result
+    if template_key == "agent_saleskit_intro_image":
+        sample_path = ASSET_DIR / "agent_header.jpg"
+        upload = safe_graph_upload_file_handle(access_token, graph_version, app_id, sample_path)
+        result["sample_upload"] = upload
+        if not upload.get("ok"):
+            result["error"] = "failed to upload image sample to Meta"
+            return result
+        header_handle = upload["data"]["handle"]
+        for component in payload.get("components", []):
+            if component.get("type") == "HEADER" and component.get("format") == "IMAGE":
+                component["example"] = {"header_handle": [header_handle]}
 
     response = safe_graph_post(access_token, graph_version, f"{waba_id}/message_templates", payload)
     result["meta"] = response
@@ -1174,6 +1247,21 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         params = parse_qs(parsed.query)
+        if parsed.path.startswith("/assets/"):
+            name = Path(parsed.path).name
+            asset_path = ASSET_DIR / name
+            if not asset_path.exists() or not asset_path.is_file():
+                self.send_json(404, {"error": "asset not found"})
+                return
+            content_type = mimetypes.guess_type(str(asset_path))[0] or "application/octet-stream"
+            body = asset_path.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Cache-Control", "public, max-age=86400")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if parsed.path == "/webhook":
             mode = params.get("hub.mode", [""])[0]
             token = params.get("hub.verify_token", [""])[0]
