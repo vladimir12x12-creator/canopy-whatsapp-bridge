@@ -98,6 +98,20 @@ def classify(text):
             "escalation_required": 1,
             "next_action": "Register client, collect name/country/timing, and confirm viewing or next step.",
         }
+    if has_any(t, ["investor", "investment", "fund", "jv", "roi", "proof of funds", "buyback", "co-invest", "инвест", "инвести", "доходность"]):
+        return {
+            "segment": "investor",
+            "priority": "P1",
+            "escalation_required": 1,
+            "next_action": "Escalate to Vladimir/partner; offer a short call and send investor materials only after qualification.",
+        }
+    if has_any(t, ["quality", "engineering", "insulation", "sound", "roof", "windows", "construction quality", "specs", "качество", "инженер", "изоляц", "крыша", "окна", "строительств"]):
+        return {
+            "segment": "quality_engineering",
+            "priority": "P2",
+            "escalation_required": 0,
+            "next_action": "Explain quality as daily-living proof and offer engineering/materials pack or technical viewing.",
+        }
     if has_any(t, ["contract", "title", "chanote", "permit", "lawyer", "legal", "leasehold", "freehold", "due diligence", "ownership", "договор", "чанот", "юрист", "документ", "лизхолд", "фрихолд", "собствен"]):
         return {
             "segment": "trust_legal",
@@ -105,26 +119,12 @@ def classify(text):
             "escalation_required": 1,
             "next_action": "Acknowledge due diligence, qualify villa/client seriousness, and prepare legal pack only after qualification.",
         }
-    if has_any(t, ["details", "send materials", "project materials", "sales kit", "salekit", "brochure", "presentation", "deck", "pdf", "send info", "send more", "learn more", "share with my client", "подроб", "пришлите материалы", "отправьте материалы", "материалы по проекту", "презентац", "брошюр", "информац"]):
+    if has_any(t, ["details", "send materials", "project materials", "sales kit", "salekit", "brochure", "presentation", "deck", "pdf", "send info", "send more", "share with my client", "подроб", "пришлите материалы", "отправьте материалы", "материалы по проекту", "презентац", "брошюр", "информац"]):
         return {
             "segment": "materials_request",
             "priority": "P2",
             "escalation_required": 0,
             "next_action": "Send welcome capsule with 4 renders and SalesKit link, then qualify buyer vs agent/client.",
-        }
-    if has_any(t, ["quality", "materials", "engineering", "insulation", "sound", "roof", "windows", "construction quality", "specs", "качество", "материал", "инженер", "изоляц", "крыша", "окна", "строительств"]):
-        return {
-            "segment": "quality_engineering",
-            "priority": "P2",
-            "escalation_required": 0,
-            "next_action": "Explain quality as daily-living proof and offer engineering/materials pack or technical viewing.",
-        }
-    if has_any(t, ["investor", "investment", "fund", "jv", "roi", "proof of funds", "buyback", "co-invest", "инвест", "инвести", "доходность"]):
-        return {
-            "segment": "investor",
-            "priority": "P1",
-            "escalation_required": 1,
-            "next_action": "Escalate to Vladimir/partner; offer a short call and send investor materials only after qualification.",
         }
     if has_any(t, ["viewing", "visit", "appointment", "show", "смотреть", "посмотреть", "показ", "встреч", "визит"]):
         return {
@@ -140,7 +140,7 @@ def classify(text):
             "escalation_required": 0,
             "next_action": "Explain C9 readiness, active construction of next villas, and offer private preview.",
         }
-    if has_any(t, ["agent", "broker", "agency", "commission", "realtor", "агент", "брокер", "комисс"]):
+    if has_any(t, ["agent", "broker", "agency", "agencies", "commission", "realtor", "агент", "брокер", "комисс"]):
         return {
             "segment": "broker",
             "priority": "P2",
