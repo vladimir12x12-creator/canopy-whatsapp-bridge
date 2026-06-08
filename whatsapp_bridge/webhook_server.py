@@ -581,6 +581,87 @@ def safe_graph_upload_file_handle(access_token, graph_version, app_id, file_path
 def canopy_template_payload(template_key):
     sales_kit_url = "https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5"
     templates = {
+        "agent_intro_carousel_test": {
+            "name": "canopy_agent_intro_carousel_test",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": (
+                        "Hi {{1}}, here is a quick Canopy Hills broker preview: a hillside family villa "
+                        "estate opposite British International School Phuket, with C9 expected to be ready "
+                        "for private viewings in early/mid August."
+                    ),
+                    "example": {"body_text": [["there"]]},
+                },
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL_OVERVIEW_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "Club estate of 9 premium hillside villas in Ko Kaeo, opposite BISP.",
+                                },
+                                {
+                                    "type": "BUTTONS",
+                                    "buttons": [
+                                        {"type": "URL", "text": "Open Sales Kit", "url": sales_kit_url},
+                                        {"type": "QUICK_REPLY", "text": "Ask for details"},
+                                    ],
+                                },
+                            ],
+                        },
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL_LIVING_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "Spacious 4+1 and 5+1 bedroom villas for long-term family living.",
+                                },
+                                {
+                                    "type": "BUTTONS",
+                                    "buttons": [
+                                        {"type": "URL", "text": "Open Sales Kit", "url": sales_kit_url},
+                                        {"type": "QUICK_REPLY", "text": "Register client"},
+                                    ],
+                                },
+                            ],
+                        },
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL_VIEW_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "C9 is expected to be ready for private viewings in early/mid August.",
+                                },
+                                {
+                                    "type": "BUTTONS",
+                                    "buttons": [
+                                        {"type": "URL", "text": "Open Sales Kit", "url": sales_kit_url},
+                                        {"type": "QUICK_REPLY", "text": "Arrange viewing"},
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
         "agent_saleskit_intro_image": {
             "name": "canopy_agent_saleskit_intro_image",
             "language": "en_US",
@@ -815,6 +896,31 @@ def create_canopy_template(template_key):
         for component in payload.get("components", []):
             if component.get("type") == "HEADER" and component.get("format") == "IMAGE":
                 component["example"] = {"header_handle": [header_handle]}
+
+    if template_key == "agent_intro_carousel_test":
+        carousel_samples = [
+            ("__CAROUSEL_OVERVIEW_HANDLE__", ASSET_DIR / "carousel_overview.jpg"),
+            ("__CAROUSEL_LIVING_HANDLE__", ASSET_DIR / "carousel_living.jpg"),
+            ("__CAROUSEL_VIEW_HANDLE__", ASSET_DIR / "carousel_view.jpg"),
+        ]
+        result["sample_uploads"] = []
+        handles = {}
+        for placeholder, sample_path in carousel_samples:
+            upload = safe_graph_upload_file_handle(access_token, graph_version, app_id, sample_path)
+            result["sample_uploads"].append({"placeholder": placeholder, "upload": upload})
+            if not upload.get("ok"):
+                result["error"] = f"failed to upload carousel sample {sample_path.name} to Meta"
+                return result
+            handles[placeholder] = upload["data"]["handle"]
+
+        for component in payload.get("components", []):
+            if component.get("type") == "CAROUSEL":
+                for card in component.get("cards", []):
+                    for card_component in card.get("components", []):
+                        example = card_component.get("example", {})
+                        header_handle = example.get("header_handle", [])
+                        if header_handle and header_handle[0] in handles:
+                            card_component["example"] = {"header_handle": [handles[header_handle[0]]]}
 
     response = safe_graph_post(access_token, graph_version, f"{waba_id}/message_templates", payload)
     result["meta"] = response
