@@ -580,7 +580,143 @@ def safe_graph_upload_file_handle(access_token, graph_version, app_id, file_path
 
 def canopy_template_payload(template_key):
     sales_kit_url = "https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5"
+    carousel8_buttons = [
+        {"type": "URL", "text": "Open Sales Kit", "url": sales_kit_url},
+        {"type": "QUICK_REPLY", "text": "Ask for details"},
+    ]
     templates = {
+        "agent_intro_carousel_8_v1": {
+            "name": "canopy_agent_intro_carousel_8_v1",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": (
+                        "Hi {{1}}, here are 8 quick reasons why Canopy Hills is relevant for "
+                        "BISP and long-term family buyers in Phuket."
+                    ),
+                    "example": {"body_text": [["there"]]},
+                },
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL8_ESTATE_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "Club estate of 9 premium hillside villas",
+                                },
+                                {"type": "BUTTONS", "buttons": carousel8_buttons},
+                            ],
+                        },
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL8_BISP_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "Opposite BISP, built for family life",
+                                },
+                                {"type": "BUTTONS", "buttons": carousel8_buttons},
+                            ],
+                        },
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL8_SPACIOUS_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "Spacious 4+1 and 5+1 villas, 650-768 sqm",
+                                },
+                                {"type": "BUTTONS", "buttons": carousel8_buttons},
+                            ],
+                        },
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL8_VIEWS_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "Panoramic hill, lake and sunset views",
+                                },
+                                {"type": "BUTTONS", "buttons": carousel8_buttons},
+                            ],
+                        },
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL8_PRIVACY_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "Quiet green setting away from tourist zones",
+                                },
+                                {"type": "BUTTONS", "buttons": carousel8_buttons},
+                            ],
+                        },
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL8_COMFORT_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "Designed for daily family living, not short stays",
+                                },
+                                {"type": "BUTTONS", "buttons": carousel8_buttons},
+                            ],
+                        },
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL8_ENGINEERING_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "Engineered for comfort: insulation, roof, solar",
+                                },
+                                {"type": "BUTTONS", "buttons": carousel8_buttons},
+                            ],
+                        },
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL8_READY_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "C9 ready in August, with next villas underway",
+                                },
+                                {"type": "BUTTONS", "buttons": carousel8_buttons},
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
         "agent_intro_carousel_test": {
             "name": "canopy_agent_intro_carousel_test",
             "language": "en_US",
@@ -902,6 +1038,36 @@ def create_canopy_template(template_key):
             ("__CAROUSEL_OVERVIEW_HANDLE__", ASSET_DIR / "carousel_overview.jpg"),
             ("__CAROUSEL_LIVING_HANDLE__", ASSET_DIR / "carousel_living.jpg"),
             ("__CAROUSEL_VIEW_HANDLE__", ASSET_DIR / "carousel_view.jpg"),
+        ]
+        result["sample_uploads"] = []
+        handles = {}
+        for placeholder, sample_path in carousel_samples:
+            upload = safe_graph_upload_file_handle(access_token, graph_version, app_id, sample_path)
+            result["sample_uploads"].append({"placeholder": placeholder, "upload": upload})
+            if not upload.get("ok"):
+                result["error"] = f"failed to upload carousel sample {sample_path.name} to Meta"
+                return result
+            handles[placeholder] = upload["data"]["handle"]
+
+        for component in payload.get("components", []):
+            if component.get("type") == "CAROUSEL":
+                for card in component.get("cards", []):
+                    for card_component in card.get("components", []):
+                        example = card_component.get("example", {})
+                        header_handle = example.get("header_handle", [])
+                        if header_handle and header_handle[0] in handles:
+                            card_component["example"] = {"header_handle": [handles[header_handle[0]]]}
+
+    if template_key == "agent_intro_carousel_8_v1":
+        carousel_samples = [
+            ("__CAROUSEL8_ESTATE_HANDLE__", ASSET_DIR / "carousel8_01_estate.jpg"),
+            ("__CAROUSEL8_BISP_HANDLE__", ASSET_DIR / "carousel8_02_bisp_family.jpg"),
+            ("__CAROUSEL8_SPACIOUS_HANDLE__", ASSET_DIR / "carousel8_03_spacious.jpg"),
+            ("__CAROUSEL8_VIEWS_HANDLE__", ASSET_DIR / "carousel8_04_views.jpg"),
+            ("__CAROUSEL8_PRIVACY_HANDLE__", ASSET_DIR / "carousel8_05_private_bedroom.jpg"),
+            ("__CAROUSEL8_COMFORT_HANDLE__", ASSET_DIR / "carousel8_06_daily_comfort.jpg"),
+            ("__CAROUSEL8_ENGINEERING_HANDLE__", ASSET_DIR / "carousel8_07_engineering.jpg"),
+            ("__CAROUSEL8_READY_HANDLE__", ASSET_DIR / "carousel8_08_layout.jpg"),
         ]
         result["sample_uploads"] = []
         handles = {}
