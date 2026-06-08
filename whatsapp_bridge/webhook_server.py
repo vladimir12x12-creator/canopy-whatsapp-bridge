@@ -488,6 +488,119 @@ def safe_graph_get(access_token, graph_version, path, query):
         return {"ok": False, "error": str(exc.reason)}
 
 
+def graph_post(access_token, graph_version, path, payload):
+    url = f"https://graph.facebook.com/{graph_version}/{path}"
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=30) as res:
+        return json.loads(res.read().decode("utf-8"))
+
+
+def safe_graph_post(access_token, graph_version, path, payload):
+    try:
+        return {"ok": True, "data": graph_post(access_token, graph_version, path, payload)}
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8")
+        try:
+            return {"ok": False, "meta_error": json.loads(error_body)}
+        except json.JSONDecodeError:
+            return {"ok": False, "meta_error": error_body[:500]}
+    except urllib.error.URLError as exc:
+        return {"ok": False, "error": str(exc.reason)}
+
+
+def canopy_template_payload(template_key):
+    sales_kit_url = "https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5"
+    templates = {
+        "agent_saleskit_intro": {
+            "name": "canopy_agent_saleskit_intro",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": (
+                        "Hi {{1}}, sharing a quick broker pack for Canopy Hills Villas Phuket.\n\n"
+                        "Canopy Hills is a club estate of 9 premium hillside villas in Ko Kaeo, "
+                        "opposite British International School Phuket.\n\n"
+                        "Designed for families relocating to Phuket or living on the island full-time: "
+                        "spacious 4+1 and 5+1 bedroom villas, approx. 650-768 sqm built-up, panoramic views, "
+                        "privacy, quiet green surroundings and daily infrastructure nearby.\n\n"
+                        "Current availability to discuss: C1, C2, C3 and C6. Villa C9 is nearly ready, "
+                        "with private viewings expected in early/mid August. C7-C8 construction has started.\n\n"
+                        "Price range: from approx. THB 57.5M. Agent commission: 6%.\n\n"
+                        "If you have a client focused on BISP, long-term family living and a near-ready "
+                        "premium villa, we can pre-arrange a private C9 viewing for early/mid August."
+                    ),
+                    "example": {"body_text": [["there"]]},
+                },
+                {
+                    "type": "BUTTONS",
+                    "buttons": [
+                        {"type": "URL", "text": "Open Sales Kit", "url": sales_kit_url},
+                        {"type": "QUICK_REPLY", "text": "Register client"},
+                        {"type": "QUICK_REPLY", "text": "Arrange viewing"},
+                    ],
+                },
+            ],
+        },
+        "vladimir_need_reply": {
+            "name": "codex_need_vladimir_reply_ru",
+            "language": "ru",
+            "category": "UTILITY",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": (
+                        "Володя, мне нужен твой короткий ответ по Canopy, чтобы двигаться дальше. "
+                        "Пожалуйста, ответь в этот WhatsApp-чат."
+                    ),
+                },
+                {
+                    "type": "BUTTONS",
+                    "buttons": [
+                        {"type": "QUICK_REPLY", "text": "Отвечу сейчас"},
+                        {"type": "QUICK_REPLY", "text": "Позже"},
+                    ],
+                },
+            ],
+        },
+    }
+    return templates.get(template_key)
+
+
+def create_canopy_template(template_key):
+    access_token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
+    graph_version = os.environ.get("WHATSAPP_GRAPH_VERSION", "v25.0").strip()
+    waba_id = os.environ.get("WHATSAPP_WABA_ID", DEFAULT_WABA_ID).strip()
+    payload = canopy_template_payload(template_key)
+    result = {
+        "ok": False,
+        "graph_version": graph_version,
+        "waba_id": waba_id,
+        "template_key": template_key,
+        "payload_name": payload.get("name") if payload else "",
+    }
+    if not payload:
+        result["error"] = "unknown template_key"
+        return result
+    if not access_token or not waba_id:
+        result["error"] = "WHATSAPP_ACCESS_TOKEN or WHATSAPP_WABA_ID is not set"
+        return result
+
+    response = safe_graph_post(access_token, graph_version, f"{waba_id}/message_templates", payload)
+    result["meta"] = response
+    result["ok"] = bool(response.get("ok"))
+    return result
+
+
 def whatsapp_templates(template_name=""):
     access_token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
     graph_version = os.environ.get("WHATSAPP_GRAPH_VERSION", "v25.0").strip()
@@ -1228,6 +1341,17 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(502, {"error": str(exc)})
                 return
             self.send_json(200, {"ok": True, "meta": result})
+            return
+        if path == "/create-canopy-template":
+            payload = self.read_authorized_json()
+            if payload is None:
+                return
+            template_key = str(payload.get("template_key", "") or payload.get("key", "")).strip()
+            if not template_key:
+                self.send_json(400, {"error": "template_key is required"})
+                return
+            result = create_canopy_template(template_key)
+            self.send_json(200 if result.get("ok") else 502, result)
             return
         if path == "/send-media":
             payload = self.read_authorized_json()

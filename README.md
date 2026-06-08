@@ -57,6 +57,7 @@ Endpoints:
 - `POST /send-text` - protected outbound free-text send. Use only inside a 24-hour customer-service window.
 - `POST /send-template` - protected outbound template send for first contact or closed windows.
 - `POST /send-media` - protected outbound image/video/document send by public HTTPS link. Use only inside a 24-hour customer-service window.
+- `POST /create-canopy-template` - protected helper to submit built-in Canopy templates to Meta.
 
 ## Current Blockers
 
@@ -130,3 +131,22 @@ Protected template status check from Render Shell:
 curl -sS "https://canopy-whatsapp-bridge.onrender.com/templates?name=canopy_broker_preview_august" \
   -H "X-Bridge-Token: $BRIDGE_SEND_TOKEN"
 ```
+
+Submit built-in Canopy templates from Render Shell:
+
+```bash
+curl -sS -X POST https://canopy-whatsapp-bridge.onrender.com/create-canopy-template \
+  -H "Content-Type: application/json" \
+  -H "X-Bridge-Token: $BRIDGE_SEND_TOKEN" \
+  --data '{"template_key":"agent_saleskit_intro"}'
+
+curl -sS -X POST https://canopy-whatsapp-bridge.onrender.com/create-canopy-template \
+  -H "Content-Type: application/json" \
+  -H "X-Bridge-Token: $BRIDGE_SEND_TOKEN" \
+  --data '{"template_key":"vladimir_need_reply"}'
+```
+
+Built-in template keys:
+
+- `agent_saleskit_intro` - first broker/agent message with project summary and Sales Kit button.
+- `vladimir_need_reply` - short Russian ping asking Vladimir to reply in WhatsApp so the 24-hour conversation window opens.
