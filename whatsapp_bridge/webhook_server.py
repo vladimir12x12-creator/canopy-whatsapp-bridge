@@ -326,6 +326,48 @@ def send_whatsapp_text(to, body):
     return response
 
 
+def whatsapp_diagnostics():
+    access_token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
+    phone_number_id = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "").strip()
+    graph_version = os.environ.get("WHATSAPP_GRAPH_VERSION", "v25.0").strip()
+    result = {
+        "ok": False,
+        "graph_version": graph_version,
+        "phone_number_id": phone_number_id,
+        "has_access_token": bool(access_token),
+    }
+    if not access_token or not phone_number_id:
+        result["error"] = "WHATSAPP_ACCESS_TOKEN or WHATSAPP_PHONE_NUMBER_ID is not set"
+        return result
+
+    url = (
+        f"https://graph.facebook.com/{graph_version}/{phone_number_id}"
+        "?fields=id,display_phone_number,verified_name,quality_rating,platform_type"
+    )
+    req = urllib.request.Request(
+        url,
+        headers={"Authorization": f"Bearer {access_token}"},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as res:
+            meta = json.loads(res.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8")
+        try:
+            result["meta_error"] = json.loads(error_body)
+        except json.JSONDecodeError:
+            result["meta_error"] = error_body[:500]
+        return result
+    except urllib.error.URLError as exc:
+        result["error"] = str(exc.reason)
+        return result
+
+    result["ok"] = True
+    result["phone_number"] = meta
+    return result
+
+
 def rows_to_json(rows):
     return json.dumps([dict(r) for r in rows], ensure_ascii=False, indent=2).encode("utf-8")
 
@@ -802,6 +844,10 @@ class Handler(BaseHTTPRequestHandler):
                     "render_service_name": os.environ.get("RENDER_SERVICE_NAME", ""),
                 },
             )
+            return
+        if parsed.path == "/whatsapp-diagnostics":
+            diagnostics = whatsapp_diagnostics()
+            self.send_json(200 if diagnostics.get("ok") else 502, diagnostics)
             return
         if parsed.path == "/leads":
             con = db()
