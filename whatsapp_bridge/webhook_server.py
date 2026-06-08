@@ -289,6 +289,27 @@ def send_whatsapp_template(to, template_name, language_code="en_US", components=
     return response
 
 
+def send_whatsapp_media(to, media_type, link, caption="", filename=""):
+    if media_type not in {"image", "video", "document"}:
+        raise ValueError("media_type must be one of: image, video, document")
+    media = {"link": link}
+    if caption:
+        media["caption"] = caption
+    if filename and media_type == "document":
+        media["filename"] = filename
+    payload = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": to,
+        "type": media_type,
+        media_type: media,
+    }
+    response = send_whatsapp_payload(payload)
+    label = f"{media_type}:{link}"
+    store_outbound_message(to, media_type, label, response, "Outbound media sent from bridge.")
+    return response
+
+
 def send_whatsapp_payload(payload):
     access_token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
     phone_number_id = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "").strip()
@@ -1098,6 +1119,25 @@ class Handler(BaseHTTPRequestHandler):
                 return
             try:
                 result = send_whatsapp_template(to, template_name, language_code, components)
+            except Exception as exc:
+                self.send_json(502, {"error": str(exc)})
+                return
+            self.send_json(200, {"ok": True, "meta": result})
+            return
+        if path == "/send-media":
+            payload = self.read_authorized_json()
+            if payload is None:
+                return
+            to = str(payload.get("to", "")).strip()
+            media_type = str(payload.get("type", "") or payload.get("media_type", "")).strip()
+            link = str(payload.get("link", "") or payload.get("url", "")).strip()
+            caption = str(payload.get("caption", "")).strip()
+            filename = str(payload.get("filename", "")).strip()
+            if not to or not media_type or not link:
+                self.send_json(400, {"error": "to, type and link are required"})
+                return
+            try:
+                result = send_whatsapp_media(to, media_type, link, caption, filename)
             except Exception as exc:
                 self.send_json(502, {"error": str(exc)})
                 return

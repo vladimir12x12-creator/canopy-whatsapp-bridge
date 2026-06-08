@@ -56,6 +56,7 @@ Endpoints:
 - `GET /templates?name=...` - protected template status check from Meta WhatsApp Manager.
 - `POST /send-text` - protected outbound free-text send. Use only inside a 24-hour customer-service window.
 - `POST /send-template` - protected outbound template send for first contact or closed windows.
+- `POST /send-media` - protected outbound image/video/document send by public HTTPS link. Use only inside a 24-hour customer-service window.
 
 ## Current Blockers
 
@@ -85,7 +86,7 @@ Recommended next step: keep testing on the staging number, but move the bridge t
 ## Next Technical Steps
 
 1. Create Canopy-specific WhatsApp message templates in Meta.
-2. Add media sending support for approved renders/videos/doc links.
+2. Prepare approved media templates for first-contact render/video previews.
 3. Build lead scenario flows for agent/client/junk classification.
 4. Test the flow fully on the staging WABA.
 5. Decide when and how to move from the test number to the live ad number `+66 61 997 8591`.
