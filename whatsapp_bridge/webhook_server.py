@@ -287,6 +287,8 @@ def send_whatsapp_text(to, body):
     except urllib.error.HTTPError as exc:
         error_body = exc.read().decode("utf-8")
         raise RuntimeError(error_body) from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(str(exc.reason)) from exc
 
     now = utc_now()
     message_id = ""
@@ -935,7 +937,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             try:
                 result = send_whatsapp_text(to, text)
-            except RuntimeError as exc:
+            except Exception as exc:
                 self.send_json(502, {"error": str(exc)})
                 return
             self.send_json(200, {"ok": True, "meta": result})
