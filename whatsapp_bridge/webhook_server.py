@@ -652,6 +652,113 @@ def canopy_template_payload(template_key):
                 },
             ],
         },
+        "ready_villa_update": {
+            "name": "canopy_ready_villa_update",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": (
+                        "Hi {{1}}, quick Canopy Hills update: our first villa C9 is expected "
+                        "to be ready for private viewings in early/mid August, and construction "
+                        "of the next villas has already started.\n\n"
+                        "This means the project can now be reviewed beyond renders and the show unit: "
+                        "a real villa plus visible construction progress.\n\n"
+                        "If a ready or near-ready villa is still relevant for you or your client, "
+                        "we can add you to the priority private preview list."
+                    ),
+                    "example": {"body_text": [["there"]]},
+                },
+                {
+                    "type": "BUTTONS",
+                    "buttons": [
+                        {"type": "QUICK_REPLY", "text": "Private viewing"},
+                        {"type": "QUICK_REPLY", "text": "Send availability"},
+                    ],
+                },
+            ],
+        },
+        "new_lead_qualification": {
+            "name": "canopy_new_lead_qualification",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": (
+                        "Hi {{1}}, thank you for your interest in Canopy Hills Villas.\n\n"
+                        "Canopy Hills is a club estate of 9 premium hillside villas opposite "
+                        "British International School Phuket, designed for long-term family living "
+                        "rather than short holiday stays.\n\n"
+                        "May I ask if you are looking for a villa for yourself/family, or representing "
+                        "a client? Then I can send the most relevant availability, pricing and viewing details."
+                    ),
+                    "example": {"body_text": [["there"]]},
+                },
+                {
+                    "type": "BUTTONS",
+                    "buttons": [
+                        {"type": "QUICK_REPLY", "text": "For myself"},
+                        {"type": "QUICK_REPLY", "text": "For my client"},
+                    ],
+                },
+            ],
+        },
+        "broker_preview_august_ru": {
+            "name": "canopy_broker_preview_august_ru",
+            "language": "ru",
+            "category": "MARKETING",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": (
+                        "Добрый день, {{1}}! Короткое обновление по Canopy Hills: первая вилла C9 "
+                        "будет готова к приватным просмотрам в начале/середине августа.\n\n"
+                        "Canopy Hills - клубный поселок из 9 премиальных вилл на холме в Ko Kaeo, "
+                        "напротив British International School Phuket. Проект создан для долгосрочной "
+                        "семейной жизни: просторные виллы, панорамные виды, приватность, тихая зеленая "
+                        "локация и ежедневная инфраструктура рядом.\n\n"
+                        "Комиссия для агентов - 6%. Если у вас есть клиенты, которым важны BISP, "
+                        "семейная локация и почти готовый продукт, можем заранее согласовать private preview."
+                    ),
+                    "example": {"body_text": [["коллеги"]]},
+                },
+                {
+                    "type": "BUTTONS",
+                    "buttons": [
+                        {"type": "QUICK_REPLY", "text": "Получить детали"},
+                        {"type": "QUICK_REPLY", "text": "Согласовать просмотр"},
+                    ],
+                },
+            ],
+        },
+        "c9_private_preview_invite": {
+            "name": "canopy_c9_private_preview_invite",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": (
+                        "Hi {{1}}, we are preparing private preview slots for villa C9 at "
+                        "Canopy Hills in early/mid August.\n\n"
+                        "This preview is meant for serious buyers and agents with relevant clients "
+                        "who want to see a real near-ready villa, not only renders.\n\n"
+                        "If you would like to arrange a private viewing, please reply with preferred "
+                        "dates and whether the visit is for yourself or for a client."
+                    ),
+                    "example": {"body_text": [["there"]]},
+                },
+                {
+                    "type": "BUTTONS",
+                    "buttons": [
+                        {"type": "QUICK_REPLY", "text": "Request slot"},
+                        {"type": "QUICK_REPLY", "text": "Client visit"},
+                    ],
+                },
+            ],
+        },
         "vladimir_need_reply": {
             "name": "codex_need_vladimir_reply_ru",
             "language": "ru",
