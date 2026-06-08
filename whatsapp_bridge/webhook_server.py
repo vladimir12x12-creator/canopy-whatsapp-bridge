@@ -350,21 +350,15 @@ If you have a client focused on BISP / long-term family living, we can pre-arran
     render_links = [
         "https://drive.google.com/uc?export=download&id=12oifyEV0kgHLomQM2mI211qXEy9hDEC2",
         "https://drive.google.com/uc?export=download&id=1GDlGbsbUiyBeBYcOpsJGKkI6I34E3pK6",
-        "https://drive.google.com/uc?export=download&id=124cMGPLe9HyW7gqJJRez_SlHIGveZ_yA",
-        "https://drive.google.com/uc?export=download&id=16dNzHiw-rWcM2pSuSAjbm_K6MiDb5P4c",
     ]
     sends = [
-        ("text", lambda: send_whatsapp_text(to, text)),
         *[
             (
                 f"image-{index}",
-                lambda link=link, index=index: send_whatsapp_media(
+                lambda link=link: send_whatsapp_media(
                     to,
                     "image",
                     link,
-                    "Canopy Hills Villas Phuket - spacious hillside family residences near BISP."
-                    if index == 1
-                    else "",
                 ),
             )
             for index, link in enumerate(render_links, start=1)
@@ -375,9 +369,9 @@ If you have a client focused on BISP / long-term family living, we can pre-arran
                 to,
                 "video",
                 "https://drive.google.com/uc?export=download&id=16VkPGXWCzin07aW4tV9mzbXKhVYOqSpk",
-                "Canopy Hills exterior render preview.",
             ),
         ),
+        ("text", lambda: send_whatsapp_text(to, text)),
     ]
     for label, send in sends:
         try:
