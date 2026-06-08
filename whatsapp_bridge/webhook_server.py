@@ -310,6 +310,72 @@ def send_whatsapp_media(to, media_type, link, caption="", filename=""):
     return response
 
 
+def send_agent_packet_test():
+    to = "66628512432"
+    text = """Hi Vladimir, quick Canopy Hills agent packet test.
+
+Canopy Hills Villas Phuket is a club estate of 9 premium hillside villas in Ko Kaeo, opposite British International School Phuket.
+
+The project is designed for families relocating to Phuket or living on the island full-time: quiet green hills, panoramic views, spacious interiors, proper storage, large bedrooms, high ceilings, quality engineering and daily infrastructure nearby.
+
+Key points for agents:
+- 9-villa private estate on the hill opposite BISP
+- Focus: long-term family living, not compact holiday-style villas
+- Villa sizes: approx. 650-768 sqm built-up
+- 4+1 and 5+1 bedroom layouts
+- Land plots: approx. 670-1,214 sqm
+- Views: hills, valley, lake / BISP area and sunsets
+- Private pools: 12x3.5m or 15x3.5m
+- Current availability to discuss: C1, C2, C3 and C6
+- C9: nearly ready, private viewings expected in early/mid August
+- C7-C8: construction started
+- Price range: approx. THB 57.5M-76.6M / USD 1.74M-2.32M
+- Agent commission: 6%
+
+Location:
+- British International School Phuket: opposite / approx. 3 min
+- Boat Lagoon / Royal Phuket Marina: approx. 7 min
+- Loch Palm Golf Club: approx. 7 min
+- Central Phuket / hospitals / supermarkets: approx. 10-15 min
+- Bang Tao: approx. 20 min
+
+This is a strong fit for expat families prioritizing school access, space, privacy, views and a near-ready product away from the tourist zones.
+
+Website: https://canopy.villas
+ENG presentation: https://drive.google.com/file/d/1c1djBre5fRbmeoLXPsLYAczRFFIXbUvL/view
+Price list: https://drive.google.com/file/d/16nxg2ShVpBVuyMQ6Ajwxvr-iNcagar6l/view
+
+If you have a client focused on BISP / long-term family living, we can pre-arrange a private C9 viewing for early/mid August."""
+    results = []
+    sends = [
+        ("text", lambda: send_whatsapp_text(to, text)),
+        (
+            "image",
+            lambda: send_whatsapp_media(
+                to,
+                "image",
+                "https://drive.google.com/uc?export=download&id=1GDlGbsbUiyBeBYcOpsJGKkI6I34E3pK6",
+                "Canopy Hills Villas Phuket - spacious hillside family residences near BISP.",
+            ),
+        ),
+        (
+            "video",
+            lambda: send_whatsapp_media(
+                to,
+                "video",
+                "https://drive.google.com/uc?export=download&id=10VpXSUyvYhjN10j2twGZdAT_xUIf8GCz",
+                "Canopy Hills exterior render preview.",
+            ),
+        ),
+    ]
+    for label, send in sends:
+        try:
+            results.append({"label": label, "ok": True, "meta": send()})
+        except Exception as exc:
+            results.append({"label": label, "ok": False, "error": str(exc)})
+    return results
+
+
 def send_whatsapp_payload(payload):
     access_token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
     phone_number_id = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "").strip()
@@ -1087,6 +1153,13 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
+        if path == "/send-agent-packet-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = send_agent_packet_test()
+            self.send_json(200, {"ok": all(item.get("ok") for item in result), "results": result})
+            return
         if path == "/send-text":
             payload = self.read_authorized_json()
             if payload is None:
