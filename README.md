@@ -53,6 +53,7 @@ Endpoints:
 - `POST /webhook` - inbound WhatsApp webhook receiver.
 - `GET /leads` - classified contacts.
 - `GET /messages?wa_id=...` - messages for one contact.
+- `GET /templates?name=...` - protected template status check from Meta WhatsApp Manager.
 - `POST /send-text` - protected outbound free-text send. Use only inside a 24-hour customer-service window.
 - `POST /send-template` - protected outbound template send for first contact or closed windows.
 
@@ -120,4 +121,11 @@ curl -sS -X POST https://canopy-whatsapp-bridge.onrender.com/send-template \
   -H "Content-Type: application/json" \
   -H "X-Bridge-Token: $BRIDGE_SEND_TOKEN" \
   --data '{"to":"66628512432","template":"hello_world","language":"en_US"}'
+```
+
+Protected template status check from Render Shell:
+
+```bash
+curl -sS "https://canopy-whatsapp-bridge.onrender.com/templates?name=canopy_broker_preview_august" \
+  -H "X-Bridge-Token: $BRIDGE_SEND_TOKEN"
 ```

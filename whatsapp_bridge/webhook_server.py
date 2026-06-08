@@ -9,7 +9,7 @@ import urllib.request
 from html import escape
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 DB_PATH = os.environ.get(
     "WHATSAPP_BRIDGE_DB",
@@ -19,6 +19,7 @@ HOST = os.environ.get("WHATSAPP_BRIDGE_HOST", "127.0.0.1")
 PORT = int(os.environ.get("WHATSAPP_BRIDGE_PORT", "8088"))
 VERIFY_TOKEN = os.environ.get("VERIFY_TOKEN", "")
 SEND_API_TOKEN = os.environ.get("BRIDGE_SEND_TOKEN", "")
+DEFAULT_WABA_ID = os.environ.get("WHATSAPP_WABA_ID", "2253327871868025")
 
 
 def utc_now():
@@ -377,6 +378,37 @@ def safe_graph_get(access_token, graph_version, path, query):
             return {"ok": False, "meta_error": error_body[:500]}
     except urllib.error.URLError as exc:
         return {"ok": False, "error": str(exc.reason)}
+
+
+def whatsapp_templates(template_name=""):
+    access_token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
+    graph_version = os.environ.get("WHATSAPP_GRAPH_VERSION", "v25.0").strip()
+    waba_id = os.environ.get("WHATSAPP_WABA_ID", DEFAULT_WABA_ID).strip()
+    result = {
+        "ok": False,
+        "graph_version": graph_version,
+        "waba_id": waba_id,
+        "has_access_token": bool(access_token),
+        "template_name": template_name,
+        "templates": [],
+    }
+    if not access_token or not waba_id:
+        result["error"] = "WHATSAPP_ACCESS_TOKEN or WHATSAPP_WABA_ID is not set"
+        return result
+
+    fields = "name,status,category,language,quality_score,components"
+    query = urlencode({"fields": fields, "limit": "100"})
+    response = safe_graph_get(access_token, graph_version, f"{waba_id}/message_templates", query)
+    result["meta"] = response
+    if not response.get("ok"):
+        return result
+
+    templates = response.get("data", {}).get("data", [])
+    if template_name:
+        templates = [item for item in templates if item.get("name") == template_name]
+    result["templates"] = templates
+    result["ok"] = True
+    return result
 
 
 def whatsapp_diagnostics(waba_id=""):
@@ -910,6 +942,17 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/whatsapp-diagnostics":
             diagnostics = whatsapp_diagnostics(params.get("waba_id", [""])[0])
             self.send_json(200 if diagnostics.get("ok") else 502, diagnostics)
+            return
+        if parsed.path == "/templates":
+            if not SEND_API_TOKEN:
+                self.send_json(503, {"error": "BRIDGE_SEND_TOKEN is not configured"})
+                return
+            provided = self.headers.get("X-Bridge-Token", "")
+            if provided != SEND_API_TOKEN:
+                self.send_json(403, {"error": "forbidden"})
+                return
+            result = whatsapp_templates(params.get("name", [""])[0])
+            self.send_json(200 if result.get("ok") else 502, result)
             return
         if parsed.path == "/leads":
             con = db()
