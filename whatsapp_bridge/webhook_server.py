@@ -4,6 +4,8 @@ import os
 import sqlite3
 import csv
 import io
+import urllib.error
+import urllib.request
 from html import escape
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -16,6 +18,7 @@ DB_PATH = os.environ.get(
 HOST = os.environ.get("WHATSAPP_BRIDGE_HOST", "127.0.0.1")
 PORT = int(os.environ.get("WHATSAPP_BRIDGE_PORT", "8088"))
 VERIFY_TOKEN = os.environ.get("VERIFY_TOKEN", "")
+SEND_API_TOKEN = os.environ.get("BRIDGE_SEND_TOKEN", "")
 
 
 def utc_now():
@@ -251,6 +254,74 @@ def store_payload(payload):
         )
     con.commit()
     con.close()
+
+
+def send_whatsapp_text(to, body):
+    access_token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "")
+    phone_number_id = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "")
+    graph_version = os.environ.get("WHATSAPP_GRAPH_VERSION", "v25.0")
+    if not access_token:
+        raise RuntimeError("WHATSAPP_ACCESS_TOKEN is not set")
+    if not phone_number_id:
+        raise RuntimeError("WHATSAPP_PHONE_NUMBER_ID is not set")
+    url = f"https://graph.facebook.com/{graph_version}/{phone_number_id}/messages"
+    payload = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": to,
+        "type": "text",
+        "text": {"preview_url": True, "body": body},
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as res:
+            response = json.loads(res.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8")
+        raise RuntimeError(error_body) from exc
+
+    now = utc_now()
+    message_id = ""
+    if response.get("messages"):
+        message_id = response["messages"][0].get("id", "")
+    con = db()
+    con.execute(
+        """
+        INSERT OR IGNORE INTO messages
+          (id, wa_id, direction, message_type, text, raw_json, received_at)
+        VALUES (?, ?, 'outbound', 'text', ?, ?, ?)
+        """,
+        (
+            message_id or f"outbound:{to}:{now}",
+            to,
+            body,
+            json.dumps(response, ensure_ascii=False),
+            now,
+        ),
+    )
+    con.execute(
+        """
+        INSERT INTO contacts
+          (wa_id, profile_name, segment, priority, last_message_at,
+           escalation_required, next_action, updated_at)
+        VALUES (?, '', 'outbound_test', 'P3', ?, 0, 'Outbound message sent from bridge.', ?)
+        ON CONFLICT(wa_id) DO UPDATE SET
+          last_message_at = excluded.last_message_at,
+          updated_at = excluded.updated_at
+        """,
+        (to, now, now),
+    )
+    con.commit()
+    con.close()
+    return response
 
 
 def rows_to_json(rows):
@@ -841,7 +912,35 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(404, {"error": "not found"})
 
     def do_POST(self):
-        if urlparse(self.path).path != "/webhook":
+        path = urlparse(self.path).path
+        if path == "/send-text":
+            if not SEND_API_TOKEN:
+                self.send_json(503, {"error": "BRIDGE_SEND_TOKEN is not configured"})
+                return
+            provided = self.headers.get("X-Bridge-Token", "")
+            if provided != SEND_API_TOKEN:
+                self.send_json(403, {"error": "forbidden"})
+                return
+            length = int(self.headers.get("Content-Length", "0"))
+            raw = self.rfile.read(length)
+            try:
+                payload = json.loads(raw.decode("utf-8"))
+            except json.JSONDecodeError:
+                self.send_json(400, {"error": "invalid json"})
+                return
+            to = str(payload.get("to", "")).strip()
+            text = str(payload.get("text", "")).strip()
+            if not to or not text:
+                self.send_json(400, {"error": "to and text are required"})
+                return
+            try:
+                result = send_whatsapp_text(to, text)
+            except RuntimeError as exc:
+                self.send_json(502, {"error": str(exc)})
+                return
+            self.send_json(200, {"ok": True, "meta": result})
+            return
+        if path != "/webhook":
             self.send_json(404, {"error": "not found"})
             return
         length = int(self.headers.get("Content-Length", "0"))
