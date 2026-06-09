@@ -505,7 +505,7 @@ def send_agent_intro_video_test():
     caption = (
         "Canopy Hills Villas Phuket - a private hillside estate opposite BISP, "
         "designed for long-term family living.\n\n"
-        "Below is a compact carousel with 8 key advantages for agents and relevant clients."
+        "Below is a compact carousel with key advantages and villa formats for agents and relevant clients."
     )
     result = send_whatsapp_media(
         to,
