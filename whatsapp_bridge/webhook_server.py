@@ -5,6 +5,7 @@ import os
 import sqlite3
 import csv
 import io
+import uuid
 import urllib.error
 import urllib.request
 from html import escape
@@ -735,6 +736,206 @@ def send_whatsapp_payload(payload):
         raise RuntimeError(str(exc.reason)) from exc
 
     return response
+
+
+def graph_get_json(path):
+    access_token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
+    graph_version = os.environ.get("WHATSAPP_GRAPH_VERSION", "v25.0").strip()
+    if not access_token:
+        raise RuntimeError("WHATSAPP_ACCESS_TOKEN is not set")
+    url = f"https://graph.facebook.com/{graph_version}/{path.lstrip('/')}"
+    req = urllib.request.Request(
+        url,
+        headers={"Authorization": f"Bearer {access_token}"},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as res:
+            return json.loads(res.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8")
+        raise RuntimeError(error_body) from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(str(exc.reason)) from exc
+
+
+def download_whatsapp_media(media_id, fallback_url=""):
+    access_token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
+    if not access_token:
+        raise RuntimeError("WHATSAPP_ACCESS_TOKEN is not set")
+    media_url = fallback_url
+    if media_id:
+        media_meta = graph_get_json(media_id)
+        media_url = media_meta.get("url", "") or media_url
+    if not media_url:
+        raise RuntimeError("No media url is available for this WhatsApp audio")
+    req = urllib.request.Request(
+        media_url,
+        headers={"Authorization": f"Bearer {access_token}"},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as res:
+            content_type = res.headers.get("Content-Type", "application/octet-stream")
+            return res.read(), content_type
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8")
+        raise RuntimeError(error_body) from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(str(exc.reason)) from exc
+
+
+def multipart_form_data(fields, files):
+    boundary = f"----canopy-{uuid.uuid4().hex}"
+    chunks = []
+    for name, value in fields.items():
+        chunks.append(f"--{boundary}\r\n".encode("utf-8"))
+        chunks.append(
+            f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode("utf-8")
+        )
+        chunks.append(str(value).encode("utf-8"))
+        chunks.append(b"\r\n")
+    for name, file_info in files.items():
+        filename, content_type, body = file_info
+        chunks.append(f"--{boundary}\r\n".encode("utf-8"))
+        chunks.append(
+            (
+                f'Content-Disposition: form-data; name="{name}"; '
+                f'filename="{filename}"\r\n'
+            ).encode("utf-8")
+        )
+        chunks.append(f"Content-Type: {content_type}\r\n\r\n".encode("utf-8"))
+        chunks.append(body)
+        chunks.append(b"\r\n")
+    chunks.append(f"--{boundary}--\r\n".encode("utf-8"))
+    return b"".join(chunks), f"multipart/form-data; boundary={boundary}"
+
+
+def transcribe_audio_bytes(audio_bytes, content_type):
+    openai_api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    if not openai_api_key:
+        raise RuntimeError("OPENAI_API_KEY is not set")
+    model = os.environ.get("OPENAI_TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe").strip()
+    extension = mimetypes.guess_extension(content_type.split(";")[0].strip()) or ".ogg"
+    body, request_content_type = multipart_form_data(
+        {
+            "model": model,
+            "response_format": "text",
+            "language": os.environ.get("OPENAI_TRANSCRIBE_LANGUAGE", "ru"),
+            "prompt": (
+                "This is a WhatsApp voice note from Vladimir about Canopy Hills "
+                "Villas Phuket, real estate sales, agents, clients, BISP, Ko Kaeo, "
+                "Phuket market strategy, villas C1-C9. Preserve useful business details."
+            ),
+        },
+        {
+            "file": (
+                f"whatsapp_voice{extension}",
+                content_type or "audio/ogg",
+                audio_bytes,
+            )
+        },
+    )
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/audio/transcriptions",
+        data=body,
+        headers={
+            "Authorization": f"Bearer {openai_api_key}",
+            "Content-Type": request_content_type,
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=120) as res:
+            return res.read().decode("utf-8").strip()
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8")
+        raise RuntimeError(error_body) from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(str(exc.reason)) from exc
+
+
+def transcribe_audio_message(message_id):
+    con = db()
+    row = con.execute(
+        "SELECT * FROM messages WHERE id = ? AND direction = 'inbound'",
+        (message_id,),
+    ).fetchone()
+    if not row:
+        con.close()
+        raise RuntimeError("Audio message was not found")
+    raw = json.loads(row["raw_json"])
+    if raw.get("type") != "audio":
+        con.close()
+        raise RuntimeError("Message is not an audio message")
+    audio = raw.get("audio", {})
+    audio_bytes, content_type = download_whatsapp_media(
+        audio.get("id", ""),
+        audio.get("url", ""),
+    )
+    transcript = transcribe_audio_bytes(audio_bytes, content_type)
+    classification = classify(transcript)
+    now = utc_now()
+    con.execute(
+        """
+        UPDATE messages
+        SET text = ?
+        WHERE id = ?
+        """,
+        (f"[voice transcription]\n{transcript}", message_id),
+    )
+    con.execute(
+        """
+        INSERT INTO contacts
+          (wa_id, profile_name, segment, priority, last_message_at,
+           escalation_required, next_action, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(wa_id) DO UPDATE SET
+          segment = excluded.segment,
+          priority = excluded.priority,
+          last_message_at = excluded.last_message_at,
+          escalation_required = excluded.escalation_required,
+          next_action = excluded.next_action,
+          updated_at = excluded.updated_at
+        """,
+        (
+            row["wa_id"],
+            "",
+            classification["segment"],
+            classification["priority"],
+            now,
+            classification["escalation_required"],
+            classification["next_action"],
+            now,
+        ),
+    )
+    con.commit()
+    con.close()
+    return {
+        "message_id": message_id,
+        "wa_id": row["wa_id"],
+        "transcript": transcript,
+        "classification": classification,
+        "content_type": content_type,
+        "bytes": len(audio_bytes),
+    }
+
+
+def transcribe_latest_audio_for(wa_id):
+    con = db()
+    row = con.execute(
+        """
+        SELECT id FROM messages
+        WHERE wa_id = ? AND direction = 'inbound' AND message_type = 'audio'
+        ORDER BY received_at DESC
+        LIMIT 1
+        """,
+        (wa_id,),
+    ).fetchone()
+    con.close()
+    if not row:
+        raise RuntimeError("No inbound audio messages found for this wa_id")
+    return transcribe_audio_message(row["id"])
 
 
 def store_outbound_message(to, message_type, text, response, next_action):
@@ -2661,6 +2862,17 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+            return
+        if parsed.path == "/transcribe-latest-vladimir-voice-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            try:
+                result = transcribe_latest_audio_for("66628512432")
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc)})
+                return
+            self.send_json(200, {"ok": True, **result})
             return
         self.send_json(404, {"error": "not found"})
 

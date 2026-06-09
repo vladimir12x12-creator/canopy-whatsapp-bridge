@@ -58,6 +58,20 @@ Endpoints:
 - `POST /send-template` - protected outbound template send for first contact or closed windows.
 - `POST /send-media` - protected outbound image/video/document send by public HTTPS link. Use only inside a 24-hour customer-service window.
 - `POST /create-canopy-template` - protected helper to submit built-in Canopy templates to Meta.
+- `GET /transcribe-latest-vladimir-voice-test` - protected staging helper to download Vladimir's latest WhatsApp voice note, transcribe it with OpenAI, update the stored message text, and reclassify the contact.
+
+Voice note transcription requires these Render environment variables:
+
+- `OPENAI_API_KEY` - OpenAI API key for transcription.
+- `OPENAI_TRANSCRIBE_MODEL` - optional, defaults to `gpt-4o-mini-transcribe`.
+- `OPENAI_TRANSCRIBE_LANGUAGE` - optional, defaults to `ru`.
+
+Staging voice transcription test:
+
+```bash
+curl -sS https://canopy-whatsapp-bridge.onrender.com/transcribe-latest-vladimir-voice-test \
+  -H "X-Agent-Test: canopy-agent-packet-v1"
+```
 
 ## Current Blockers
 
