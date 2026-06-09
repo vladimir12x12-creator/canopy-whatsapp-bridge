@@ -1970,6 +1970,45 @@ def whatsapp_diagnostics(waba_id=""):
     return result
 
 
+def waba_webhook_subscription(action="status", waba_id=""):
+    access_token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
+    graph_version = os.environ.get("WHATSAPP_GRAPH_VERSION", "v25.0").strip()
+    target_waba_id = (waba_id or os.environ.get("WHATSAPP_WABA_ID", DEFAULT_WABA_ID)).strip()
+    result = {
+        "ok": False,
+        "action": action,
+        "graph_version": graph_version,
+        "waba_id": target_waba_id,
+        "has_access_token": bool(access_token),
+    }
+    if not access_token or not target_waba_id:
+        result["error"] = "WHATSAPP_ACCESS_TOKEN or WHATSAPP_WABA_ID is not set"
+        return result
+
+    if action == "subscribe":
+        result["subscribe"] = safe_graph_post(
+            access_token,
+            graph_version,
+            f"{target_waba_id}/subscribed_apps",
+            {},
+        )
+
+    result["subscribed_apps"] = safe_graph_get(
+        access_token,
+        graph_version,
+        f"{target_waba_id}/subscribed_apps",
+        "fields=id,name,link",
+    )
+    result["phone_numbers"] = safe_graph_get(
+        access_token,
+        graph_version,
+        f"{target_waba_id}/phone_numbers",
+        "fields=id,display_phone_number,verified_name,quality_rating,platform_type",
+    )
+    result["ok"] = bool(result["subscribed_apps"].get("ok"))
+    return result
+
+
 def rows_to_json(rows):
     return json.dumps([dict(r) for r in rows], ensure_ascii=False, indent=2).encode("utf-8")
 
@@ -2482,6 +2521,13 @@ class Handler(BaseHTTPRequestHandler):
             diagnostics = whatsapp_diagnostics(params.get("waba_id", [""])[0])
             self.send_json(200 if diagnostics.get("ok") else 502, diagnostics)
             return
+        if parsed.path == "/waba-subscription-status-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            status = waba_webhook_subscription("status", params.get("waba_id", [""])[0])
+            self.send_json(200 if status.get("ok") else 502, status)
+            return
         if parsed.path == "/templates":
             if not SEND_API_TOKEN:
                 self.send_json(503, {"error": "BRIDGE_SEND_TOKEN is not configured"})
@@ -2850,6 +2896,13 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(502, {"error": str(exc)})
                 return
             self.send_json(200, {"ok": True, "meta": result})
+            return
+        if path == "/subscribe-current-waba-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = waba_webhook_subscription("subscribe")
+            self.send_json(200 if result.get("ok") else 502, result)
             return
         if path != "/webhook":
             self.send_json(404, {"error": "not found"})
