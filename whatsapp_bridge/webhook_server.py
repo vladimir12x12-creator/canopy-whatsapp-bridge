@@ -450,6 +450,22 @@ def send_agent_carousel_v2_test():
     return [{"label": "agent-carousel-v2", "ok": True, "meta": result}]
 
 
+def send_agent_intro_video_test():
+    to = "66628512432"
+    caption = (
+        "Canopy Hills Villas Phuket - a private hillside estate opposite BISP, "
+        "designed for long-term family living.\n\n"
+        "Below is a compact carousel with 8 key advantages for agents and relevant clients."
+    )
+    result = send_whatsapp_media(
+        to,
+        "video",
+        f"{BASE_URL}/assets/agent_intro_video.mp4",
+        caption,
+    )
+    return [{"label": "agent-intro-video", "ok": True, "meta": result}]
+
+
 def send_whatsapp_payload(payload):
     access_token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
     phone_number_id = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "").strip()
@@ -2043,6 +2059,17 @@ class Handler(BaseHTTPRequestHandler):
                 return
             try:
                 result = send_agent_carousel_v2_test()
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc)})
+                return
+            self.send_json(200, {"ok": all(item.get("ok") for item in result), "results": result})
+            return
+        if path == "/send-agent-intro-video-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            try:
+                result = send_agent_intro_video_test()
             except Exception as exc:
                 self.send_json(502, {"ok": False, "error": str(exc)})
                 return
