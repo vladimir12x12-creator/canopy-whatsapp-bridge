@@ -258,8 +258,23 @@ def store_payload(payload):
                 now,
             ),
         )
+        mark_whatsapp_message_read(item["message_id"])
     con.commit()
     con.close()
+
+
+def mark_whatsapp_message_read(message_id):
+    if not message_id:
+        return {"ok": False, "error": "message_id is empty"}
+    payload = {
+        "messaging_product": "whatsapp",
+        "status": "read",
+        "message_id": message_id,
+    }
+    try:
+        return {"ok": True, "meta": send_whatsapp_payload(payload)}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}
 
 
 def send_whatsapp_text(to, body):
