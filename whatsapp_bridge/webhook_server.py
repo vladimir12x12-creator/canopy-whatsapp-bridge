@@ -717,6 +717,138 @@ def canopy_template_payload(template_key):
                 },
             ],
         },
+        "agent_intro_carousel_8_v2": {
+            "name": "canopy_agent_intro_carousel_8_v2",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": (
+                        "Hi {{1}}, here are 8 concrete Canopy Hills advantages for BISP and "
+                        "long-term family buyers in Phuket."
+                    ),
+                    "example": {"body_text": [["there"]]},
+                },
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL8V2_ESTATE_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "Only 9 villas on a private green hillside",
+                                },
+                                {"type": "BUTTONS", "buttons": carousel8_buttons},
+                            ],
+                        },
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL8V2_LAND_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "Large plots: 672-1,214 sqm of land",
+                                },
+                                {"type": "BUTTONS", "buttons": carousel8_buttons},
+                            ],
+                        },
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL8V2_GARDEN_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "Usable gardens and outdoor family space",
+                                },
+                                {"type": "BUTTONS", "buttons": carousel8_buttons},
+                            ],
+                        },
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL8V2_SCALE_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "Real family scale: 650-768 sqm built-up",
+                                },
+                                {"type": "BUTTONS", "buttons": carousel8_buttons},
+                            ],
+                        },
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL8V2_LIVING_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "7m living room ceiling, open family space",
+                                },
+                                {"type": "BUTTONS", "buttons": carousel8_buttons},
+                            ],
+                        },
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL8V2_KITCHEN_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "Western & Thai kitchens + 60 sqm BBQ terrace",
+                                },
+                                {"type": "BUTTONS", "buttons": carousel8_buttons},
+                            ],
+                        },
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL8V2_VIEW_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "Real views: BISP, lake, hills and sunsets",
+                                },
+                                {"type": "BUTTONS", "buttons": carousel8_buttons},
+                            ],
+                        },
+                        {
+                            "components": [
+                                {
+                                    "type": "HEADER",
+                                    "format": "IMAGE",
+                                    "example": {"header_handle": ["__CAROUSEL8V2_INSULATION_HANDLE__"]},
+                                },
+                                {
+                                    "type": "BODY",
+                                    "text": "Heat & noise insulation 50% above standard",
+                                },
+                                {"type": "BUTTONS", "buttons": carousel8_buttons},
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
         "agent_intro_carousel_test": {
             "name": "canopy_agent_intro_carousel_test",
             "language": "en_US",
@@ -1068,6 +1200,36 @@ def create_canopy_template(template_key):
             ("__CAROUSEL8_COMFORT_HANDLE__", ASSET_DIR / "carousel8_06_daily_comfort.jpg"),
             ("__CAROUSEL8_ENGINEERING_HANDLE__", ASSET_DIR / "carousel8_07_engineering.jpg"),
             ("__CAROUSEL8_READY_HANDLE__", ASSET_DIR / "carousel8_08_layout.jpg"),
+        ]
+        result["sample_uploads"] = []
+        handles = {}
+        for placeholder, sample_path in carousel_samples:
+            upload = safe_graph_upload_file_handle(access_token, graph_version, app_id, sample_path)
+            result["sample_uploads"].append({"placeholder": placeholder, "upload": upload})
+            if not upload.get("ok"):
+                result["error"] = f"failed to upload carousel sample {sample_path.name} to Meta"
+                return result
+            handles[placeholder] = upload["data"]["handle"]
+
+        for component in payload.get("components", []):
+            if component.get("type") == "CAROUSEL":
+                for card in component.get("cards", []):
+                    for card_component in card.get("components", []):
+                        example = card_component.get("example", {})
+                        header_handle = example.get("header_handle", [])
+                        if header_handle and header_handle[0] in handles:
+                            card_component["example"] = {"header_handle": [handles[header_handle[0]]]}
+
+    if template_key == "agent_intro_carousel_8_v2":
+        carousel_samples = [
+            ("__CAROUSEL8V2_ESTATE_HANDLE__", ASSET_DIR / "carousel_v2_01_private_hillside_estate.jpg"),
+            ("__CAROUSEL8V2_LAND_HANDLE__", ASSET_DIR / "carousel_v2_02_large_land_plots.jpg"),
+            ("__CAROUSEL8V2_GARDEN_HANDLE__", ASSET_DIR / "carousel_v2_03_usable_garden.jpg"),
+            ("__CAROUSEL8V2_SCALE_HANDLE__", ASSET_DIR / "carousel_v2_04_family_scale.jpg"),
+            ("__CAROUSEL8V2_LIVING_HANDLE__", ASSET_DIR / "carousel_v2_05_7m_living_room.jpg"),
+            ("__CAROUSEL8V2_KITCHEN_HANDLE__", ASSET_DIR / "carousel_v2_06_kitchens_bbq.jpg"),
+            ("__CAROUSEL8V2_VIEW_HANDLE__", ASSET_DIR / "carousel_v2_07_real_view.jpg"),
+            ("__CAROUSEL8V2_INSULATION_HANDLE__", ASSET_DIR / "carousel_v2_08_heat_noise_insulation.jpg"),
         ]
         result["sample_uploads"] = []
         handles = {}
