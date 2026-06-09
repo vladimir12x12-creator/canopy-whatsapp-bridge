@@ -2846,6 +2846,28 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self.send_json(200, {"ok": True, "meta": result})
             return
+        if path == "/send-vladimir-text-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            length = int(self.headers.get("Content-Length", "0"))
+            raw = self.rfile.read(length)
+            try:
+                payload = json.loads(raw.decode("utf-8")) if raw else {}
+            except json.JSONDecodeError:
+                self.send_json(400, {"error": "invalid json"})
+                return
+            text = str(payload.get("text", "")).strip()
+            if not text:
+                self.send_json(400, {"error": "text is required"})
+                return
+            try:
+                result = send_whatsapp_text("66628512432", text)
+            except Exception as exc:
+                self.send_json(502, {"error": str(exc)})
+                return
+            self.send_json(200, {"ok": True, "meta": result})
+            return
         if path == "/send-template":
             payload = self.read_authorized_json()
             if payload is None:
