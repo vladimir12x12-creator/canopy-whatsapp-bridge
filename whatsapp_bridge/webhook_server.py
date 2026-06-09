@@ -550,6 +550,56 @@ def send_agent_carousel_v4_test():
     return [{"label": "agent-carousel-v4", "ok": True, "meta": result}]
 
 
+def send_agent_carousel_v5_test():
+    to = "66628512432"
+    base = f"{BASE_URL}/assets"
+    image_names = [
+        "carousel_v3_01_private_hillside_estate.jpg",
+        "carousel_v3_02_usable_large_plots.jpg",
+        "carousel_v3_03_real_family_scale.jpg",
+        "carousel_v3_04_7m_living_room.jpg",
+        "carousel_v3_05_kitchens_bbq.jpg",
+        "carousel_v3_06_green_district.jpg",
+        "carousel_v3_07_real_view.jpg",
+        "carousel_v3_08_heat_noise_insulation.jpg",
+        "carousel_v3_09_villa_l_layout.jpg",
+        "carousel_v3_10_villa_xl_layout.jpg",
+    ]
+    components = [
+        {
+            "type": "body",
+            "parameters": [{"type": "text", "text": "there"}],
+        },
+        {
+            "type": "carousel",
+            "cards": [
+                {
+                    "card_index": index,
+                    "components": [
+                        {
+                            "type": "header",
+                            "parameters": [
+                                {
+                                    "type": "image",
+                                    "image": {"link": f"{base}/{name}"},
+                                }
+                            ],
+                        }
+                    ],
+                }
+                for index, name in enumerate(image_names)
+            ],
+        },
+    ]
+    result = send_whatsapp_template(
+        to,
+        "canopy_agent_intro_carousel_10_v5",
+        "en_US",
+        components,
+    )
+    return [{"label": "agent-carousel-v5", "ok": True, "meta": result}]
+
+
 def send_agent_intro_video_test():
     to = "66628512432"
     caption = (
@@ -564,6 +614,32 @@ def send_agent_intro_video_test():
         caption,
     )
     return [{"label": "agent-intro-video", "ok": True, "meta": result}]
+
+
+def send_agent_video_cta_template_test():
+    to = "66628512432"
+    components = [
+        {
+            "type": "header",
+            "parameters": [
+                {
+                    "type": "video",
+                    "video": {"link": f"{BASE_URL}/assets/agent_intro_video.mp4"},
+                }
+            ],
+        },
+        {
+            "type": "body",
+            "parameters": [{"type": "text", "text": "there"}],
+        },
+    ]
+    result = send_whatsapp_template(
+        to,
+        "canopy_agent_video_intro_cta_v1",
+        "en_US",
+        components,
+    )
+    return [{"label": "agent-video-cta", "ok": True, "meta": result}]
 
 
 def send_whatsapp_payload(payload):
@@ -749,20 +825,50 @@ def canopy_template_payload(template_key):
         {"type": "QUICK_REPLY", "text": "Ask for details"},
     ]
 
-    def carousel_image_card(handle_placeholder, text):
-        return {
-            "components": [
+    def carousel_image_card(handle_placeholder, text, include_buttons=True):
+        components = [
                 {
                     "type": "HEADER",
                     "format": "IMAGE",
                     "example": {"header_handle": [handle_placeholder]},
                 },
                 {"type": "BODY", "text": text},
-                {"type": "BUTTONS", "buttons": carousel8_buttons},
-            ],
-        }
+            ]
+        if include_buttons:
+            components.append({"type": "BUTTONS", "buttons": carousel8_buttons})
+        return {"components": components}
 
     templates = {
+        "agent_video_intro_cta_v1": {
+            "name": "canopy_agent_video_intro_cta_v1",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {
+                    "type": "HEADER",
+                    "format": "VIDEO",
+                    "example": {"header_handle": ["__AGENT_INTRO_VIDEO_HANDLE__"]},
+                },
+                {
+                    "type": "BODY",
+                    "text": (
+                        "Hi {{1}}, sharing a quick Canopy Hills Villas agent pack.\n\n"
+                        "Canopy Hills is a club estate of 9 premium hillside villas opposite BISP, "
+                        "designed for long-term family living in Phuket.\n\n"
+                        "Use the buttons below for the Sales Kit, client registration or a private viewing request."
+                    ),
+                    "example": {"body_text": [["there"]]},
+                },
+                {
+                    "type": "BUTTONS",
+                    "buttons": [
+                        {"type": "URL", "text": "Open Sales Kit", "url": sales_kit_url},
+                        {"type": "QUICK_REPLY", "text": "Register client"},
+                        {"type": "QUICK_REPLY", "text": "Arrange viewing"},
+                    ],
+                },
+            ],
+        },
         "agent_intro_carousel_8_v1": {
             "name": "canopy_agent_intro_carousel_8_v1",
             "language": "en_US",
@@ -1142,6 +1248,76 @@ def canopy_template_payload(template_key):
                         carousel_image_card(
                             "__CAROUSEL10V3_XL_LAYOUT_HANDLE__",
                             "Villa XL: 5+1 bedrooms, 742-768 sqm built-up",
+                        ),
+                    ],
+                },
+            ],
+        },
+        "agent_intro_carousel_10_v5": {
+            "name": "canopy_agent_intro_carousel_10_v5",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": (
+                        "Hi {{1}}, here is a compact Canopy Hills visual pack: key advantages "
+                        "and villa formats for BISP and long-term family buyers."
+                    ),
+                    "example": {"body_text": [["there"]]},
+                },
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card(
+                            "__CAROUSEL10V3_ESTATE_HANDLE__",
+                            "Only 9 villas on a private green hillside",
+                            include_buttons=False,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_PLOTS_HANDLE__",
+                            "Usable large plots: 672-1,214 sqm",
+                            include_buttons=False,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_SCALE_HANDLE__",
+                            "Real family scale: 650-768 sqm built-up",
+                            include_buttons=False,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_LIVING_HANDLE__",
+                            "7m living room ceiling, open family space",
+                            include_buttons=False,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_KITCHEN_HANDLE__",
+                            "Western & Thai kitchens + 60 sqm BBQ terrace",
+                            include_buttons=False,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_GREEN_HANDLE__",
+                            "Green district, away from tourist bustle",
+                            include_buttons=False,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_VIEW_HANDLE__",
+                            "Real views: BISP, lake, hills and sunsets",
+                            include_buttons=False,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_INSULATION_HANDLE__",
+                            "Heat & noise insulation 50% above standard",
+                            include_buttons=False,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_L_LAYOUT_HANDLE__",
+                            "Villa L: 4+1 bedrooms, 655 sqm built-up",
+                            include_buttons=False,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_XL_LAYOUT_HANDLE__",
+                            "Villa XL: 5+1 bedrooms, 742-768 sqm built-up",
+                            include_buttons=False,
                         ),
                     ],
                 },
@@ -1548,7 +1724,26 @@ def create_canopy_template(template_key):
                         if header_handle and header_handle[0] in handles:
                             card_component["example"] = {"header_handle": [handles[header_handle[0]]]}
 
-    if template_key in ("agent_intro_carousel_10_v3", "agent_intro_carousel_10_v4"):
+    if template_key == "agent_video_intro_cta_v1":
+        upload = safe_graph_upload_file_handle(
+            access_token,
+            graph_version,
+            app_id,
+            ASSET_DIR / "agent_intro_video.mp4",
+        )
+        result["sample_uploads"] = [{"placeholder": "__AGENT_INTRO_VIDEO_HANDLE__", "upload": upload}]
+        if not upload.get("ok"):
+            result["error"] = "failed to upload agent intro video sample to Meta"
+            return result
+        handle = upload["data"]["handle"]
+        for component in payload.get("components", []):
+            if component.get("type") == "HEADER":
+                example = component.get("example", {})
+                header_handle = example.get("header_handle", [])
+                if header_handle and header_handle[0] == "__AGENT_INTRO_VIDEO_HANDLE__":
+                    component["example"] = {"header_handle": [handle]}
+
+    if template_key in ("agent_intro_carousel_10_v3", "agent_intro_carousel_10_v4", "agent_intro_carousel_10_v5"):
         carousel_samples = [
             ("__CAROUSEL10V3_ESTATE_HANDLE__", ASSET_DIR / "carousel_v3_01_private_hillside_estate.jpg"),
             ("__CAROUSEL10V3_PLOTS_HANDLE__", ASSET_DIR / "carousel_v3_02_usable_large_plots.jpg"),
@@ -2375,6 +2570,56 @@ class Handler(BaseHTTPRequestHandler):
                 return
             try:
                 result = send_agent_carousel_v4_test()
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc)})
+                return
+            self.send_json(200, {"ok": all(item.get("ok") for item in result), "results": result})
+            return
+        if path == "/create-carousel-v5-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = create_canopy_template("agent_intro_carousel_10_v5")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/carousel-v5-template-status-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = whatsapp_templates("canopy_agent_intro_carousel_10_v5")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/send-carousel-v5-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            try:
+                result = send_agent_carousel_v5_test()
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc)})
+                return
+            self.send_json(200, {"ok": all(item.get("ok") for item in result), "results": result})
+            return
+        if path == "/create-agent-video-cta-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = create_canopy_template("agent_video_intro_cta_v1")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/agent-video-cta-template-status-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = whatsapp_templates("canopy_agent_video_intro_cta_v1")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/send-agent-video-cta-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            try:
+                result = send_agent_video_cta_template_test()
             except Exception as exc:
                 self.send_json(502, {"ok": False, "error": str(exc)})
                 return
