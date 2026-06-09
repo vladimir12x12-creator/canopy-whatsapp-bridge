@@ -402,6 +402,54 @@ def send_delivery_ping_test():
     return [{"label": "approved-template", "ok": True, "meta": result}]
 
 
+def send_agent_carousel_v2_test():
+    to = "66628512432"
+    base = f"{BASE_URL}/assets"
+    image_names = [
+        "carousel_v2_01_private_hillside_estate.jpg",
+        "carousel_v2_02_large_land_plots.jpg",
+        "carousel_v2_03_usable_garden.jpg",
+        "carousel_v2_04_family_scale.jpg",
+        "carousel_v2_05_7m_living_room.jpg",
+        "carousel_v2_06_kitchens_bbq.jpg",
+        "carousel_v2_07_real_view.jpg",
+        "carousel_v2_08_heat_noise_insulation.jpg",
+    ]
+    components = [
+        {
+            "type": "body",
+            "parameters": [{"type": "text", "text": "there"}],
+        },
+        {
+            "type": "carousel",
+            "cards": [
+                {
+                    "card_index": index,
+                    "components": [
+                        {
+                            "type": "header",
+                            "parameters": [
+                                {
+                                    "type": "image",
+                                    "image": {"link": f"{base}/{name}"},
+                                }
+                            ],
+                        }
+                    ],
+                }
+                for index, name in enumerate(image_names)
+            ],
+        },
+    ]
+    result = send_whatsapp_template(
+        to,
+        "canopy_agent_intro_carousel_8_v2",
+        "en_US",
+        components,
+    )
+    return [{"label": "agent-carousel-v2", "ok": True, "meta": result}]
+
+
 def send_whatsapp_payload(payload):
     access_token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
     phone_number_id = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "").strip()
@@ -1970,6 +2018,31 @@ class Handler(BaseHTTPRequestHandler):
                 return
             try:
                 result = send_delivery_ping_test()
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc)})
+                return
+            self.send_json(200, {"ok": all(item.get("ok") for item in result), "results": result})
+            return
+        if path == "/create-carousel-v2-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = create_canopy_template("agent_intro_carousel_8_v2")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/carousel-v2-template-status-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = whatsapp_templates("canopy_agent_intro_carousel_8_v2")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/send-carousel-v2-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            try:
+                result = send_agent_carousel_v2_test()
             except Exception as exc:
                 self.send_json(502, {"ok": False, "error": str(exc)})
                 return
