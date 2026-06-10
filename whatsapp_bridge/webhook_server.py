@@ -30,6 +30,23 @@ ENABLE_TEST_AUTOREPLY = os.environ.get("ENABLE_TEST_AUTOREPLY", "1").strip().low
 TEST_AUTOREPLY_WA_IDS = {
     x.strip() for x in os.environ.get("TEST_AUTOREPLY_WA_IDS", "66628512432").split(",") if x.strip()
 }
+TEST_AUTOREPLY_REQUIRE_EXPLICIT_PREFIX = (
+    os.environ.get("TEST_AUTOREPLY_REQUIRE_EXPLICIT_PREFIX", "1").strip().lower()
+    in {"1", "true", "yes", "on"}
+)
+TEST_AUTOREPLY_PREFIXES = (
+    "тест",
+    "test",
+    "клиент:",
+    "агент:",
+    "покупатель:",
+    "инвестор:",
+    "lead:",
+    "client:",
+    "agent:",
+    "buyer:",
+    "investor:",
+)
 
 
 def utc_now():
@@ -187,9 +204,11 @@ def classify(text):
 
 
 def looks_like_sales_roleplay(text):
-    t = (text or "").lower()
+    t = (text or "").strip().lower()
     if not t:
         return False
+    if TEST_AUTOREPLY_REQUIRE_EXPLICIT_PREFIX:
+        return t.startswith(TEST_AUTOREPLY_PREFIXES)
     roleplay_terms = [
         "тест",
         "клиент:",
@@ -244,6 +263,8 @@ def generate_test_autoreply(item):
         return ""
     text = item.get("text") or ""
     if not looks_like_sales_roleplay(text):
+        if TEST_AUTOREPLY_REQUIRE_EXPLICIT_PREFIX:
+            return ""
         return (
             "Принял. Это похоже на рабочее сообщение, не на тест клиента. "
             "Если хочешь проверить sales-сценарий, напиши в формате: "
