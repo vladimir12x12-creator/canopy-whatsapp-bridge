@@ -26,6 +26,10 @@ DEFAULT_WABA_ID = os.environ.get("WHATSAPP_WABA_ID", "2253327871868025")
 DEFAULT_APP_ID = os.environ.get("WHATSAPP_APP_ID", "1693287358483119")
 BASE_URL = os.environ.get("BRIDGE_PUBLIC_BASE_URL", "https://canopy-whatsapp-bridge.onrender.com").rstrip("/")
 ASSET_DIR = Path(__file__).resolve().parent / "assets"
+ENABLE_TEST_AUTOREPLY = os.environ.get("ENABLE_TEST_AUTOREPLY", "1").strip().lower() in {"1", "true", "yes", "on"}
+TEST_AUTOREPLY_WA_IDS = {
+    x.strip() for x in os.environ.get("TEST_AUTOREPLY_WA_IDS", "66628512432").split(",") if x.strip()
+}
 
 
 def utc_now():
@@ -182,6 +186,105 @@ def classify(text):
     }
 
 
+def looks_like_sales_roleplay(text):
+    t = (text or "").lower()
+    if not t:
+        return False
+    roleplay_terms = [
+        "тест",
+        "клиент:",
+        "агент:",
+        "покупатель:",
+        "инвестор:",
+        "lead:",
+        "client:",
+        "agent:",
+        "buyer:",
+        "investor:",
+    ]
+    sales_terms = [
+        "хочу узнать",
+        "узнать больше",
+        "интересует проект",
+        "интересно узнать",
+        "пришлите информацию",
+        "пришлите материалы",
+        "send details",
+        "send info",
+        "more information",
+        "project details",
+        "villa",
+        "вилла",
+        "виллы",
+        "bisp",
+        "british international",
+        "цена",
+        "прайс",
+        "price",
+        "availability",
+        "просмотр",
+        "viewing",
+    ]
+    return has_any(t, roleplay_terms) or has_any(t, sales_terms)
+
+
+def generate_test_autoreply(item):
+    if not ENABLE_TEST_AUTOREPLY:
+        return ""
+    if item.get("wa_id") not in TEST_AUTOREPLY_WA_IDS:
+        return ""
+    if item.get("message_type") != "text":
+        return ""
+    text = item.get("text") or ""
+    if not looks_like_sales_roleplay(text):
+        return (
+            "Принял. Это похоже на рабочее сообщение, не на тест клиента. "
+            "Если хочешь проверить sales-сценарий, напиши в формате: "
+            "«ТЕСТ клиент: хочу узнать больше о проекте» или "
+            "«ТЕСТ агент: клиент ищет виллу рядом с BISP»."
+        )
+
+    classification = classify(text)
+    if classification["segment"] == "price_payment":
+        return (
+            "Да, отправлю актуальную доступность и цены. Чтобы дать правильную версию, "
+            "подскажите, пожалуйста: вы смотрите виллу для себя/семьи или представляете клиента? "
+            "И вам важна готовая/почти готовая вилла или можно рассматривать виллы в строительстве?"
+        )
+    if classification["segment"] == "broker":
+        return (
+            "Спасибо. Мы работаем с агентами, стандартная комиссия — 6%. "
+            "Canopy Hills Villas — клубный поселок из 9 просторных видовых семейных вилл "
+            "на холме напротив BISP. Если у вас есть конкретный клиент, пришлите, пожалуйста, "
+            "имя клиента, страну/город, примерный бюджет и желаемые сроки просмотра."
+        )
+    if classification["segment"] == "family_bisp_buyer":
+        return (
+            "Canopy Hills как раз рассчитан на долгосрочную семейную жизнь рядом с BISP: "
+            "просторные виллы, вид, тихая зеленая локация, usable участки и повседневная "
+            "инфраструктура рядом. Вы уже живете на Пхукете или планируете переезд к учебному году?"
+        )
+    if classification["segment"] == "ready_villa_buyer":
+        return (
+            "Понимаю, готовность сейчас ключевой вопрос. Первая вилла C9 будет готова к private preview "
+            "в начале/середине августа, а следующие виллы уже строятся. Хотите, чтобы я поставил вас "
+            "или вашего клиента в priority preview list?"
+        )
+    if classification["segment"] == "investor":
+        return (
+            "Спасибо. Инвестиционные разговоры по Canopy Hills мы ведем отдельно от стандартной продажи вилл. "
+            "Чтобы понять, есть ли предметный интерес, лучше согласовать короткий звонок с owner/developer side. "
+            "Какой формат вы рассматриваете: покупка виллы, инвестиция в конкретную виллу или проектное финансирование?"
+        )
+    return (
+        "Здравствуйте! Спасибо за интерес к Canopy Hills Villas. Это клубный поселок из 9 просторных "
+        "видовых семейных вилл на холме напротив British International School Phuket, созданный для "
+        "постоянной жизни на Пхукете, а не для краткосрочной аренды.\n\n"
+        "Чтобы отправить вам самые релевантные материалы, подскажите, пожалуйста: вы смотрите виллу "
+        "для себя/семьи или представляете клиента?"
+    )
+
+
 def extract_messages(payload):
     out = []
     for entry in payload.get("entry", []):
@@ -218,7 +321,7 @@ def store_payload(payload):
     )
     for item in extract_messages(payload):
         classification = classify(item["text"])
-        con.execute(
+        cur = con.execute(
             """
             INSERT OR IGNORE INTO messages
               (id, wa_id, direction, message_type, text, raw_json, received_at)
@@ -233,6 +336,7 @@ def store_payload(payload):
                 now,
             ),
         )
+        inserted = cur.rowcount > 0
         con.execute(
             """
             INSERT INTO contacts
@@ -260,6 +364,13 @@ def store_payload(payload):
             ),
         )
         mark_whatsapp_message_read(item["message_id"])
+        if inserted:
+            autoreply = generate_test_autoreply(item)
+            if autoreply:
+                try:
+                    send_whatsapp_text(item["wa_id"], autoreply)
+                except Exception as exc:
+                    print(f"test autoreply failed for {item['wa_id']}: {exc}")
     con.commit()
     con.close()
 
