@@ -47,6 +47,16 @@ TEST_AUTOREPLY_PREFIXES = (
     "buyer:",
     "investor:",
 )
+ENABLE_AI_AGENT = os.environ.get("ENABLE_AI_AGENT", "1").strip().lower() in {"1", "true", "yes", "on"}
+AI_AGENT_DRY_RUN = os.environ.get("AI_AGENT_DRY_RUN", "0").strip().lower() in {"1", "true", "yes", "on"}
+AI_AGENT_MODEL = os.environ.get("AI_AGENT_MODEL", "gpt-4.1-mini").strip()
+AI_AGENT_MAX_CHARS = int(os.environ.get("AI_AGENT_MAX_CHARS", "1200"))
+AI_OPERATOR_WA_IDS = {
+    x.strip() for x in os.environ.get("AI_OPERATOR_WA_IDS", "66628512432").split(",") if x.strip()
+}
+AI_AGENT_WA_ID_ALLOWLIST = {
+    x.strip() for x in os.environ.get("AI_AGENT_WA_ID_ALLOWLIST", "").split(",") if x.strip()
+}
 
 
 def utc_now():
@@ -331,6 +341,151 @@ def generate_test_autoreply(item):
     )
 
 
+def should_ai_agent_reply(item, classification):
+    if not ENABLE_AI_AGENT:
+        return False
+    if item.get("message_type") != "text":
+        return False
+    if not (item.get("text") or "").strip():
+        return False
+    if AI_AGENT_WA_ID_ALLOWLIST and item.get("wa_id") not in AI_AGENT_WA_ID_ALLOWLIST:
+        return False
+    if classification.get("segment") == "low_relevance":
+        return True
+    return True
+
+
+def ai_agent_system_prompt(is_operator=False):
+    role = (
+        "You are Codex/Canopy Hills internal operations assistant speaking with Vladimir in WhatsApp."
+        if is_operator
+        else "You are the Canopy Hills Villas WhatsApp sales assistant."
+    )
+    return f"""{role}
+
+Use the user's language. Keep WhatsApp replies concise, concrete and useful.
+
+Project facts:
+- Canopy Hills Villas Phuket: private hillside estate of 9 premium villas in Ko Kaeo, opposite British International School Phuket.
+- Positioning: long-term family living, not generic holiday rental villas.
+- Core value: BISP location, spacious 650-768 sqm homes, views, quiet green surroundings, privacy, storage, engineering quality, thermal/sound insulation, family layouts.
+- Villa types: L and XL; 4+1 and 5+1 bedrooms.
+- Price context: from approx. THB 57.5M; standard agency commission is 6%.
+- C9 is the first near-ready villa, expected for private preview in early/mid August 2026; next villas are already under construction.
+- SalesKit: https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5
+- Current company details: Hugs Management Co., Ltd., Reg. No. 0835566030613, address 99/101, Moo.2, Koh Keaw Sub District, Mueang District, Phuket Province, 83000, Thailand.
+
+Rules:
+- Do not overpromise ROI, legal outcomes, immigration outcomes, completion dates beyond the stated C9 preview window, or availability.
+- Ask one relevant qualifying question unless the user gave a direct operational instruction.
+- For legal, investor, discount, contract, payment, or serious negotiation topics: acknowledge and escalate to Vladimir/Andrey or a short call.
+- For agents: mention 6% commission and ask whether they have a specific client or need materials for their database.
+- For client registration: ask for client full name, country/city, timing, villa preference, and viewing date.
+- For irrelevant/spam messages: politely ask them to clarify if this is about purchasing or representing a client for Canopy Hills.
+- Do not claim you sent files/media unless the message explicitly includes a link you are providing.
+- Max {AI_AGENT_MAX_CHARS} characters.
+"""
+
+
+def extract_response_text(data):
+    if data.get("output_text"):
+        return str(data["output_text"]).strip()
+    chunks = []
+    for output in data.get("output", []) or []:
+        for content in output.get("content", []) or []:
+            text = content.get("text")
+            if text:
+                chunks.append(str(text))
+    return "\n".join(chunks).strip()
+
+
+def openai_response_text(system_prompt, user_text, metadata):
+    access_token = os.environ.get("OPENAI_API_KEY", "").strip()
+    if not access_token:
+        raise RuntimeError("OPENAI_API_KEY is not set")
+    payload = {
+        "model": AI_AGENT_MODEL,
+        "input": (
+            f"{system_prompt}\n\n"
+            f"Conversation metadata:\n{json.dumps(metadata, ensure_ascii=False)}\n\n"
+            f"Incoming WhatsApp message:\n{user_text}"
+        ),
+        "max_output_tokens": 450,
+    }
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/responses",
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=40) as res:
+            data = json.loads(res.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8")
+        raise RuntimeError(error_body) from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(str(exc.reason)) from exc
+
+    text = extract_response_text(data)
+    if not text:
+        raise RuntimeError(f"OpenAI response did not contain text: {json.dumps(data, ensure_ascii=False)[:1000]}")
+    return text[:AI_AGENT_MAX_CHARS].strip()
+
+
+def log_ai_agent_event(wa_id, inbound_message_id, status, reply="", error=""):
+    con = db()
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS ai_agent_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            wa_id TEXT NOT NULL,
+            inbound_message_id TEXT NOT NULL,
+            status TEXT NOT NULL,
+            reply TEXT,
+            error TEXT,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    con.execute(
+        """
+        INSERT INTO ai_agent_events
+          (wa_id, inbound_message_id, status, reply, error, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (wa_id, inbound_message_id, status, reply, error, utc_now()),
+    )
+    con.commit()
+    con.close()
+
+
+def run_ai_agent_reply(item, classification):
+    is_operator = item.get("wa_id") in AI_OPERATOR_WA_IDS
+    metadata = {
+        "wa_id": item.get("wa_id"),
+        "profile_name": item.get("profile_name"),
+        "segment": classification.get("segment"),
+        "priority": classification.get("priority"),
+        "next_action": classification.get("next_action"),
+        "is_operator": is_operator,
+    }
+    reply = openai_response_text(
+        ai_agent_system_prompt(is_operator=is_operator),
+        item.get("text") or "",
+        metadata,
+    )
+    if AI_AGENT_DRY_RUN:
+        log_ai_agent_event(item["wa_id"], item["message_id"], "dry_run", reply, "")
+        return reply
+    send_whatsapp_text(item["wa_id"], reply)
+    log_ai_agent_event(item["wa_id"], item["message_id"], "sent", reply, "")
+    return reply
+
+
 def extract_messages(payload):
     out = []
     for entry in payload.get("entry", []):
@@ -417,6 +572,13 @@ def store_payload(payload):
                     send_whatsapp_text(item["wa_id"], autoreply)
                 except Exception as exc:
                     print(f"test autoreply failed for {item['wa_id']}: {exc}")
+            elif should_ai_agent_reply(item, classification):
+                con.commit()
+                try:
+                    run_ai_agent_reply(item, classification)
+                except Exception as exc:
+                    log_ai_agent_event(item["wa_id"], item["message_id"], "error", "", str(exc))
+                    print(f"ai agent reply failed for {item['wa_id']}: {exc}")
     con.commit()
     con.close()
 
@@ -2941,6 +3103,12 @@ class Handler(BaseHTTPRequestHandler):
                     "test_autoreply_enabled": ENABLE_TEST_AUTOREPLY,
                     "test_autoreply_require_explicit_prefix": TEST_AUTOREPLY_REQUIRE_EXPLICIT_PREFIX,
                     "test_autoreply_wa_ids": sorted(TEST_AUTOREPLY_WA_IDS),
+                    "ai_agent_enabled": ENABLE_AI_AGENT,
+                    "ai_agent_dry_run": AI_AGENT_DRY_RUN,
+                    "ai_agent_model": AI_AGENT_MODEL,
+                    "ai_operator_wa_ids": sorted(AI_OPERATOR_WA_IDS),
+                    "has_openai_api_key": bool(os.environ.get("OPENAI_API_KEY", "").strip()),
+                    "has_whatsapp_access_token": bool(os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()),
                 },
             )
             return
@@ -3068,6 +3236,32 @@ class Handler(BaseHTTPRequestHandler):
             con = db()
             rows = con.execute(
                 "SELECT id, raw_json, received_at FROM webhook_events ORDER BY id DESC LIMIT 20"
+            ).fetchall()
+            con.close()
+            body = rows_to_json(rows)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if parsed.path == "/ai-agent-events":
+            con = db()
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS ai_agent_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    wa_id TEXT NOT NULL,
+                    inbound_message_id TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    reply TEXT,
+                    error TEXT,
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
+            rows = con.execute(
+                "SELECT * FROM ai_agent_events ORDER BY id DESC LIMIT 50"
             ).fetchall()
             con.close()
             body = rows_to_json(rows)
