@@ -53,6 +53,9 @@ Endpoints:
 - `POST /webhook` - inbound WhatsApp webhook receiver.
 - `GET /leads` - classified contacts.
 - `GET /messages?wa_id=...` - messages for one contact.
+- `GET /operator-feed?limit=20` - compact AI/operator queue with latest inbound messages, classification, suggested reply, and suggested materials.
+- `GET /ai-agent-events` - recent AI-agent send/dry-run/error log.
+- `GET /health` - deployment and env diagnostics.
 - `GET /templates?name=...` - protected template status check from Meta WhatsApp Manager.
 - `POST /send-text` - protected outbound free-text send. Use only inside a 24-hour customer-service window.
 - `POST /send-template` - protected outbound template send for first contact or closed windows.
@@ -66,6 +69,42 @@ Voice note transcription requires these Render environment variables:
 - `OPENAI_TRANSCRIBE_MODEL` - optional, defaults to `gpt-4o-mini-transcribe`.
 - `OPENAI_TRANSCRIBE_LANGUAGE` - optional, defaults to `ru`.
 
+## 24/7 AI Agent
+
+Current implementation:
+
+- Inbound WhatsApp messages are stored in SQLite and classified.
+- If `ENABLE_AI_AGENT=1`, the bridge asks OpenAI to draft a concise WhatsApp reply using Canopy Hills project context and guardrails.
+- If `AI_AGENT_DRY_RUN=0`, the bridge sends the reply through WhatsApp Cloud API and records the result in `/ai-agent-events`.
+- For Vladimir/operator wa_id values, the agent replies as an internal operations assistant rather than a sales lead handler.
+- Complex legal, investor, discount, contract, payment, or negotiation topics are answered conservatively and escalated to Vladimir/Andrey.
+
+Render environment variables:
+
+- `ENABLE_AI_AGENT=1` - enable the live AI agent. Defaults to `1` in code.
+- `AI_AGENT_DRY_RUN=0` - send replies. Use `1` for testing without sending.
+- `AI_AGENT_MODEL=gpt-4.1-mini` - optional model override.
+- `AI_OPERATOR_WA_IDS=66628512432` - comma-separated wa_id list treated as internal operator/Vladimir.
+- `AI_AGENT_WA_ID_ALLOWLIST=` - optional comma-separated allowlist. Empty means all inbound contacts.
+- `OPENAI_API_KEY` - required for AI replies.
+- `WHATSAPP_ACCESS_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID` - required for outbound WhatsApp sends.
+
+Production check after deploy:
+
+```bash
+curl -sS https://canopy-whatsapp-bridge.onrender.com/health
+curl -sS 'https://canopy-whatsapp-bridge.onrender.com/operator-feed?limit=5'
+curl -sS https://canopy-whatsapp-bridge.onrender.com/ai-agent-events
+```
+
+Expected `/health` values for live AI mode:
+
+- `render_git_commit` should match the latest GitHub commit.
+- `ai_agent_enabled` should be `true`.
+- `ai_agent_dry_run` should be `false`.
+- `has_openai_api_key` should be `true`.
+- `has_whatsapp_access_token` should be `true`.
+
 Staging voice transcription test:
 
 ```bash
@@ -75,7 +114,11 @@ curl -sS https://canopy-whatsapp-bridge.onrender.com/transcribe-latest-vladimir-
 
 ## Current Blockers
 
-1. WhatsApp payment method.
+1. Render deploy is currently stale.
+   - GitHub `main` has newer commits than Render.
+   - Render `/health` still reports old commit `584ed3cdd5cef7d87a9f50f89e8a46091349eaf2`.
+   - Manual deploy is required in Render: service `canopy-whatsapp-bridge` -> `Manual Deploy` -> `Deploy latest commit`.
+2. WhatsApp payment method.
    - Required for business-initiated conversations and template sends.
    - Not required for receiving inbound webhook messages.
    - This still matters before moving to the live number.
