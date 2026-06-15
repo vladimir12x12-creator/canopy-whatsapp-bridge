@@ -26,7 +26,7 @@ DEFAULT_WABA_ID = os.environ.get("WHATSAPP_WABA_ID", "2253327871868025")
 DEFAULT_APP_ID = os.environ.get("WHATSAPP_APP_ID", "1693287358483119")
 BASE_URL = os.environ.get("BRIDGE_PUBLIC_BASE_URL", "https://canopy-whatsapp-bridge.onrender.com").rstrip("/")
 ASSET_DIR = Path(__file__).resolve().parent / "assets"
-ENABLE_TEST_AUTOREPLY = os.environ.get("ENABLE_TEST_AUTOREPLY", "1").strip().lower() in {"1", "true", "yes", "on"}
+ENABLE_TEST_AUTOREPLY = os.environ.get("ENABLE_TEST_AUTOREPLY", "0").strip().lower() in {"1", "true", "yes", "on"}
 TEST_AUTOREPLY_WA_IDS = {
     x.strip() for x in os.environ.get("TEST_AUTOREPLY_WA_IDS", "66628512432").split(",") if x.strip()
 }
@@ -2820,6 +2820,57 @@ def render_lead(wa_id):
     return page(f"Lead: {contact_dict.get('profile_name') or wa_id}", "".join(chunks))
 
 
+def operator_feed(limit=20):
+    try:
+        limit = int(limit)
+    except (TypeError, ValueError):
+        limit = 20
+    limit = max(1, min(limit, 100))
+
+    con = db()
+    rows = con.execute(
+        """
+        SELECT
+            m.id,
+            m.wa_id,
+            COALESCE(c.profile_name, '') AS profile_name,
+            m.message_type,
+            m.text,
+            m.received_at,
+            COALESCE(c.segment, 'new_inbound') AS segment,
+            COALESCE(c.priority, 'P3') AS priority,
+            COALESCE(c.next_action, '') AS next_action
+        FROM messages m
+        LEFT JOIN contacts c ON c.wa_id = m.wa_id
+        WHERE m.direction = 'inbound'
+        ORDER BY m.received_at DESC
+        LIMIT ?
+        """,
+        (limit,),
+    ).fetchall()
+    con.close()
+
+    items = []
+    for row in rows:
+        contact = dict(row)
+        items.append(
+            {
+                "message_id": row["id"],
+                "wa_id": row["wa_id"],
+                "profile_name": row["profile_name"],
+                "message_type": row["message_type"],
+                "text": row["text"],
+                "received_at": row["received_at"],
+                "segment": row["segment"],
+                "priority": row["priority"],
+                "next_action": row["next_action"],
+                "suggested_reply": draft_reply(contact, contact.get("text") or ""),
+                "suggested_materials": suggested_materials(row["segment"]),
+            }
+        )
+    return items
+
+
 class Handler(BaseHTTPRequestHandler):
     def send_json(self, code, data):
         body = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
@@ -2887,6 +2938,9 @@ class Handler(BaseHTTPRequestHandler):
                     "phone_number_id": os.environ.get("WHATSAPP_PHONE_NUMBER_ID", ""),
                     "render_git_commit": os.environ.get("RENDER_GIT_COMMIT", ""),
                     "render_service_name": os.environ.get("RENDER_SERVICE_NAME", ""),
+                    "test_autoreply_enabled": ENABLE_TEST_AUTOREPLY,
+                    "test_autoreply_require_explicit_prefix": TEST_AUTOREPLY_REQUIRE_EXPLICIT_PREFIX,
+                    "test_autoreply_wa_ids": sorted(TEST_AUTOREPLY_WA_IDS),
                 },
             )
             return
@@ -2958,6 +3012,9 @@ class Handler(BaseHTTPRequestHandler):
             ).fetchall()
             con.close()
             send_csv(self, rows_to_csv(headers, rows), "canopy_messages.csv")
+            return
+        if parsed.path == "/operator-feed":
+            self.send_json(200, operator_feed(params.get("limit", ["20"])[0]))
             return
         if parsed.path == "/events.csv":
             headers = ["id", "received_at", "raw_json"]
