@@ -62,18 +62,21 @@ Endpoints:
 - `POST /send-media` - protected outbound image/video/document send by public HTTPS link. Use only inside a 24-hour customer-service window.
 - `POST /create-canopy-template` - protected helper to submit built-in Canopy templates to Meta.
 - `GET /transcribe-latest-vladimir-voice-test` - protected staging helper to download Vladimir's latest WhatsApp voice note, transcribe it with OpenAI, update the stored message text, and reclassify the contact.
+- `GET /process-latest-vladimir-voice-test` - protected staging helper to transcribe Vladimir's latest WhatsApp voice note and run it through the AI reply flow.
 
 Voice note transcription requires these Render environment variables:
 
 - `OPENAI_API_KEY` - OpenAI API key for transcription.
 - `OPENAI_TRANSCRIBE_MODEL` - optional, defaults to `gpt-4o-mini-transcribe`.
 - `OPENAI_TRANSCRIBE_LANGUAGE` - optional, defaults to `ru`.
+- `ENABLE_AI_AUDIO_TRANSCRIPTION=1` - transcribe inbound WhatsApp voice notes and pass the transcript to the AI agent. Defaults to `1` in code.
 
 ## 24/7 AI Agent
 
 Current implementation:
 
 - Inbound WhatsApp messages are stored in SQLite and classified.
+- Inbound WhatsApp voice notes are transcribed automatically, stored back onto the message, reclassified, and passed to the same AI reply flow.
 - If `ENABLE_AI_AGENT=1`, the bridge asks OpenAI to draft a concise WhatsApp reply using Canopy Hills project context and guardrails.
 - If `AI_AGENT_DRY_RUN=0`, the bridge sends the reply through WhatsApp Cloud API and records the result in `/ai-agent-events`.
 - For Vladimir/operator wa_id values, the agent replies as an internal operations assistant rather than a sales lead handler.
@@ -82,6 +85,7 @@ Current implementation:
 Render environment variables:
 
 - `ENABLE_AI_AGENT=1` - enable the live AI agent. Defaults to `1` in code.
+- `ENABLE_AI_AUDIO_TRANSCRIPTION=1` - enable automatic voice-note transcription for the AI agent. Defaults to `1` in code.
 - `AI_AGENT_DRY_RUN=0` - send replies. Use `1` for testing without sending.
 - `AI_AGENT_MODEL=gpt-4.1-mini` - optional model override.
 - `AI_OPERATOR_WA_IDS=66628512432` - comma-separated wa_id list treated as internal operator/Vladimir.
@@ -109,6 +113,9 @@ Staging voice transcription test:
 
 ```bash
 curl -sS https://canopy-whatsapp-bridge.onrender.com/transcribe-latest-vladimir-voice-test \
+  -H "X-Agent-Test: canopy-agent-packet-v1"
+
+curl -sS https://canopy-whatsapp-bridge.onrender.com/process-latest-vladimir-voice-test \
   -H "X-Agent-Test: canopy-agent-packet-v1"
 ```
 

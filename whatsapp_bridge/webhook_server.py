@@ -48,6 +48,10 @@ TEST_AUTOREPLY_PREFIXES = (
     "investor:",
 )
 ENABLE_AI_AGENT = os.environ.get("ENABLE_AI_AGENT", "1").strip().lower() in {"1", "true", "yes", "on"}
+ENABLE_AI_AUDIO_TRANSCRIPTION = (
+    os.environ.get("ENABLE_AI_AUDIO_TRANSCRIPTION", "1").strip().lower()
+    in {"1", "true", "yes", "on"}
+)
 AI_AGENT_DRY_RUN = os.environ.get("AI_AGENT_DRY_RUN", "0").strip().lower() in {"1", "true", "yes", "on"}
 AI_AGENT_MODEL = os.environ.get("AI_AGENT_MODEL", "gpt-4.1-mini").strip()
 AI_AGENT_MAX_CHARS = int(os.environ.get("AI_AGENT_MAX_CHARS", "1200"))
@@ -572,6 +576,13 @@ def store_payload(payload):
                     send_whatsapp_text(item["wa_id"], autoreply)
                 except Exception as exc:
                     print(f"test autoreply failed for {item['wa_id']}: {exc}")
+            elif item.get("message_type") == "audio":
+                con.commit()
+                try:
+                    process_audio_message_for_ai(item["message_id"], item)
+                except Exception as exc:
+                    log_ai_agent_event(item["wa_id"], item["message_id"], "audio_error", "", str(exc))
+                    print(f"ai audio processing failed for {item['wa_id']}: {exc}")
             elif should_ai_agent_reply(item, classification):
                 con.commit()
                 try:
@@ -1255,6 +1266,41 @@ def transcribe_latest_audio_for(wa_id):
     if not row:
         raise RuntimeError("No inbound audio messages found for this wa_id")
     return transcribe_audio_message(row["id"])
+
+
+def process_audio_message_for_ai(message_id, original_item=None):
+    if not ENABLE_AI_AUDIO_TRANSCRIPTION:
+        return {"message_id": message_id, "ai_reply": "", "skipped": "audio transcription disabled"}
+    result = transcribe_audio_message(message_id)
+    voice_item = {
+        "message_id": message_id,
+        "wa_id": result["wa_id"],
+        "profile_name": (original_item or {}).get("profile_name", ""),
+        "message_type": "text",
+        "text": f"[WhatsApp voice note transcript]\n{result['transcript']}",
+        "raw": (original_item or {}).get("raw", {}),
+    }
+    if not should_ai_agent_reply(voice_item, result["classification"]):
+        return {**result, "ai_reply": "", "skipped": "ai agent disabled or filtered"}
+    reply = run_ai_agent_reply(voice_item, result["classification"])
+    return {**result, "ai_reply": reply}
+
+
+def process_latest_audio_for(wa_id):
+    con = db()
+    row = con.execute(
+        """
+        SELECT id FROM messages
+        WHERE wa_id = ? AND direction = 'inbound' AND message_type = 'audio'
+        ORDER BY received_at DESC
+        LIMIT 1
+        """,
+        (wa_id,),
+    ).fetchone()
+    con.close()
+    if not row:
+        raise RuntimeError("No inbound audio messages found for this wa_id")
+    return process_audio_message_for_ai(row["id"])
 
 
 def store_outbound_message(to, message_type, text, response, next_action):
@@ -3104,6 +3150,7 @@ class Handler(BaseHTTPRequestHandler):
                     "test_autoreply_require_explicit_prefix": TEST_AUTOREPLY_REQUIRE_EXPLICIT_PREFIX,
                     "test_autoreply_wa_ids": sorted(TEST_AUTOREPLY_WA_IDS),
                     "ai_agent_enabled": ENABLE_AI_AGENT,
+                    "ai_audio_transcription_enabled": ENABLE_AI_AUDIO_TRANSCRIPTION,
                     "ai_agent_dry_run": AI_AGENT_DRY_RUN,
                     "ai_agent_model": AI_AGENT_MODEL,
                     "ai_operator_wa_ids": sorted(AI_OPERATOR_WA_IDS),
@@ -3277,6 +3324,17 @@ class Handler(BaseHTTPRequestHandler):
                 return
             try:
                 result = transcribe_latest_audio_for("66628512432")
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc)})
+                return
+            self.send_json(200, {"ok": True, **result})
+            return
+        if parsed.path == "/process-latest-vladimir-voice-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            try:
+                result = process_latest_audio_for("66628512432")
             except Exception as exc:
                 self.send_json(502, {"ok": False, "error": str(exc)})
                 return
