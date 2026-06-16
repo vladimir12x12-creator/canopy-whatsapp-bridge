@@ -383,8 +383,8 @@ Project facts:
 - Current company details: Hugs Management Co., Ltd., Reg. No. 0835566030613, address 99/101, Moo.2, Koh Keaw Sub District, Mueang District, Phuket Province, 83000, Thailand.
 
 Agreed agent welcome standard:
-- For an agent/broker/materials request, the standard first package is: short language-matched intro text with SalesKit link + intro video + language-matched advantages carousel.
-- Intro text explains concept and who agents should target; it must not repeat the carousel's numeric facts as a second long list.
+- For an agent/broker/materials request, the standard first package is exactly two sends: intro video with a short language-matched caption + language-matched advantages carousel.
+- The video caption explains concept and who agents should target; it must not repeat the carousel's numeric facts as a second long list.
 - The carousel carries concrete numbers and advantages.
 - The system has a tool named send_agent_welcome_pack. When the message is a real agent/materials scenario, the tool may send the pack automatically after your text reply.
 - Do not say files/media were sent unless you include a link in your reply or the tool context says the system will send the pack.
@@ -735,40 +735,32 @@ def is_agent_materials_scenario(text):
     return has_any(t, agent_terms) or has_any(t, material_terms)
 
 
-def agent_welcome_text(language="en"):
+def agent_intro_video_caption(language="en"):
     if language == "ru":
-        return """Добрый день! Отправляю короткий intro-pack по Canopy Hills Villas.
+        return """Canopy Hills Villas Phuket - коротко для агента.
 
-Это не типичный holiday-villa продукт. Canopy Hills лучше всего подходит для семей, которые хотят жить на Пхукете долго: рядом с BISP, в тихой зеленой локации, с большим домом, приватностью, видом и нормальной повседневной инфраструктурой.
+Это не обычная vacation villa. Проект лучше всего подходит для семей, которые планируют жить на Пхукете долго: рядом с BISP, в тихой зеленой локации, с приватностью, видом и большим домом для повседневной жизни.
 
-Кого ориентировать на проект:
-- семьи с детьми в British International School Phuket;
-- relocation / expat families, которым нужен дом для жизни, не просто vacation villa;
-- покупателей, которым важны пространство, тишина, вид, инженерное качество и близость к школе;
-- клиентов, которые хотят видеть реальный прогресс строительства, а не только рендеры.
+Ориентир: семьи с детьми в BISP, relocation / expat families и покупатели, которым важны пространство, тишина, инженерное качество, виды и доступ к школе.
 
-Видео ниже даст быстрый эмоциональный контекст, а карусель - конкретные преимущества и цифры.
+Карусель ниже - ключевые преимущества и цифры.
 
 Full Sales Kit:
 https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5
 
-Подскажите, пожалуйста, у вас уже есть конкретный клиент под Canopy Hills или вы хотите получить материалы для базы?"""
-    return """Hi, sharing a short intro pack for Canopy Hills Villas.
+У вас уже есть конкретный клиент под Canopy Hills или нужны материалы для базы?"""
+    return """Canopy Hills Villas Phuket - quick agent intro.
 
-This is not a typical holiday-villa product. Canopy Hills is best positioned for families planning to live in Phuket long-term: close to BISP, in a quiet green location, with a large home, privacy, views and practical daily infrastructure nearby.
+This is not a standard vacation-villa product. Canopy Hills is best positioned for families planning to live in Phuket long-term: close to BISP, in a quiet green location, with privacy, views and a large home for daily family life.
 
-Who to target:
-- families with children at British International School Phuket;
-- relocation / expat families looking for a real home, not just a vacation villa;
-- buyers who care about space, quiet surroundings, views, engineering quality and school access;
-- clients who want to see construction progress, not only renders.
+Best fit: families with children at BISP, relocation / expat families, and buyers who care about space, quiet surroundings, engineering quality, views and school access.
 
-The video below gives quick emotional context; the carousel shows the concrete advantages and numbers.
+The carousel below gives the key advantages and numbers.
 
 Full Sales Kit:
 https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5
 
-Do you already have a specific client for Canopy Hills, or would you like the materials for your database?"""
+Do you already have a specific client for Canopy Hills, or do you need the materials for your database?"""
 
 
 def agent_carousel_template(language="en"):
@@ -829,21 +821,11 @@ def send_agent_carousel_v6(to):
 
 
 def send_agent_intro_video(to, language="en"):
-    if language == "ru":
-        caption = (
-            "Canopy Hills Villas Phuket - камерный hillside-поселок напротив BISP, "
-            "созданный для долгосрочной семейной жизни."
-        )
-    else:
-        caption = (
-            "Canopy Hills Villas Phuket - a private hillside estate opposite BISP, "
-            "designed for long-term family living."
-        )
     return send_whatsapp_media(
         to,
         "video",
         f"{BASE_URL}/assets/agent_intro_video.mp4",
-        caption,
+        agent_intro_video_caption(language),
     )
 
 
@@ -854,8 +836,8 @@ def recent_agent_pack_sent(to):
         SELECT id FROM messages
         WHERE wa_id = ? AND direction = 'outbound'
           AND (
-            text LIKE '%short intro pack for Canopy Hills Villas%'
-            OR text LIKE '%короткий intro-pack по Canopy Hills Villas%'
+            text LIKE '%quick agent intro%'
+            OR text LIKE '%коротко для агента%'
             OR text LIKE 'template:canopy_agent_advantages_carousel_10_v1:%'
             OR text LIKE 'template:canopy_agent_intro_carousel_10_v6:%'
           )
@@ -871,7 +853,6 @@ def recent_agent_pack_sent(to):
 def send_agent_welcome_pack(to, language="en"):
     results = []
     sends = [
-        ("agent-welcome-text", lambda: send_whatsapp_text(to, agent_welcome_text(language))),
         ("agent-intro-video", lambda: send_agent_intro_video(to, language)),
         ("agent-carousel-v7", lambda: send_agent_carousel_v7(to, language)),
     ]
