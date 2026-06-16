@@ -80,7 +80,7 @@ Current implementation:
 - Inbound WhatsApp voice notes are transcribed automatically, stored back onto the message, reclassified, and passed to the same AI reply flow.
 - If `ENABLE_AI_AGENT=1`, the bridge asks OpenAI to draft a concise WhatsApp reply using Canopy Hills project context and guardrails.
 - If `AI_AGENT_DRY_RUN=0`, the bridge sends the reply through WhatsApp Cloud API and records the result in `/ai-agent-events`.
-- If `ENABLE_AI_AGENT_TOOLS=1`, broker/materials/client-registration scenarios can trigger the agreed `send_agent_welcome_pack` tool: intro text with SalesKit, approved carousel, and intro video.
+- If `ENABLE_AI_AGENT_TOOLS=1`, broker/materials/client-registration scenarios can trigger the agreed `send_agent_welcome_pack` tool: short language-matched intro text with SalesKit, intro video, and language-matched advantages carousel.
 - For Vladimir/operator wa_id values, the agent replies as an internal operations assistant rather than a sales lead handler.
 - Complex legal, investor, discount, contract, payment, or negotiation topics are answered conservatively and escalated to Vladimir/Andrey.
 
