@@ -52,6 +52,7 @@ ENABLE_AI_AUDIO_TRANSCRIPTION = (
     os.environ.get("ENABLE_AI_AUDIO_TRANSCRIPTION", "1").strip().lower()
     in {"1", "true", "yes", "on"}
 )
+ENABLE_AI_AGENT_TOOLS = os.environ.get("ENABLE_AI_AGENT_TOOLS", "1").strip().lower() in {"1", "true", "yes", "on"}
 AI_AGENT_DRY_RUN = os.environ.get("AI_AGENT_DRY_RUN", "0").strip().lower() in {"1", "true", "yes", "on"}
 AI_AGENT_MODEL = os.environ.get("AI_AGENT_MODEL", "gpt-4.1-mini").strip()
 AI_AGENT_MAX_CHARS = int(os.environ.get("AI_AGENT_MAX_CHARS", "1200"))
@@ -377,7 +378,15 @@ Project facts:
 - Price context: from approx. THB 57.5M; standard agency commission is 6%.
 - C9 is the first near-ready villa, expected for private preview in early/mid August 2026; next villas are already under construction.
 - SalesKit: https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5
+- Client presentations: EN https://drive.google.com/file/d/1c1djBre5fRbmeoLXPsLYAczRFFIXbUvL/view | RU https://drive.google.com/file/d/1jlBF9tc1mtX-ygI1kletcuqf9skex58T/view | CH https://drive.google.com/file/d/1bgW4eOAdl_Zh_MTeoQAijaiq5Bn8IOhO/view
+- Price list: https://drive.google.com/file/d/16nxg2ShVpBVuyMQ6Ajwxvr-iNcagar6l/view
 - Current company details: Hugs Management Co., Ltd., Reg. No. 0835566030613, address 99/101, Moo.2, Koh Keaw Sub District, Mueang District, Phuket Province, 83000, Thailand.
+
+Agreed agent welcome standard:
+- For an agent/broker/materials request, the standard first package is: concise intro text with SalesKit link + approved carousel + intro video.
+- The system has a tool named send_agent_welcome_pack. When the message is a real agent/materials scenario, the tool may send the pack automatically after your text reply.
+- Do not say files/media were sent unless you include a link in your reply or the tool context says the system will send the pack.
+- After the pack, ask one question only: whether the agent has a specific client or wants materials for their database.
 
 Rules:
 - Do not overpromise ROI, legal outcomes, immigration outcomes, completion dates beyond the stated C9 preview window, or availability.
@@ -385,6 +394,7 @@ Rules:
 - For legal, investor, discount, contract, payment, or serious negotiation topics: acknowledge and escalate to Vladimir/Andrey or a short call.
 - For agents: mention 6% commission and ask whether they have a specific client or need materials for their database.
 - For client registration: ask for client full name, country/city, timing, villa preference, and viewing date.
+- For route/viewing logistics: send the location pin only after viewing timing is confirmed. The correct access instruction is to enter through the soi next to The Big Bear Kitchen; avoid generic Google route assumptions.
 - For irrelevant/spam messages: politely ask them to clarify if this is about purchasing or representing a client for Canopy Hills.
 - Do not claim you sent files/media unless the message explicitly includes a link you are providing.
 - Max {AI_AGENT_MAX_CHARS} characters.
@@ -469,6 +479,7 @@ def log_ai_agent_event(wa_id, inbound_message_id, status, reply="", error=""):
 
 def run_ai_agent_reply(item, classification):
     is_operator = item.get("wa_id") in AI_OPERATOR_WA_IDS
+    tool_plan = ai_agent_tool_plan(item, classification)
     metadata = {
         "wa_id": item.get("wa_id"),
         "profile_name": item.get("profile_name"),
@@ -476,6 +487,7 @@ def run_ai_agent_reply(item, classification):
         "priority": classification.get("priority"),
         "next_action": classification.get("next_action"),
         "is_operator": is_operator,
+        "tool_plan": tool_plan,
     }
     reply = openai_response_text(
         ai_agent_system_prompt(is_operator=is_operator),
@@ -486,6 +498,9 @@ def run_ai_agent_reply(item, classification):
         log_ai_agent_event(item["wa_id"], item["message_id"], "dry_run", reply, "")
         return reply
     send_whatsapp_text(item["wa_id"], reply)
+    tool_results = run_ai_agent_tools(item, classification, tool_plan)
+    if tool_results:
+        reply = f"{reply}\n\n[tools] {json.dumps(tool_results, ensure_ascii=False)}"
     log_ai_agent_event(item["wa_id"], item["message_id"], "sent", reply, "")
     return reply
 
@@ -659,6 +674,227 @@ def send_whatsapp_media(to, media_type, link, caption="", filename=""):
     label = f"{media_type}:{link}"
     store_outbound_message(to, media_type, label, response, "Outbound media sent from bridge.")
     return response
+
+
+def is_operator_instruction(text):
+    t = (text or "").lower()
+    instruction_terms = [
+        "давай здесь вернемся",
+        "мы должны",
+        "стандарт",
+        "согласованное сообщение",
+        "натаскай",
+        "обнови",
+        "зашей",
+        "инструменты",
+        "плейбук",
+        "логика",
+    ]
+    return has_any(t, instruction_terms)
+
+
+def is_agent_materials_scenario(text):
+    t = (text or "").lower()
+    if is_operator_instruction(t):
+        return False
+    agent_terms = [
+        "agent",
+        "broker",
+        "agency",
+        "realtor",
+        "client",
+        "my client",
+        "for client",
+        "for my client",
+        "representing a client",
+        "агент",
+        "брокер",
+        "риэлтор",
+        "клиент",
+        "для клиента",
+        "представляю клиента",
+        "материалы для базы",
+    ]
+    material_terms = [
+        "sales kit",
+        "saleskit",
+        "presentation",
+        "deck",
+        "brochure",
+        "send materials",
+        "send details",
+        "project details",
+        "materials",
+        "презентац",
+        "материал",
+        "подроб",
+        "информац",
+    ]
+    return has_any(t, agent_terms) or has_any(t, material_terms)
+
+
+def agent_welcome_text(language="en"):
+    if language == "ru":
+        return """Добрый день! Отправляю короткий агентский пакет по Canopy Hills Villas.
+
+Canopy Hills Villas - камерный hillside-поселок из 9 премиальных семейных вилл в Ko Kaeo, напротив British International School Phuket. Проект создан для долгосрочной семейной жизни: просторные виллы 650-768 м², виды, приватность, тишина, инженерное качество и повседневная инфраструктура рядом.
+
+Ключевое для агентов:
+- BISP location / Ko Kaeo
+- 4+1 и 5+1 спальни, Villa L и Villa XL
+- участки примерно 670-1,214 м²
+- первая вилла C9 выходит на private preview в начале/середине августа 2026
+- следующие виллы уже строятся
+- стандартная комиссия агенту: 6%
+
+Sales Kit:
+https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5
+
+Подскажите, пожалуйста, у вас уже есть конкретный клиент под Canopy Hills или вы хотите получить материалы для базы?"""
+    return """Hi, sharing a compact Canopy Hills Villas agent pack.
+
+Canopy Hills Villas is a private hillside estate of 9 premium family villas in Ko Kaeo, opposite British International School Phuket. It is designed for long-term family living: spacious 650-768 sqm homes, views, privacy, quiet green surroundings, engineering quality and everyday infrastructure nearby.
+
+Key points for agents:
+- BISP / Ko Kaeo location
+- 4+1 and 5+1 bedrooms, Villa L and Villa XL
+- land plots approx. 670-1,214 sqm
+- first villa C9 is moving toward private preview in early/mid August 2026
+- next villas are already under construction
+- standard agent commission: 6%
+
+Sales Kit:
+https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5
+
+Do you already have a specific client for Canopy Hills, or would you like the materials for your database?"""
+
+
+def send_agent_carousel_v6(to):
+    base = f"{BASE_URL}/assets"
+    image_names = [
+        "carousel_v3_01_private_hillside_estate.jpg",
+        "carousel_v3_02_usable_large_plots.jpg",
+        "carousel_v3_03_real_family_scale.jpg",
+        "carousel_v3_04_7m_living_room.jpg",
+        "carousel_v3_05_kitchens_bbq.jpg",
+        "carousel_v3_06_green_district.jpg",
+        "carousel_v3_07_real_view.jpg",
+        "carousel_v3_08_heat_noise_insulation.jpg",
+        "carousel_v3_09_villa_l_layout.jpg",
+        "carousel_v3_10_villa_xl_layout.jpg",
+    ]
+    components = [
+        {
+            "type": "body",
+            "parameters": [{"type": "text", "text": "there"}],
+        },
+        {
+            "type": "carousel",
+            "cards": [
+                {
+                    "card_index": index,
+                    "components": [
+                        {
+                            "type": "header",
+                            "parameters": [
+                                {
+                                    "type": "image",
+                                    "image": {"link": f"{base}/{name}"},
+                                }
+                            ],
+                        }
+                    ],
+                }
+                for index, name in enumerate(image_names)
+            ],
+        },
+    ]
+    return send_whatsapp_template(
+        to,
+        "canopy_agent_intro_carousel_10_v6",
+        "en_US",
+        components,
+    )
+
+
+def send_agent_intro_video(to):
+    caption = (
+        "Canopy Hills Villas Phuket - a private hillside estate opposite BISP, "
+        "designed for long-term family living."
+    )
+    return send_whatsapp_media(
+        to,
+        "video",
+        f"{BASE_URL}/assets/agent_intro_video.mp4",
+        caption,
+    )
+
+
+def recent_agent_pack_sent(to):
+    con = db()
+    row = con.execute(
+        """
+        SELECT id FROM messages
+        WHERE wa_id = ? AND direction = 'outbound'
+          AND (
+            text LIKE '%compact Canopy Hills Villas agent pack%'
+            OR text LIKE '%короткий агентский пакет по Canopy Hills Villas%'
+            OR text LIKE 'template:canopy_agent_intro_carousel_10_v6:%'
+          )
+        ORDER BY received_at DESC
+        LIMIT 1
+        """,
+        (to,),
+    ).fetchone()
+    con.close()
+    return bool(row)
+
+
+def send_agent_welcome_pack(to, language="en"):
+    results = []
+    sends = [
+        ("agent-welcome-text", lambda: send_whatsapp_text(to, agent_welcome_text(language))),
+        ("agent-carousel-v6", lambda: send_agent_carousel_v6(to)),
+        ("agent-intro-video", lambda: send_agent_intro_video(to)),
+    ]
+    for label, send in sends:
+        try:
+            results.append({"label": label, "ok": True, "meta": send()})
+        except Exception as exc:
+            results.append({"label": label, "ok": False, "error": str(exc)})
+    return results
+
+
+def ai_agent_tool_plan(item, classification):
+    if not ENABLE_AI_AGENT_TOOLS:
+        return []
+    text = item.get("text") or ""
+    segment = classification.get("segment")
+    is_operator = item.get("wa_id") in AI_OPERATOR_WA_IDS
+    if segment not in {"broker", "materials_request", "client_registration"}:
+        return []
+    if is_operator and not is_agent_materials_scenario(text):
+        return []
+    if not is_operator and recent_agent_pack_sent(item.get("wa_id")):
+        return []
+    if not is_agent_materials_scenario(text) and segment != "broker":
+        return []
+    return [{"tool": "send_agent_welcome_pack", "language": "ru" if is_russian_text(text) else "en"}]
+
+
+def run_ai_agent_tools(item, classification, tool_plan):
+    if not tool_plan or AI_AGENT_DRY_RUN:
+        return []
+    results = []
+    for action in tool_plan:
+        if action.get("tool") != "send_agent_welcome_pack":
+            continue
+        tool_result = send_agent_welcome_pack(
+            item["wa_id"],
+            action.get("language") or "en",
+        )
+        results.append({"tool": "send_agent_welcome_pack", "results": tool_result})
+    return results
 
 
 def send_agent_packet_test():
@@ -3151,6 +3387,7 @@ class Handler(BaseHTTPRequestHandler):
                     "test_autoreply_wa_ids": sorted(TEST_AUTOREPLY_WA_IDS),
                     "ai_agent_enabled": ENABLE_AI_AGENT,
                     "ai_audio_transcription_enabled": ENABLE_AI_AUDIO_TRANSCRIPTION,
+                    "ai_agent_tools_enabled": ENABLE_AI_AGENT_TOOLS,
                     "ai_agent_dry_run": AI_AGENT_DRY_RUN,
                     "ai_agent_model": AI_AGENT_MODEL,
                     "ai_operator_wa_ids": sorted(AI_OPERATOR_WA_IDS),
@@ -3349,6 +3586,17 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(401, {"error": "unauthorized"})
                 return
             result = send_agent_packet_test()
+            self.send_json(200, {"ok": all(item.get("ok") for item in result), "results": result})
+            return
+        if path == "/send-agent-welcome-pack-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            try:
+                result = send_agent_welcome_pack("66628512432", "ru")
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc)})
+                return
             self.send_json(200, {"ok": all(item.get("ok") for item in result), "results": result})
             return
         if path == "/send-delivery-ping-test":
