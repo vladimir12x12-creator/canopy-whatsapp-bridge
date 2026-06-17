@@ -774,12 +774,12 @@ def send_agent_carousel_v7(to, language="en"):
     base = f"{BASE_URL}/assets"
     image_names = [
         "carousel_v3_01_private_hillside_estate.jpg",
+        "carousel_v3_07_real_view.jpg",
         "carousel_v3_02_usable_large_plots.jpg",
         "carousel_v3_03_real_family_scale.jpg",
         "carousel_v3_04_7m_living_room.jpg",
         "carousel_v3_05_investment_bisp.jpg",
         "carousel_v3_06_green_district.jpg",
-        "carousel_v3_07_real_view.jpg",
         "carousel_v3_08_heat_noise_insulation.jpg",
         "carousel_v3_09_villa_l_layout.jpg",
         "carousel_v3_10_villa_xl_layout.jpg",
