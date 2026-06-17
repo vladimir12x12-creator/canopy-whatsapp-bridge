@@ -1100,8 +1100,8 @@ https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5"""
 
 def agent_carousel_template(language="en"):
     if language == "ru":
-        return "canopy_agent_advantages_carousel_10_v5", "ru"
-    return "canopy_agent_advantages_carousel_10_v5", "en_US"
+        return "canopy_agent_advantages_carousel_10_v6", "ru"
+    return "canopy_agent_advantages_carousel_10_v6", "en_US"
 
 
 def send_agent_carousel_v7(to, language="en"):
@@ -2049,6 +2049,12 @@ def canopy_template_payload(template_key):
     ]
     carousel_minimal_buttons_ru = [
         {"type": "QUICK_REPLY", "text": "Подробнее"},
+    ]
+    carousel_saleskit_buttons = [
+        {"type": "URL", "text": "Open Sales Kit", "url": sales_kit_url},
+    ]
+    carousel_saleskit_buttons_ru = [
+        {"type": "URL", "text": "Sales Kit", "url": sales_kit_url},
     ]
 
     def carousel_image_card(handle_placeholder, text, include_buttons=True, buttons=None):
@@ -3279,6 +3285,52 @@ def canopy_template_payload(template_key):
                 },
             ],
         },
+        "agent_advantages_carousel_10_v6_en": {
+            "name": "canopy_agent_advantages_carousel_10_v6",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {"type": "BODY", "text": "Key Canopy Hills advantages:"},
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card("__CAROUSEL10V3_ESTATE_HANDLE__", "Only 9 view villas on a hillside", buttons=carousel_saleskit_buttons),
+                        carousel_image_card("__CAROUSEL10V3_VIEW_HANDLE__", "Open views: valley, lakes, hills and sunset", buttons=carousel_saleskit_buttons),
+                        carousel_image_card("__CAROUSEL10V3_PLOTS_HANDLE__", "Land plots: 670-1,214 sqm", buttons=carousel_saleskit_buttons),
+                        carousel_image_card("__CAROUSEL10V3_SCALE_HANDLE__", "L-size: 650 sqm / XL-size: 750 sqm", buttons=carousel_saleskit_buttons),
+                        carousel_image_card("__CAROUSEL10V3_LIVING_HANDLE__", "7m living room ceiling", buttons=carousel_saleskit_buttons),
+                        carousel_image_card("__CAROUSEL10V3_INVEST_HANDLE__", "Sustained demand for long-term rentals", buttons=carousel_saleskit_buttons),
+                        carousel_image_card("__CAROUSEL10V3_GREEN_HANDLE__", "Quiet Ko Kaeo location, away from tourist zones", buttons=carousel_saleskit_buttons),
+                        carousel_image_card("__CAROUSEL10V3_INSULATION_HANDLE__", "Heat and noise insulation 50% above standard", buttons=carousel_saleskit_buttons),
+                        carousel_image_card("__CAROUSEL10V3_L_LAYOUT_HANDLE__", "Villa L-size layout: 650 sqm", buttons=carousel_saleskit_buttons),
+                        carousel_image_card("__CAROUSEL10V3_XL_LAYOUT_HANDLE__", "Villa XL-size layout: 750 sqm", buttons=carousel_saleskit_buttons),
+                    ],
+                },
+            ],
+        },
+        "agent_advantages_carousel_10_v6_ru": {
+            "name": "canopy_agent_advantages_carousel_10_v6",
+            "language": "ru",
+            "category": "MARKETING",
+            "components": [
+                {"type": "BODY", "text": "Ключевые преимущества Canopy Hills:"},
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card("__CAROUSEL10V3_ESTATE_HANDLE__", "Только 9 видовых вилл на холме", buttons=carousel_saleskit_buttons_ru),
+                        carousel_image_card("__CAROUSEL10V3_VIEW_HANDLE__", "Открытые виды: долина, озера, холмы и закат", buttons=carousel_saleskit_buttons_ru),
+                        carousel_image_card("__CAROUSEL10V3_PLOTS_HANDLE__", "Участки: 670-1,214 м²", buttons=carousel_saleskit_buttons_ru),
+                        carousel_image_card("__CAROUSEL10V3_SCALE_HANDLE__", "L-size: 650 м² / XL-size: 750 м²", buttons=carousel_saleskit_buttons_ru),
+                        carousel_image_card("__CAROUSEL10V3_LIVING_HANDLE__", "Гостиная с потолком 7 м", buttons=carousel_saleskit_buttons_ru),
+                        carousel_image_card("__CAROUSEL10V3_INVEST_HANDLE__", "Устойчивый спрос на долгосрочную аренду", buttons=carousel_saleskit_buttons_ru),
+                        carousel_image_card("__CAROUSEL10V3_GREEN_HANDLE__", "Тихая локация Ko Kaeo, не туристическая зона", buttons=carousel_saleskit_buttons_ru),
+                        carousel_image_card("__CAROUSEL10V3_INSULATION_HANDLE__", "Тепло- и шумоизоляция на 50% выше стандарта", buttons=carousel_saleskit_buttons_ru),
+                        carousel_image_card("__CAROUSEL10V3_L_LAYOUT_HANDLE__", "Планировка L-size: 650 м²", buttons=carousel_saleskit_buttons_ru),
+                        carousel_image_card("__CAROUSEL10V3_XL_LAYOUT_HANDLE__", "Планировка XL-size: 750 м²", buttons=carousel_saleskit_buttons_ru),
+                    ],
+                },
+            ],
+        },
         "agent_intro_carousel_test": {
             "name": "canopy_agent_intro_carousel_test",
             "language": "en_US",
@@ -3714,6 +3766,8 @@ def create_canopy_template(template_key):
         "agent_advantages_carousel_10_v4_ru",
         "agent_advantages_carousel_10_v5_en",
         "agent_advantages_carousel_10_v5_ru",
+        "agent_advantages_carousel_10_v6_en",
+        "agent_advantages_carousel_10_v6_ru",
     ):
         carousel_samples = [
             ("__CAROUSEL10V3_ESTATE_HANDLE__", ASSET_DIR / "carousel_v3_01_private_hillside_estate.jpg"),
@@ -5123,6 +5177,33 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self.send_json(200, {"ok": True, "meta": result})
             return
+        if path == "/create-carousel-v12-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            en_result = create_canopy_template("agent_advantages_carousel_10_v6_en")
+            ru_result = create_canopy_template("agent_advantages_carousel_10_v6_ru")
+            ok = bool(en_result.get("ok") and ru_result.get("ok"))
+            self.send_json(200 if ok else 502, {"ok": ok, "en": en_result, "ru": ru_result})
+            return
+        if path == "/carousel-v12-template-status-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = whatsapp_templates("canopy_agent_advantages_carousel_10_v6")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/send-carousel-v12-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            try:
+                result = send_agent_carousel_v7("66628512432", "ru")
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc)})
+                return
+            self.send_json(200, {"ok": True, "meta": result})
+            return
         if path == "/create-agent-video-cta-template-test":
             if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
                 self.send_json(401, {"error": "unauthorized"})
@@ -5198,15 +5279,14 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, {"ok": True, "meta": result})
             return
         if path == "/send-canopy-market-intel-outreach-20260617":
-            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
-                self.send_json(401, {"error": "unauthorized"})
-                return
-            try:
-                result = send_canopy_market_intel_outreach_20260617()
-            except Exception as exc:
-                self.send_json(502, {"ok": False, "error": str(exc)})
-                return
-            self.send_json(200 if result.get("ok") or result.get("already_sent") else 502, result)
+            self.send_json(
+                410,
+                {
+                    "ok": False,
+                    "error": "disabled",
+                    "reason": "Hugs Management developer research outreach must use a separate dedicated WhatsApp channel, not the Canopy Hills bridge.",
+                },
+            )
             return
         if path == "/send-template":
             payload = self.read_authorized_json()
