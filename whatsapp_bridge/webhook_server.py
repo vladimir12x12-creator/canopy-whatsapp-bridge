@@ -2671,6 +2671,138 @@ def canopy_template_payload(template_key):
                 },
             ],
         },
+        "agent_advantages_carousel_10_v4_en": {
+            "name": "canopy_agent_advantages_carousel_10_v4",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": "Key Canopy Hills advantages for agents and relevant buyers:",
+                },
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card(
+                            "__CAROUSEL10V3_ESTATE_HANDLE__",
+                            "Only 9 view villas on a hillside",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_VIEW_HANDLE__",
+                            "Open views: valley, lakes, hills and sunset",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_PLOTS_HANDLE__",
+                            "Land plots: 670-1,214 sqm",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_SCALE_HANDLE__",
+                            "Built-up area: approx. 650-768 sqm",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_LIVING_HANDLE__",
+                            "7m living room ceiling",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_INVEST_HANDLE__",
+                            "Sustained demand for long-term rentals",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_GREEN_HANDLE__",
+                            "Quiet Ko Kaeo location, away from tourist zones",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_INSULATION_HANDLE__",
+                            "Heat and noise insulation 50% above standard",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_L_LAYOUT_HANDLE__",
+                            "C4 Villa L: 4+1 bedrooms, approx. 606 sqm",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_XL_LAYOUT_HANDLE__",
+                            "C2 Villa XL: 5+1 bedrooms, approx. 743 sqm",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                    ],
+                },
+            ],
+        },
+        "agent_advantages_carousel_10_v4_ru": {
+            "name": "canopy_agent_advantages_carousel_10_v4",
+            "language": "ru",
+            "category": "MARKETING",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": "Ключевые преимущества Canopy Hills для агентов и покупателей:",
+                },
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card(
+                            "__CAROUSEL10V3_ESTATE_HANDLE__",
+                            "Только 9 видовых вилл на холме",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_VIEW_HANDLE__",
+                            "Открытые виды: долина, озера, холмы и закат",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_PLOTS_HANDLE__",
+                            "Участки: 670-1,214 м²",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_SCALE_HANDLE__",
+                            "Площадь домов: примерно 650-768 м²",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_LIVING_HANDLE__",
+                            "Гостиная с потолком 7 м",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_INVEST_HANDLE__",
+                            "Устойчивый спрос на долгосрочную аренду",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_GREEN_HANDLE__",
+                            "Тихая локация Ko Kaeo, не туристическая зона",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_INSULATION_HANDLE__",
+                            "Тепло- и шумоизоляция на 50% выше стандарта",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_L_LAYOUT_HANDLE__",
+                            "C4 Villa L: 4+1 спальни, примерно 606 м²",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_XL_LAYOUT_HANDLE__",
+                            "C2 Villa XL: 5+1 спален, примерно 743 м²",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                    ],
+                },
+            ],
+        },
         "agent_intro_carousel_test": {
             "name": "canopy_agent_intro_carousel_test",
             "language": "en_US",
@@ -3102,6 +3234,8 @@ def create_canopy_template(template_key):
         "agent_advantages_carousel_10_v2_ru",
         "agent_advantages_carousel_10_v3_en",
         "agent_advantages_carousel_10_v3_ru",
+        "agent_advantages_carousel_10_v4_en",
+        "agent_advantages_carousel_10_v4_ru",
     ):
         carousel_samples = [
             ("__CAROUSEL10V3_ESTATE_HANDLE__", ASSET_DIR / "carousel_v3_01_private_hillside_estate.jpg"),
@@ -4227,6 +4361,33 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200 if result.get("ok") else 502, result)
             return
         if path == "/send-carousel-v9-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            try:
+                result = send_agent_carousel_v7("66628512432", "ru")
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc)})
+                return
+            self.send_json(200, {"ok": True, "meta": result})
+            return
+        if path == "/create-carousel-v10-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            en_result = create_canopy_template("agent_advantages_carousel_10_v4_en")
+            ru_result = create_canopy_template("agent_advantages_carousel_10_v4_ru")
+            ok = bool(en_result.get("ok") and ru_result.get("ok"))
+            self.send_json(200 if ok else 502, {"ok": ok, "en": en_result, "ru": ru_result})
+            return
+        if path == "/carousel-v10-template-status-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = whatsapp_templates("canopy_agent_advantages_carousel_10_v4")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/send-carousel-v10-test":
             if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
                 self.send_json(401, {"error": "unauthorized"})
                 return
