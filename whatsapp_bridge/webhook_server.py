@@ -54,7 +54,7 @@ ENABLE_AI_AUDIO_TRANSCRIPTION = (
 )
 ENABLE_AI_AGENT_TOOLS = os.environ.get("ENABLE_AI_AGENT_TOOLS", "1").strip().lower() in {"1", "true", "yes", "on"}
 AGENT_WELCOME_PACK_APPROVED = (
-    os.environ.get("AGENT_WELCOME_PACK_APPROVED", "0").strip().lower()
+    os.environ.get("AGENT_WELCOME_PACK_APPROVED", "1").strip().lower()
     in {"1", "true", "yes", "on"}
 )
 AI_AGENT_DRY_RUN = os.environ.get("AI_AGENT_DRY_RUN", "0").strip().lower() in {"1", "true", "yes", "on"}
@@ -375,9 +375,10 @@ def ai_agent_system_prompt(is_operator=False):
 Use the user's language. Keep WhatsApp replies concise, concrete and useful.
 
 Project facts:
-- Canopy Hills Villas Phuket: private hillside estate of 9 premium villas in Ko Kaeo, opposite British International School Phuket.
-- Positioning: long-term family living, not generic holiday rental villas.
-- Core value: BISP location, spacious 650-768 sqm homes, views, quiet green surroundings, privacy, storage, engineering quality, thermal/sound insulation, family layouts.
+- Canopy Hills Villas Phuket: club-style estate of 9 view hillside villas in Ko Kaeo, close to BISP and other international schools.
+- Positioning: large family homes for everyday island living, not generic holiday rental villas.
+- Core value: open views over the green valley, lakes, hills and sunset; school-side Phuket living; spacious 650-768 sqm homes; quiet green surroundings; privacy; quality materials; thermal/sound insulation; storage; family layouts.
+- Location logic: schools, Central, marinas, golf and everyday infrastructure nearby, away from tourist bustle.
 - Villa types: L and XL; 4+1 and 5+1 bedrooms.
 - Price context: from approx. THB 57.5M; standard agency commission is 6%.
 - C9 is the first near-ready villa, expected for private preview in early/mid August 2026; next villas are already under construction.
@@ -388,17 +389,17 @@ Project facts:
 
 Agreed agent welcome standard:
 - For an agent/broker/materials request, the standard first package is exactly two sends: intro video with a short language-matched caption + language-matched advantages carousel.
-- The video caption explains concept and who agents should target; it must not repeat the carousel's numeric facts as a second long list.
-- The carousel carries concrete numbers and advantages.
+- The video caption uses the approved agent text: 9 view villas on a hillside, school/infrastructure location, family living, views, privacy, quality materials, sound/thermal insulation and storage.
+- The carousel carries concrete numbers and advantages, including investment appeal based on long-term rental demand from international-school families and the scarcity of unique view projects.
 - The system has a tool named send_agent_welcome_pack. When the message is a real agent/materials scenario, the tool may send the pack automatically after your text reply.
 - Do not say files/media were sent unless you include a link in your reply or the tool context says the system will send the pack.
-- After the pack, ask one question only: whether the agent has a specific client or wants materials for their database.
+- Do not ask "specific client or materials for database" as a default question. Ask a next-step question only when it creates a useful branch, such as client profile, viewing timing, budget, or whether they work with families near international schools.
 
 Rules:
 - Do not overpromise ROI, legal outcomes, immigration outcomes, completion dates beyond the stated C9 preview window, or availability.
 - Ask one relevant qualifying question unless the user gave a direct operational instruction.
 - For legal, investor, discount, contract, payment, or serious negotiation topics: acknowledge and escalate to Vladimir/Andrey or a short call.
-- For agents: mention 6% commission and ask whether they have a specific client or need materials for their database.
+- For agents: mention 6% commission only when commission/cooperation is relevant; if qualifying, ask about client profile, viewing timing, or whether they work with families near international schools.
 - For client registration: ask for client full name, country/city, timing, villa preference, and viewing date.
 - For route/viewing logistics: send the location pin only after viewing timing is confirmed. The correct access instruction is to enter through the soi next to The Big Bear Kitchen; avoid generic Google route assumptions.
 - For irrelevant/spam messages: politely ask them to clarify if this is about purchasing or representing a client for Canopy Hills.
@@ -741,36 +742,32 @@ def is_agent_materials_scenario(text):
 
 def agent_intro_video_caption(language="en"):
     if language == "ru":
-        return """Canopy Hills Villas Phuket - коротко для агента.
+        return """Canopy Hills Villas - клубный поселок из 9 видовых вилл на холме в Ko Kaeo, рядом с BISP и другими международными школами. Из вилл открываются виды на зеленую долину, озера, холмы и закат.
 
-Это не обычная vacation villa. Проект лучше всего подходит для семей, которые планируют жить на Пхукете долго: рядом с BISP, в тихой зеленой локации, с приватностью, видом и большим домом для повседневной жизни.
+Проект хорошо подходит семьям с детьми и клиентам, которые живут на Пхукете или планируют переезд: рядом школы, Central, марины, гольф и вся повседневная инфраструктура. При этом локация спокойная, зеленая и без туристической суеты.
 
-Ориентир: семьи с детьми в BISP, relocation / expat families и покупатели, которым важны пространство, тишина, инженерное качество, виды и доступ к школе.
+Это большой семейный дом для жизни, а не вилла на отпуск: просторные планировки, приватность, качественные материалы, хорошая шумо- и теплоизоляция, много места для хранения и повседневного быта.
 
-Карусель ниже - ключевые преимущества и цифры.
-
-Full Sales Kit:
-https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5
-
-У вас уже есть конкретный клиент под Canopy Hills или нужны материалы для базы?"""
-    return """Canopy Hills Villas Phuket - quick agent intro.
-
-This is not a standard vacation-villa product. Canopy Hills is best positioned for families planning to live in Phuket long-term: close to BISP, in a quiet green location, with privacy, views and a large home for daily family life.
-
-Best fit: families with children at BISP, relocation / expat families, and buyers who care about space, quiet surroundings, engineering quality, views and school access.
-
-The carousel below gives the key advantages and numbers.
+Такой объект стоит предлагать клиентам, которым важны вид, пространство, тишина, удобная локация и уровень дома выше обычных поселков рядом со школами.
 
 Full Sales Kit:
-https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5
+https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5"""
+    return """Canopy Hills Villas is a club-style estate of 9 view villas on a hillside in Ko Kaeo, close to BISP and other international schools. The villas open to views of the green valley, lakes, hills and sunset.
 
-Do you already have a specific client for Canopy Hills, or do you need the materials for your database?"""
+The project is a strong fit for families with children and clients who live in Phuket or plan to relocate: schools, Central, marinas, golf and everyday infrastructure are all nearby, while the location remains quiet, green and away from tourist areas.
+
+This is a large family home for everyday island living, not a holiday villa: spacious layouts, privacy, quality materials, strong sound and thermal insulation, generous storage and practical spaces for daily family life.
+
+It is worth offering to clients who value views, space, quiet surroundings, convenient location and a higher level of home than standard housing estates near the schools.
+
+Full Sales Kit:
+https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5"""
 
 
 def agent_carousel_template(language="en"):
     if language == "ru":
-        return "canopy_agent_advantages_carousel_10_v1", "ru"
-    return "canopy_agent_advantages_carousel_10_v1", "en_US"
+        return "canopy_agent_advantages_carousel_10_v2", "ru"
+    return "canopy_agent_advantages_carousel_10_v2", "en_US"
 
 
 def send_agent_carousel_v7(to, language="en"):
@@ -780,7 +777,7 @@ def send_agent_carousel_v7(to, language="en"):
         "carousel_v3_02_usable_large_plots.jpg",
         "carousel_v3_03_real_family_scale.jpg",
         "carousel_v3_04_7m_living_room.jpg",
-        "carousel_v3_05_kitchens_bbq.jpg",
+        "carousel_overview.jpg",
         "carousel_v3_06_green_district.jpg",
         "carousel_v3_07_real_view.jpg",
         "carousel_v3_08_heat_noise_insulation.jpg",
@@ -842,6 +839,7 @@ def recent_agent_pack_sent(to):
           AND (
             text LIKE '%quick agent intro%'
             OR text LIKE '%коротко для агента%'
+            OR text LIKE 'template:canopy_agent_advantages_carousel_10_v2:%'
             OR text LIKE 'template:canopy_agent_advantages_carousel_10_v1:%'
             OR text LIKE 'template:canopy_agent_intro_carousel_10_v6:%'
           )
@@ -2412,6 +2410,138 @@ def canopy_template_payload(template_key):
                 },
             ],
         },
+        "agent_advantages_carousel_10_v2_en": {
+            "name": "canopy_agent_advantages_carousel_10_v2",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": "Key Canopy Hills advantages for agents and relevant buyers:",
+                },
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card(
+                            "__CAROUSEL10V3_ESTATE_HANDLE__",
+                            "Only 9 view villas on a hillside",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_PLOTS_HANDLE__",
+                            "Land plots: approx. 670-1,214 sqm",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_SCALE_HANDLE__",
+                            "Built-up area: approx. 650-768 sqm",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_LIVING_HANDLE__",
+                            "7m living room ceiling",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_INVEST_HANDLE__",
+                            "Investment appeal: school-family rental demand + unique views",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_GREEN_HANDLE__",
+                            "Quiet Ko Kaeo location, away from tourist zones",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_VIEW_HANDLE__",
+                            "Open views: valley, lakes, hills and sunset",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_INSULATION_HANDLE__",
+                            "Heat and noise insulation 50% above standard",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_L_LAYOUT_HANDLE__",
+                            "Villa L: 4+1 bedrooms, approx. 655 sqm",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_XL_LAYOUT_HANDLE__",
+                            "Villa XL: 5+1 bedrooms, 742-768 sqm",
+                            buttons=carousel_minimal_buttons,
+                        ),
+                    ],
+                },
+            ],
+        },
+        "agent_advantages_carousel_10_v2_ru": {
+            "name": "canopy_agent_advantages_carousel_10_v2",
+            "language": "ru",
+            "category": "MARKETING",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": "Ключевые преимущества Canopy Hills для агентов и покупателей:",
+                },
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card(
+                            "__CAROUSEL10V3_ESTATE_HANDLE__",
+                            "Только 9 видовых вилл на холме",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_PLOTS_HANDLE__",
+                            "Участки: примерно 670-1,214 м²",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_SCALE_HANDLE__",
+                            "Площадь домов: примерно 650-768 м²",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_LIVING_HANDLE__",
+                            "Гостиная с потолком 7 м",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_INVEST_HANDLE__",
+                            "Инвест. потенциал: аренда семьям у школ + редкий видовой продукт",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_GREEN_HANDLE__",
+                            "Тихая локация Ko Kaeo, не туристическая зона",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_VIEW_HANDLE__",
+                            "Открытые виды: долина, озера, холмы и закат",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_INSULATION_HANDLE__",
+                            "Тепло- и шумоизоляция на 50% выше стандарта",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_L_LAYOUT_HANDLE__",
+                            "Villa L: 4+1 спальни, примерно 655 м²",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                        carousel_image_card(
+                            "__CAROUSEL10V3_XL_LAYOUT_HANDLE__",
+                            "Villa XL: 5+1 спален, 742-768 м²",
+                            buttons=carousel_minimal_buttons_ru,
+                        ),
+                    ],
+                },
+            ],
+        },
         "agent_intro_carousel_test": {
             "name": "canopy_agent_intro_carousel_test",
             "language": "en_US",
@@ -2839,6 +2969,8 @@ def create_canopy_template(template_key):
         "agent_intro_carousel_10_v6",
         "agent_advantages_carousel_10_v1_en",
         "agent_advantages_carousel_10_v1_ru",
+        "agent_advantages_carousel_10_v2_en",
+        "agent_advantages_carousel_10_v2_ru",
     ):
         carousel_samples = [
             ("__CAROUSEL10V3_ESTATE_HANDLE__", ASSET_DIR / "carousel_v3_01_private_hillside_estate.jpg"),
@@ -2846,6 +2978,7 @@ def create_canopy_template(template_key):
             ("__CAROUSEL10V3_SCALE_HANDLE__", ASSET_DIR / "carousel_v3_03_real_family_scale.jpg"),
             ("__CAROUSEL10V3_LIVING_HANDLE__", ASSET_DIR / "carousel_v3_04_7m_living_room.jpg"),
             ("__CAROUSEL10V3_KITCHEN_HANDLE__", ASSET_DIR / "carousel_v3_05_kitchens_bbq.jpg"),
+            ("__CAROUSEL10V3_INVEST_HANDLE__", ASSET_DIR / "carousel_overview.jpg"),
             ("__CAROUSEL10V3_GREEN_HANDLE__", ASSET_DIR / "carousel_v3_06_green_district.jpg"),
             ("__CAROUSEL10V3_VIEW_HANDLE__", ASSET_DIR / "carousel_v3_07_real_view.jpg"),
             ("__CAROUSEL10V3_INSULATION_HANDLE__", ASSET_DIR / "carousel_v3_08_heat_noise_insulation.jpg"),
@@ -3909,6 +4042,33 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200 if result.get("ok") else 502, result)
             return
         if path == "/send-carousel-v7-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            try:
+                result = send_agent_carousel_v7("66628512432", "ru")
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc)})
+                return
+            self.send_json(200, {"ok": True, "meta": result})
+            return
+        if path == "/create-carousel-v8-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            en_result = create_canopy_template("agent_advantages_carousel_10_v2_en")
+            ru_result = create_canopy_template("agent_advantages_carousel_10_v2_ru")
+            ok = bool(en_result.get("ok") and ru_result.get("ok"))
+            self.send_json(200 if ok else 502, {"ok": ok, "en": en_result, "ru": ru_result})
+            return
+        if path == "/carousel-v8-template-status-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = whatsapp_templates("canopy_agent_advantages_carousel_10_v2")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/send-carousel-v8-test":
             if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
                 self.send_json(401, {"error": "unauthorized"})
                 return
