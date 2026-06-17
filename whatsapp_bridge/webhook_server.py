@@ -596,9 +596,9 @@ Project facts:
 - Current company details: Hugs Management Co., Ltd., Reg. No. 0835566030613, address 99/101, Moo.2, Koh Keaw Sub District, Mueang District, Phuket Province, 83000, Thailand.
 
 Agreed agent welcome standard:
-- For an agent/broker/materials request, the standard first package is exactly two sends: intro video with a short language-matched caption + language-matched advantages carousel.
+- For an agent/broker/materials request, the standard first package is: intro video with a short language-matched caption, language-matched advantages carousel, and readable L/XL layout PDF documents.
 - The video caption uses the approved agent text: 9 view villas on a hillside, school/infrastructure location, family living, views, privacy, quality materials, sound/thermal insulation and storage.
-- The carousel carries concrete numbers and advantages, including investment appeal based on long-term rental demand from international-school families and the scarcity of unique view projects.
+- The carousel carries concrete numbers and advantages, including investment appeal based on long-term rental demand from international-school families and the scarcity of unique view projects. Layout cards are only previews; readable floor plans are sent as separate PDF documents.
 - The system has a tool named send_agent_welcome_pack. When the message is a real agent/broker/materials scenario, the bridge sends this pack by default without asking a preliminary qualifying question.
 - Do not say files/media were sent unless you include a link in your reply or the tool context says the system will send the pack.
 - Do not ask "specific client or materials for database" as a default question. For agents, send the agreed pack first; after that, only ask a next-step question if the agent responds with a concrete client, viewing, budget, registration or commission issue.
@@ -1160,6 +1160,42 @@ def send_agent_intro_video(to, language="en"):
     )
 
 
+def agent_layout_document_caption(language="en"):
+    if language == "ru":
+        return "Читаемая PDF-планировка для увеличения и пересылки клиенту."
+    return "Readable PDF layout for zooming and forwarding to a client."
+
+
+def send_agent_layout_documents(to, language="en"):
+    documents = [
+        (
+            "agent-layout-l",
+            "Canopy_Hills_L_size_layout.pdf",
+            "Canopy Hills L-size layout.pdf",
+        ),
+        (
+            "agent-layout-xl",
+            "Canopy_Hills_XL_size_layout.pdf",
+            "Canopy Hills XL-size layout.pdf",
+        ),
+    ]
+    results = []
+    for label, asset_name, filename in documents:
+        results.append(
+            {
+                "label": label,
+                "meta": send_whatsapp_media(
+                    to,
+                    "document",
+                    f"{BASE_URL}/assets/{asset_name}",
+                    agent_layout_document_caption(language),
+                    filename,
+                ),
+            }
+        )
+    return results
+
+
 def recent_agent_pack_sent(to):
     con = db()
     row = con.execute(
@@ -1169,6 +1205,8 @@ def recent_agent_pack_sent(to):
           AND (
             text LIKE '%quick agent intro%'
             OR text LIKE '%коротко для агента%'
+            OR text LIKE 'document:%Canopy_Hills_L_size_layout.pdf%'
+            OR text LIKE 'template:canopy_agent_advantages_carousel_10_v6:%'
             OR text LIKE 'template:canopy_agent_advantages_carousel_10_v5:%'
             OR text LIKE 'template:canopy_agent_advantages_carousel_10_v4:%'
             OR text LIKE 'template:canopy_agent_advantages_carousel_10_v3:%'
@@ -1199,10 +1237,15 @@ def send_agent_welcome_pack(to, language="en"):
     sends = [
         ("agent-intro-video", lambda: send_agent_intro_video(to, language)),
         ("agent-carousel-v7", lambda: send_agent_carousel_v7(to, language)),
+        ("agent-layout-documents", lambda: send_agent_layout_documents(to, language)),
     ]
     for label, send in sends:
         try:
-            results.append({"label": label, "ok": True, "meta": send()})
+            meta = send()
+            if isinstance(meta, list):
+                results.extend({"label": item.get("label", label), "ok": True, "meta": item.get("meta", item)} for item in meta)
+            else:
+                results.append({"label": label, "ok": True, "meta": meta})
         except Exception as exc:
             results.append({"label": label, "ok": False, "error": str(exc)})
     return results
@@ -4119,7 +4162,7 @@ def suggested_materials(segment):
             "Construction/show unit/C9 proof photos or technical viewing.",
         ],
         "materials_request": [
-            "Default agent welcome pack: intro video with caption + v5 advantages carousel.",
+            "Default agent welcome pack: intro video with caption + v6 advantages carousel + readable L/XL layout PDF documents.",
             "Do not ask whether they have a specific client or want materials for database before sending the pack.",
             "After the pack, ask for client registration/viewing details only if they respond with a concrete client or visit request.",
             "Clients: relevant RU/EN/CH presentation, not full SalesKit.",
@@ -4905,6 +4948,17 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(502, {"ok": False, "error": str(exc)})
                 return
             self.send_json(200, {"ok": all(item.get("ok") for item in result), "results": result})
+            return
+        if path == "/send-agent-layouts-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            try:
+                result = send_agent_layout_documents("66628512432", "ru")
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc)})
+                return
+            self.send_json(200, {"ok": True, "results": result})
             return
         if path == "/send-delivery-ping-test":
             if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
