@@ -5186,6 +5186,20 @@ class Handler(BaseHTTPRequestHandler):
             ok = bool(en_result.get("ok") and ru_result.get("ok"))
             self.send_json(200 if ok else 502, {"ok": ok, "en": en_result, "ru": ru_result})
             return
+        if path == "/create-carousel-v12-en-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = create_canopy_template("agent_advantages_carousel_10_v6_en")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/create-carousel-v12-ru-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = create_canopy_template("agent_advantages_carousel_10_v6_ru")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
         if path == "/carousel-v12-template-status-test":
             if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
                 self.send_json(401, {"error": "unauthorized"})
