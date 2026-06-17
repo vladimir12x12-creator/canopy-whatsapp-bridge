@@ -26,6 +26,7 @@ DEFAULT_WABA_ID = os.environ.get("WHATSAPP_WABA_ID", "2253327871868025")
 DEFAULT_APP_ID = os.environ.get("WHATSAPP_APP_ID", "1693287358483119")
 BASE_URL = os.environ.get("BRIDGE_PUBLIC_BASE_URL", "https://canopy-whatsapp-bridge.onrender.com").rstrip("/")
 ASSET_DIR = Path(__file__).resolve().parent / "assets"
+CANOPY_MARKET_INTEL_BATCH_MARKER = Path(DB_PATH).with_name("canopy_market_intel_batch_20260617.sent.json")
 ENABLE_TEST_AUTOREPLY = os.environ.get("ENABLE_TEST_AUTOREPLY", "0").strip().lower() in {"1", "true", "yes", "on"}
 TEST_AUTOREPLY_WA_IDS = {
     x.strip() for x in os.environ.get("TEST_AUTOREPLY_WA_IDS", "66628512432").split(",") if x.strip()
@@ -641,6 +642,119 @@ def send_whatsapp_text(to, body):
     response = send_whatsapp_payload(payload)
     store_outbound_message(to, "text", body, response, "Outbound text sent from bridge.")
     return response
+
+
+CANOPY_MARKET_INTEL_OUTREACH_20260617 = [
+    {
+        "developer": "Botanica Luxury Villas",
+        "to": "66983947097",
+        "text": """Hi Botanica team, this is Vladimir from Hugs Management in Phuket.
+
+We have an agency division and are currently updating our internal developer database and training materials for our property agents.
+
+Could you please share your current broker/agent pack for Botanica villas, including brochure, price list, availability, payment schedule, client registration rules and commission/cooperation terms?
+
+Also, who is the right sales contact for agent cooperation and site inspections?
+
+Thank you.""",
+    },
+    {
+        "developer": "Anchan Villas",
+        "to": "66923899000",
+        "text": """Hi Anchan Villas team, this is Vladimir from Hugs Management in Phuket.
+
+We have an agency division and are updating our internal developer database and agent training materials for Phuket villa projects.
+
+Could you please share your current broker/agent materials for Anchan Villas: brochure, price list, availability, payment schedule, client registration rules and commission/cooperation terms?
+
+Please also let me know who is the best contact for agent cooperation and site inspections.
+
+Thank you.""",
+    },
+    {
+        "developer": "Trichada Villas",
+        "to": "66945933980",
+        "text": """Hi Trichada team, this is Vladimir from Hugs Management in Phuket.
+
+We have an agency division and are updating our internal developer database and agent training materials, especially for family-oriented villa projects.
+
+Could you please share your current broker/agent materials: brochure, price list, availability, payment schedule, client registration rules and commission/cooperation terms?
+
+Please also let me know the right contact for agent cooperation and site inspections.
+
+Thank you.""",
+    },
+    {
+        "developer": "Andaman Asset Solution / The Trinity Village",
+        "to": "66618190731",
+        "text": """Hi Andaman Asset Solution team, this is Vladimir from Hugs Management in Phuket.
+
+We have an agency division and are updating our internal developer database and agent training materials for Phuket villa projects.
+
+Could you please share your current broker/agent materials for The Trinity Village and any other active villa projects: brochure, price list, availability, payment schedule, client registration rules and commission/cooperation terms?
+
+Please also let me know who handles agent cooperation and site inspections.
+
+Thank you.""",
+    },
+    {
+        "developer": "Mouana Phuket",
+        "to": "66801468234",
+        "text": """Hi Mouana team, this is Vladimir from Hugs Management in Phuket.
+
+We have an agency division and are updating our internal developer database and agent training materials for Phuket villa projects.
+
+Could you please share your current broker/agent materials: brochure, price list, availability, payment schedule, client registration rules and commission/cooperation terms?
+
+Please also let me know who is the right contact for agent cooperation and site inspections.
+
+Thank you.""",
+    },
+]
+
+
+def send_canopy_market_intel_outreach_20260617():
+    if CANOPY_MARKET_INTEL_BATCH_MARKER.exists():
+        return {
+            "ok": False,
+            "already_sent": True,
+            "marker": str(CANOPY_MARKET_INTEL_BATCH_MARKER),
+        }
+
+    results = []
+    for item in CANOPY_MARKET_INTEL_OUTREACH_20260617:
+        try:
+            meta = send_whatsapp_text(item["to"], item["text"])
+            results.append(
+                {
+                    "ok": True,
+                    "developer": item["developer"],
+                    "to": item["to"],
+                    "meta": meta,
+                }
+            )
+        except Exception as exc:
+            results.append(
+                {
+                    "ok": False,
+                    "developer": item["developer"],
+                    "to": item["to"],
+                    "error": str(exc),
+                }
+            )
+
+    payload = {
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+        "results": results,
+    }
+    if all(item.get("ok") for item in results):
+        CANOPY_MARKET_INTEL_BATCH_MARKER.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {
+        "ok": all(item.get("ok") for item in results),
+        "already_sent": False,
+        "marker": str(CANOPY_MARKET_INTEL_BATCH_MARKER),
+        "results": results,
+    }
 
 
 def send_whatsapp_template(to, template_name, language_code="en_US", components=None):
@@ -4634,6 +4748,17 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(502, {"error": str(exc)})
                 return
             self.send_json(200, {"ok": True, "meta": result})
+            return
+        if path == "/send-canopy-market-intel-outreach-20260617":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            try:
+                result = send_canopy_market_intel_outreach_20260617()
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc)})
+                return
+            self.send_json(200 if result.get("ok") or result.get("already_sent") else 502, result)
             return
         if path == "/send-template":
             payload = self.read_authorized_json()
