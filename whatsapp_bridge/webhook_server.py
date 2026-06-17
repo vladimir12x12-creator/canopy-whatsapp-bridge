@@ -210,6 +210,7 @@ def db():
                 utc_now(),
             ),
         )
+        con.execute("DELETE FROM contacts WHERE wa_id = ?", (target["wa_id"],))
     con.commit()
     return con
 
@@ -775,6 +776,10 @@ def store_payload(payload):
             ),
         )
         inserted = cur.rowcount > 0
+        developer_research_contact = update_developer_research_from_inbound(con, item, now)
+        mark_whatsapp_message_read(item["message_id"])
+        if developer_research_contact:
+            continue
         con.execute(
             """
             INSERT INTO contacts
@@ -801,11 +806,7 @@ def store_payload(payload):
                 now,
             ),
         )
-        developer_research_contact = update_developer_research_from_inbound(con, item, now)
-        mark_whatsapp_message_read(item["message_id"])
         if inserted:
-            if developer_research_contact:
-                continue
             autoreply = generate_test_autoreply(item)
             if autoreply:
                 try:
@@ -1899,6 +1900,11 @@ def store_outbound_message(to, message_type, text, response, next_action):
             now,
         ),
     )
+    if is_developer_research_wa_id(to):
+        con.commit()
+        con.close()
+        log_developer_research_outbound(to, text, response, now)
+        return
     con.execute(
         """
         INSERT INTO contacts
@@ -1913,6 +1919,7 @@ def store_outbound_message(to, message_type, text, response, next_action):
     )
     con.commit()
     con.close()
+    log_developer_research_outbound(to, text, response, now)
 
 
 def graph_get(access_token, graph_version, path, query):
