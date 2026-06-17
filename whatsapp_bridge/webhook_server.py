@@ -766,8 +766,8 @@ https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5"""
 
 def agent_carousel_template(language="en"):
     if language == "ru":
-        return "canopy_agent_advantages_carousel_10_v3", "ru"
-    return "canopy_agent_advantages_carousel_10_v3", "en_US"
+        return "canopy_agent_advantages_carousel_10_v4", "ru"
+    return "canopy_agent_advantages_carousel_10_v4", "en_US"
 
 
 def send_agent_carousel_v7(to, language="en"):
@@ -835,6 +835,7 @@ def recent_agent_pack_sent(to):
           AND (
             text LIKE '%quick agent intro%'
             OR text LIKE '%коротко для агента%'
+            OR text LIKE 'template:canopy_agent_advantages_carousel_10_v4:%'
             OR text LIKE 'template:canopy_agent_advantages_carousel_10_v3:%'
             OR text LIKE 'template:canopy_agent_advantages_carousel_10_v2:%'
             OR text LIKE 'template:canopy_agent_advantages_carousel_10_v1:%'
