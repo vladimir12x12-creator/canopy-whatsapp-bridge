@@ -27,6 +27,49 @@ DEFAULT_APP_ID = os.environ.get("WHATSAPP_APP_ID", "1693287358483119")
 BASE_URL = os.environ.get("BRIDGE_PUBLIC_BASE_URL", "https://canopy-whatsapp-bridge.onrender.com").rstrip("/")
 ASSET_DIR = Path(__file__).resolve().parent / "assets"
 CANOPY_MARKET_INTEL_BATCH_MARKER = Path(DB_PATH).with_name("canopy_market_intel_batch_20260617.sent.json")
+DEVELOPER_RESEARCH_TARGETS = [
+    {
+        "developer": "Botanica Luxury Villas",
+        "project": "Botanica villa collections",
+        "area": "Phuket",
+        "wa_id": "66983947097",
+        "contact_source": "Official website contact page",
+        "channel": "WhatsApp",
+    },
+    {
+        "developer": "Anchan Villas",
+        "project": "Anchan Villas",
+        "area": "Phuket",
+        "wa_id": "66923899000",
+        "contact_source": "Official website/social public contact",
+        "channel": "WhatsApp",
+    },
+    {
+        "developer": "Trichada Villas",
+        "project": "Trichada Villas",
+        "area": "Bang Tao / Layan",
+        "wa_id": "66945933980",
+        "contact_source": "Official contact page",
+        "channel": "WhatsApp",
+    },
+    {
+        "developer": "Andaman Asset Solution",
+        "project": "The Trinity Village",
+        "area": "Phuket",
+        "wa_id": "66618190731",
+        "contact_source": "Official website public sales contact",
+        "channel": "WhatsApp",
+    },
+    {
+        "developer": "Mouana Phuket",
+        "project": "Mouana villa products",
+        "area": "Phuket",
+        "wa_id": "66801468234",
+        "contact_source": "Public website phone/contact",
+        "channel": "WhatsApp",
+    },
+]
+DEVELOPER_RESEARCH_WA_IDS = {item["wa_id"] for item in DEVELOPER_RESEARCH_TARGETS}
 ENABLE_TEST_AUTOREPLY = os.environ.get("ENABLE_TEST_AUTOREPLY", "0").strip().lower() in {"1", "true", "yes", "on"}
 TEST_AUTOREPLY_WA_IDS = {
     x.strip() for x in os.environ.get("TEST_AUTOREPLY_WA_IDS", "66628512432").split(",") if x.strip()
@@ -115,6 +158,59 @@ def db():
         )
         """
     )
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS developer_research_targets (
+            wa_id TEXT PRIMARY KEY,
+            developer TEXT NOT NULL,
+            project TEXT,
+            area TEXT,
+            contact_source TEXT,
+            channel TEXT,
+            status TEXT NOT NULL DEFAULT 'target',
+            first_message TEXT,
+            last_outreach_at TEXT,
+            last_reply_at TEXT,
+            materials_received INTEGER DEFAULT 0,
+            reply_count INTEGER DEFAULT 0,
+            next_question TEXT,
+            notes TEXT,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS developer_research_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            wa_id TEXT NOT NULL,
+            developer TEXT,
+            direction TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            text TEXT,
+            raw_json TEXT,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    for target in DEVELOPER_RESEARCH_TARGETS:
+        con.execute(
+            """
+            INSERT OR IGNORE INTO developer_research_targets
+              (wa_id, developer, project, area, contact_source, channel, status, next_question, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, 'target', 'Send first broker pack request when outbound is production-ready.', ?)
+            """,
+            (
+                target["wa_id"],
+                target["developer"],
+                target["project"],
+                target["area"],
+                target["contact_source"],
+                target["channel"],
+                utc_now(),
+            ),
+        )
+    con.commit()
     return con
 
 
@@ -221,6 +317,118 @@ def classify(text):
         "escalation_required": 0,
         "next_action": "Qualify: ask whether they are buying for themselves or representing a client.",
     }
+
+
+def is_developer_research_wa_id(wa_id):
+    return bool(wa_id and wa_id in DEVELOPER_RESEARCH_WA_IDS)
+
+
+def developer_research_event_type(item):
+    message_type = (item.get("message_type") or "").lower()
+    text = (item.get("text") or "").lower()
+    if message_type in {"document", "image", "video"}:
+        return "material_received"
+    if has_any(text, ["brochure", "broker", "agent pack", "price list", "availability", "payment schedule", "commission"]):
+        return "material_or_terms_discussed"
+    if has_any(text, ["site inspection", "viewing", "visit", "show villa", "appointment"]):
+        return "site_inspection_discussed"
+    if has_any(text, ["registration", "register client", "client register", "mou", "agreement"]):
+        return "client_registration_discussed"
+    return "developer_reply"
+
+
+def developer_research_next_question(last_text, message_type):
+    text = (last_text or "").lower()
+    if message_type in {"document", "image", "video"} or has_any(text, ["brochure", "price list", "availability"]):
+        return "Confirm commission/cooperation terms, client registration period, and what can be shared with end buyers."
+    if "commission" in text and not has_any(text, ["registration", "register"]):
+        return "Ask for client registration rule and registration protection period."
+    if has_any(text, ["registration", "register"]):
+        return "Ask whether an MOU/agency agreement is required before sharing full broker materials."
+    if has_any(text, ["site inspection", "viewing", "visit", "show villa"]):
+        return "Confirm whether a product-learning site inspection is acceptable for Hugs Management agents."
+    return "Ask for broker pack, price list, availability, payment schedule, commission, and client registration process."
+
+
+def update_developer_research_from_inbound(con, item, now):
+    target = con.execute(
+        "SELECT * FROM developer_research_targets WHERE wa_id = ?",
+        (item["wa_id"],),
+    ).fetchone()
+    if not target:
+        return False
+
+    event_type = developer_research_event_type(item)
+    material_flag = 1 if event_type in {"material_received", "material_or_terms_discussed"} else 0
+    next_question = developer_research_next_question(item.get("text") or "", item.get("message_type") or "")
+    con.execute(
+        """
+        UPDATE developer_research_targets
+        SET status = 'replied',
+            last_reply_at = ?,
+            reply_count = COALESCE(reply_count, 0) + 1,
+            materials_received = CASE WHEN ? THEN 1 ELSE COALESCE(materials_received, 0) END,
+            next_question = ?,
+            updated_at = ?
+        WHERE wa_id = ?
+        """,
+        (now, material_flag, next_question, now, item["wa_id"]),
+    )
+    con.execute(
+        """
+        INSERT INTO developer_research_events
+          (wa_id, developer, direction, event_type, text, raw_json, created_at)
+        VALUES (?, ?, 'inbound', ?, ?, ?, ?)
+        """,
+        (
+            item["wa_id"],
+            target["developer"],
+            event_type,
+            item.get("text") or "",
+            json.dumps(item.get("raw") or {}, ensure_ascii=False),
+            now,
+        ),
+    )
+    return True
+
+
+def log_developer_research_outbound(to, text, response, now):
+    con = db()
+    target = con.execute(
+        "SELECT * FROM developer_research_targets WHERE wa_id = ?",
+        (to,),
+    ).fetchone()
+    if not target:
+        con.close()
+        return
+    con.execute(
+        """
+        UPDATE developer_research_targets
+        SET status = 'outreach_sent',
+            first_message = COALESCE(first_message, ?),
+            last_outreach_at = ?,
+            next_question = 'Wait for reply. If no reply after 48h, send one concise follow-up.',
+            updated_at = ?
+        WHERE wa_id = ?
+        """,
+        (text, now, now, to),
+    )
+    con.execute(
+        """
+        INSERT INTO developer_research_events
+          (wa_id, developer, direction, event_type, text, raw_json, created_at)
+        VALUES (?, ?, 'outbound', 'outreach_sent', ?, ?, ?)
+        """,
+        (
+            to,
+            target["developer"],
+            text,
+            json.dumps(response, ensure_ascii=False),
+            now,
+        ),
+    )
+    con.commit()
+    con.close()
 
 
 def looks_like_sales_roleplay(text):
@@ -353,6 +561,8 @@ def generate_test_autoreply(item):
 
 def should_ai_agent_reply(item, classification):
     if not ENABLE_AI_AGENT:
+        return False
+    if is_developer_research_wa_id(item.get("wa_id")):
         return False
     if item.get("message_type") != "text":
         return False
@@ -591,8 +801,11 @@ def store_payload(payload):
                 now,
             ),
         )
+        developer_research_contact = update_developer_research_from_inbound(con, item, now)
         mark_whatsapp_message_read(item["message_id"])
         if inserted:
+            if developer_research_contact:
+                continue
             autoreply = generate_test_autoreply(item)
             if autoreply:
                 try:
@@ -1602,6 +1815,7 @@ def transcribe_audio_message(message_id):
     )
     con.commit()
     con.close()
+    log_developer_research_outbound(to, text, response, now)
     return {
         "message_id": message_id,
         "wa_id": row["wa_id"],
@@ -4119,6 +4333,185 @@ def operator_feed(limit=20):
     return items
 
 
+def developer_research_followup_draft(target, last_text=""):
+    developer = target.get("developer") or "team"
+    next_question = target.get("next_question") or "Could you please share the current broker pack and cooperation process?"
+    if (target.get("reply_count") or 0) == 0:
+        return (
+            f"Hi {developer} team, this is Vladimir from Hugs Management in Phuket.\n\n"
+            "We have an agency division and are updating our internal developer database and agent training materials.\n\n"
+            "Could you please share your current broker/agent pack, price list, availability, payment schedule, "
+            "client registration rules and commission/cooperation terms?\n\n"
+            "Thank you."
+        )
+    return (
+        "Thank you, received.\n\n"
+        f"Could I please confirm one point for our Hugs Management agent database: {next_question}\n\n"
+        "Thank you."
+    )
+
+
+def developer_research_feed():
+    con = db()
+    rows = con.execute(
+        """
+        SELECT t.*,
+               (
+                 SELECT text FROM developer_research_events e
+                 WHERE e.wa_id = t.wa_id
+                 ORDER BY e.created_at DESC
+                 LIMIT 1
+               ) AS last_research_text,
+               (
+                 SELECT created_at FROM developer_research_events e
+                 WHERE e.wa_id = t.wa_id
+                 ORDER BY e.created_at DESC
+                 LIMIT 1
+               ) AS last_event_at
+        FROM developer_research_targets t
+        ORDER BY
+          CASE t.status
+            WHEN 'replied' THEN 1
+            WHEN 'outreach_sent' THEN 2
+            WHEN 'target' THEN 3
+            ELSE 4
+          END,
+          COALESCE(t.last_reply_at, t.last_outreach_at, t.updated_at) DESC
+        """
+    ).fetchall()
+    con.close()
+
+    items = []
+    for row in rows:
+        target = dict(row)
+        items.append(
+            {
+                **target,
+                "suggested_followup": developer_research_followup_draft(target, target.get("last_research_text") or ""),
+            }
+        )
+    return items
+
+
+def developer_research_stats():
+    con = db()
+    row = con.execute(
+        """
+        SELECT
+            COUNT(*) AS targets,
+            SUM(CASE WHEN last_outreach_at IS NOT NULL THEN 1 ELSE 0 END) AS outreach_sent,
+            SUM(CASE WHEN COALESCE(reply_count, 0) > 0 THEN 1 ELSE 0 END) AS replies,
+            SUM(CASE WHEN COALESCE(materials_received, 0) > 0 THEN 1 ELSE 0 END) AS materials_received
+        FROM developer_research_targets
+        """
+    ).fetchone()
+    con.close()
+    stats = dict(row)
+    sent = stats.get("outreach_sent") or 0
+    replies = stats.get("replies") or 0
+    stats["response_rate"] = round((replies / sent) * 100, 1) if sent else 0
+    return stats
+
+
+def render_research_inbox():
+    rows = developer_research_feed()
+    researched = len(rows)
+    outreach_sent = sum(1 for item in rows if item.get("last_outreach_at"))
+    replies = sum(1 for item in rows if (item.get("reply_count") or 0) > 0)
+    materials = sum(1 for item in rows if item.get("materials_received"))
+    response_rate = round((replies / outreach_sent) * 100, 1) if outreach_sent else 0
+    body = [
+        '<div class="toolbar">',
+        '<div class="muted">Developer research cockpit for Hugs Management agent training.</div>',
+        '<div><a href="/research-feed">JSON feed</a> · <a href="/research.csv">CSV export</a> · <a href="/inbox">Sales inbox</a></div>',
+        "</div>",
+        '<section class="panel">',
+        "<h2>Training metrics</h2>",
+        "<table><tbody>",
+        f"<tr><th>Developers tracked</th><td>{researched}</td><th>Outreach sent</th><td>{outreach_sent}</td></tr>",
+        f"<tr><th>Replies</th><td>{replies}</td><th>Materials received</th><td>{materials}</td></tr>",
+        f"<tr><th>Response rate</th><td>{response_rate}%</td><th>Mode</th><td>research / no auto sales reply</td></tr>",
+        "</tbody></table>",
+        "</section>",
+        "<table>",
+        "<thead><tr><th>Developer</th><th>Status</th><th>Replies</th><th>Materials</th><th>Next question</th><th>Last activity</th></tr></thead>",
+        "<tbody>",
+    ]
+    for item in rows:
+        body.append(
+            "<tr>"
+            f"<td><a href=\"/research-target?wa_id={escape(item['wa_id'])}\">{escape(item.get('developer') or '')}</a>"
+            f"<div class=\"muted\">{escape(item.get('project') or '')} · {escape(item.get('wa_id') or '')}</div></td>"
+            f"<td><span class=\"pill\">{escape(item.get('status') or '')}</span></td>"
+            f"<td>{int(item.get('reply_count') or 0)}</td>"
+            f"<td>{'yes' if item.get('materials_received') else 'no'}</td>"
+            f"<td>{escape(item.get('next_question') or '')}</td>"
+            f"<td>{escape(item.get('last_event_at') or item.get('updated_at') or '')}</td>"
+            "</tr>"
+        )
+    if not rows:
+        body.append('<tr><td colspan="6" class="muted">No developer research targets yet.</td></tr>')
+    body.extend(["</tbody>", "</table>"])
+    return page("Canopy Developer Research", "".join(body))
+
+
+def render_research_target(wa_id):
+    con = db()
+    target = con.execute(
+        "SELECT * FROM developer_research_targets WHERE wa_id = ?",
+        (wa_id,),
+    ).fetchone()
+    events = con.execute(
+        "SELECT * FROM developer_research_events WHERE wa_id = ? ORDER BY created_at ASC",
+        (wa_id,),
+    ).fetchall()
+    con.close()
+    if not target:
+        return page("Research target not found", '<p><a href="/research">Back to research cockpit</a></p><p>Target not found.</p>')
+    target_dict = dict(target)
+    chunks = [
+        '<p><a href="/research">Back to research cockpit</a></p>',
+        '<section class="panel">',
+        f"<div><strong>{escape(target_dict.get('developer') or '')}</strong> <span class=\"muted\">{escape(wa_id)}</span></div>",
+        f"<div>{escape(target_dict.get('project') or '')} · {escape(target_dict.get('area') or '')}</div>",
+        f"<div>Status: <span class=\"pill\">{escape(target_dict.get('status') or '')}</span></div>",
+        f"<div class=\"muted\">Contact source: {escape(target_dict.get('contact_source') or '')}</div>",
+        "</section>",
+        '<section class="panel draft">',
+        "<h2>Suggested next WhatsApp</h2>",
+        f"<pre>{escape(developer_research_followup_draft(target_dict))}</pre>",
+        "</section>",
+        '<section class="panel">',
+        "<h2>Learning checklist</h2>",
+        "<ul>",
+        "<li>Broker/agent pack received?</li>",
+        "<li>Price list and availability received?</li>",
+        "<li>Payment schedule clarified?</li>",
+        "<li>Commission/cooperation terms clarified?</li>",
+        "<li>Client registration rule and protection period clarified?</li>",
+        "<li>Buyer-facing materials permission clarified?</li>",
+        "<li>Site inspection / product-learning visit process clarified?</li>",
+        "</ul>",
+        "</section>",
+        '<section class="panel">',
+        "<h2>Research events</h2>",
+    ]
+    for event in events:
+        item = dict(event)
+        chunks.append(
+            '<div class="msg">'
+            f"<div><strong>{escape(item.get('direction') or '')}</strong> "
+            f"<span class=\"pill\">{escape(item.get('event_type') or '')}</span> "
+            f"<span class=\"muted\">{escape(item.get('created_at') or '')}</span></div>"
+            f"<pre>{escape(item.get('text') or '')}</pre>"
+            "</div>"
+        )
+    if not events:
+        chunks.append('<div class="muted">No research events yet.</div>')
+    chunks.append("</section>")
+    return page(f"Research: {target_dict.get('developer') or wa_id}", "".join(chunks))
+
+
 class Handler(BaseHTTPRequestHandler):
     def send_json(self, code, data):
         body = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
@@ -4198,6 +4591,7 @@ class Handler(BaseHTTPRequestHandler):
                     "ai_operator_wa_ids": sorted(AI_OPERATOR_WA_IDS),
                     "has_openai_api_key": bool(os.environ.get("OPENAI_API_KEY", "").strip()),
                     "has_whatsapp_access_token": bool(os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()),
+                    "developer_research": developer_research_stats(),
                 },
             )
             return
@@ -4273,6 +4667,35 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/operator-feed":
             self.send_json(200, operator_feed(params.get("limit", ["20"])[0]))
             return
+        if parsed.path == "/research-feed":
+            self.send_json(200, developer_research_feed())
+            return
+        if parsed.path == "/research.csv":
+            headers = [
+                "developer",
+                "project",
+                "area",
+                "wa_id",
+                "status",
+                "last_outreach_at",
+                "last_reply_at",
+                "reply_count",
+                "materials_received",
+                "next_question",
+                "updated_at",
+            ]
+            con = db()
+            rows = con.execute(
+                """
+                SELECT developer, project, area, wa_id, status, last_outreach_at,
+                       last_reply_at, reply_count, materials_received, next_question, updated_at
+                FROM developer_research_targets
+                ORDER BY updated_at DESC
+                """
+            ).fetchall()
+            con.close()
+            send_csv(self, rows_to_csv(headers, rows), "canopy_developer_research.csv")
+            return
         if parsed.path == "/events.csv":
             headers = ["id", "received_at", "raw_json"]
             con = db()
@@ -4284,6 +4707,22 @@ class Handler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/" or parsed.path == "/inbox":
             body = render_inbox()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if parsed.path == "/research":
+            body = render_research_inbox()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if parsed.path == "/research-target":
+            body = render_research_target(params.get("wa_id", [""])[0])
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))

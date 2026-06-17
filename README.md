@@ -54,6 +54,9 @@ Endpoints:
 - `GET /leads` - classified contacts.
 - `GET /messages?wa_id=...` - messages for one contact.
 - `GET /operator-feed?limit=20` - compact AI/operator queue with latest inbound messages, classification, suggested reply, and suggested materials.
+- `GET /research` - Hugs Management developer-research cockpit for Canopy Phuket Agent training.
+- `GET /research-feed` - JSON developer-research feed with metrics, next questions, and suggested follow-ups.
+- `GET /research.csv` - CSV export for developer outreach/reply/material status.
 - `GET /ai-agent-events` - recent AI-agent send/dry-run/error log.
 - `GET /health` - deployment and env diagnostics.
 - `GET /templates?name=...` - protected template status check from Meta WhatsApp Manager.
@@ -158,6 +161,40 @@ Recommended next step: keep testing on the staging number, but move the bridge t
 3. Build lead scenario flows for agent/client/junk classification.
 4. Test the flow fully on the staging WABA.
 5. Decide when and how to move from the test number to the live ad number `+66 61 997 8591`.
+
+## Developer Research Mode
+
+Purpose: let the Canopy Phuket Agent learn from real developer WhatsApp conversations without mixing those conversations with buyer leads.
+
+Current cockpit:
+
+- `https://canopy-whatsapp-bridge.onrender.com/research`
+- `https://canopy-whatsapp-bridge.onrender.com/research-feed`
+- `https://canopy-whatsapp-bridge.onrender.com/research.csv`
+
+Tracked starter targets:
+
+- Botanica Luxury Villas
+- Anchan Villas
+- Trichada Villas
+- Andaman Asset Solution / The Trinity Village
+- Mouana Phuket
+
+Behavior:
+
+- Known developer numbers are logged into `developer_research_targets` and `developer_research_events`.
+- Inbound developer replies are not answered by the normal Canopy sales AI.
+- The bridge records whether replies mention broker materials, price list, availability, payment schedule, commission, client registration, MOU/agency agreement, or site inspection.
+- The cockpit generates a suggested next WhatsApp follow-up for each developer.
+- Daily reporting can read `developer_research` from `/health` or the detailed list from `/research-feed`.
+
+Outbound constraint:
+
+- The staging Cloud API number `+1 555 639 8541` is still limited by Meta recipient permissions. It can send to allowed/operator recipients, but external developer numbers returned `(#131030) Recipient phone number not in allowed list`.
+- For production developer outreach, either:
+  1. move the WhatsApp sender into production and use approved business-initiated templates where needed; or
+  2. use a Hugs Management WhatsApp Business App account manually for first contact and let the bridge handle replies only after the conversation is connected; or
+  3. add explicit test recipients while still in Meta test mode, which is suitable only for controlled testing, not real market outreach.
 
 ## Permanent Token Path
 
