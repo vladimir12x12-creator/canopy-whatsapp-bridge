@@ -164,7 +164,9 @@ Recommended next step: keep testing on the staging number, but move the bridge t
 
 ## Developer Research Mode
 
-Purpose: let the Canopy Phuket Agent learn from real developer WhatsApp conversations without mixing those conversations with buyer leads.
+Status: deprecated for Hugs Management outreach.
+
+Purpose was to let the Canopy Phuket Agent learn from real developer WhatsApp conversations without mixing those conversations with buyer leads. Vladimir later decided this must not use the Canopy Hills WhatsApp bridge or number. Hugs Management developer research must run on a separate dedicated WhatsApp channel/bridge.
 
 Current cockpit:
 
@@ -190,11 +192,10 @@ Behavior:
 
 Outbound constraint:
 
+- Do not use `canopy-whatsapp-bridge` for Hugs Management developer outreach.
 - The staging Cloud API number `+1 555 639 8541` is still limited by Meta recipient permissions. It can send to allowed/operator recipients, but external developer numbers returned `(#131030) Recipient phone number not in allowed list`.
-- For production developer outreach, either:
-  1. move the WhatsApp sender into production and use approved business-initiated templates where needed; or
-  2. use a Hugs Management WhatsApp Business App account manually for first contact and let the bridge handle replies only after the conversation is connected; or
-  3. add explicit test recipients while still in Meta test mode, which is suitable only for controlled testing, not real market outreach.
+- The one-off market-intel batch endpoint is disabled and returns 410.
+- Build a separate Hugs Management bridge/service for the dedicated research number.
 
 ## Permanent Token Path
 
