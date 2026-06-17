@@ -53,6 +53,10 @@ ENABLE_AI_AUDIO_TRANSCRIPTION = (
     in {"1", "true", "yes", "on"}
 )
 ENABLE_AI_AGENT_TOOLS = os.environ.get("ENABLE_AI_AGENT_TOOLS", "1").strip().lower() in {"1", "true", "yes", "on"}
+AGENT_WELCOME_PACK_APPROVED = (
+    os.environ.get("AGENT_WELCOME_PACK_APPROVED", "0").strip().lower()
+    in {"1", "true", "yes", "on"}
+)
 AI_AGENT_DRY_RUN = os.environ.get("AI_AGENT_DRY_RUN", "0").strip().lower() in {"1", "true", "yes", "on"}
 AI_AGENT_MODEL = os.environ.get("AI_AGENT_MODEL", "gpt-4.1-mini").strip()
 AI_AGENT_MAX_CHARS = int(os.environ.get("AI_AGENT_MAX_CHARS", "1200"))
@@ -851,6 +855,15 @@ def recent_agent_pack_sent(to):
 
 
 def send_agent_welcome_pack(to, language="en"):
+    if not AGENT_WELCOME_PACK_APPROVED:
+        return [
+            {
+                "label": "agent-welcome-pack",
+                "ok": False,
+                "skipped": True,
+                "reason": "agent welcome pack text is not approved",
+            }
+        ]
     results = []
     sends = [
         ("agent-intro-video", lambda: send_agent_intro_video(to, language)),
@@ -866,6 +879,8 @@ def send_agent_welcome_pack(to, language="en"):
 
 def ai_agent_tool_plan(item, classification):
     if not ENABLE_AI_AGENT_TOOLS:
+        return []
+    if not AGENT_WELCOME_PACK_APPROVED:
         return []
     text = item.get("text") or ""
     segment = classification.get("segment")
@@ -3529,6 +3544,7 @@ class Handler(BaseHTTPRequestHandler):
                     "ai_agent_enabled": ENABLE_AI_AGENT,
                     "ai_audio_transcription_enabled": ENABLE_AI_AUDIO_TRANSCRIPTION,
                     "ai_agent_tools_enabled": ENABLE_AI_AGENT_TOOLS,
+                    "agent_welcome_pack_approved": AGENT_WELCOME_PACK_APPROVED,
                     "ai_agent_dry_run": AI_AGENT_DRY_RUN,
                     "ai_agent_model": AI_AGENT_MODEL,
                     "ai_operator_wa_ids": sorted(AI_OPERATOR_WA_IDS),
