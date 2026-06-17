@@ -786,10 +786,6 @@ def send_agent_carousel_v7(to, language="en"):
     ]
     components = [
         {
-            "type": "body",
-            "parameters": [{"type": "text", "text": "there"}],
-        },
-        {
             "type": "carousel",
             "cards": [
                 {
