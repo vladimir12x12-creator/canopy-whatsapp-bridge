@@ -596,9 +596,9 @@ Project facts:
 - Current company details: Hugs Management Co., Ltd., Reg. No. 0835566030613, address 99/101, Moo.2, Koh Keaw Sub District, Mueang District, Phuket Province, 83000, Thailand.
 
 Agreed agent welcome standard:
-- For an agent/broker/materials request, the standard first package is: intro video with a short language-matched caption, language-matched advantages carousel, and readable L/XL layout PDF documents.
+- For an agent/broker/materials request, the standard first package is: intro video with a short language-matched caption and language-matched advantages carousel.
 - The video caption uses the approved agent text: 9 view villas on a hillside, school/infrastructure location, family living, views, privacy, quality materials, sound/thermal insulation and storage.
-- The carousel carries concrete numbers and advantages, including investment appeal based on long-term rental demand from international-school families and the scarcity of unique view projects. Layout cards are only previews; readable floor plans are sent as separate PDF documents.
+- The carousel carries concrete numbers and advantages, including investment appeal based on long-term rental demand from international-school families and the scarcity of unique view projects. The L-size and XL-size layout cards link to grouped layout pages with C1-C9 source layout files; do not send separate layout PDF documents by default.
 - The system has a tool named send_agent_welcome_pack. When the message is a real agent/broker/materials scenario, the bridge sends this pack by default without asking a preliminary qualifying question.
 - Do not say files/media were sent unless you include a link in your reply or the tool context says the system will send the pack.
 - Do not ask "specific client or materials for database" as a default question. For agents, send the agreed pack first; after that, only ask a next-step question if the agent responds with a concrete client, viewing, budget, registration or commission issue.
@@ -1206,6 +1206,7 @@ def recent_agent_pack_sent(to):
             text LIKE '%quick agent intro%'
             OR text LIKE '%коротко для агента%'
             OR text LIKE 'document:%Canopy_Hills_L_size_layout.pdf%'
+            OR text LIKE 'template:canopy_agent_advantages_carousel_10_v7:%'
             OR text LIKE 'template:canopy_agent_advantages_carousel_10_v6:%'
             OR text LIKE 'template:canopy_agent_advantages_carousel_10_v5:%'
             OR text LIKE 'template:canopy_agent_advantages_carousel_10_v4:%'
@@ -1237,7 +1238,6 @@ def send_agent_welcome_pack(to, language="en"):
     sends = [
         ("agent-intro-video", lambda: send_agent_intro_video(to, language)),
         ("agent-carousel-v7", lambda: send_agent_carousel_v7(to, language)),
-        ("agent-layout-documents", lambda: send_agent_layout_documents(to, language)),
     ]
     for label, send in sends:
         try:
@@ -4222,7 +4222,7 @@ def suggested_materials(segment):
             "Construction/show unit/C9 proof photos or technical viewing.",
         ],
         "materials_request": [
-            "Default agent welcome pack: intro video with caption + v6 advantages carousel + readable L/XL layout PDF documents.",
+            "Default agent welcome pack: intro video with caption + v7 advantages carousel. Layout cards link to grouped C1-C9 layout pages; do not send separate layout PDF documents by default.",
             "Do not ask whether they have a specific client or want materials for database before sending the pack.",
             "After the pack, ask for client registration/viewing details only if they respond with a concrete client or visit request.",
             "Clients: relevant RU/EN/CH presentation, not full SalesKit.",
