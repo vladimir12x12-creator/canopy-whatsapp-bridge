@@ -502,15 +502,13 @@ def generate_test_autoreply(item):
         )
 
     t = text.lower()
+    if is_agent_materials_scenario(text) or classify(text).get("segment") in {"broker", "materials_request", "client_registration"}:
+        return ""
     if has_any(t, ["для клиента", "for client", "for my client", "representing a client", "представляю клиента"]):
         return (
-            "Понял, вы смотрите проект для клиента. Тогда начнем с короткого агентского обзора и Sales Kit.\n\n"
-            "Canopy Hills Villas — клубный поселок из 9 просторных видовых семейных вилл на холме напротив "
-            "British International School Phuket. Проект рассчитан на постоянную семейную жизнь, а не на "
-            "краткосрочную аренду: 650-750 кв. м, участки 670-1,200 кв. м, 4-5 спален + кабинет, вид, "
-            "частный бассейн и тихая зеленая локация.\n\n"
-            "Sales Kit: https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5\n\n"
-            "Уточню: у вас уже есть конкретный клиент под этот запрос или вы пока изучаете проект для своей базы?"
+            "Понял, вы смотрите проект для клиента. В агентском сценарии сначала отправляем стандартный пакет: "
+            "видео с позиционированием и карусель преимуществ. После этого можно перейти к регистрации клиента "
+            "или согласованию просмотра."
         )
     if has_any(t, ["для себя", "for myself", "for my family", "for family", "себе", "для семьи"]):
         return (
@@ -528,10 +526,8 @@ def generate_test_autoreply(item):
         )
     if classification["segment"] == "broker":
         return (
-            "Спасибо. Мы работаем с агентами, стандартная комиссия — 6%. "
-            "Canopy Hills Villas — клубный поселок из 9 просторных видовых семейных вилл "
-            "на холме напротив BISP. Если у вас есть конкретный клиент, пришлите, пожалуйста, "
-            "имя клиента, страну/город, примерный бюджет и желаемые сроки просмотра."
+            "Спасибо. Агентский сценарий: сначала отправляем стандартный пакет Canopy Hills "
+            "с видео и каруселью преимуществ. Стандартная комиссия для агентов — 6%."
         )
     if classification["segment"] == "family_bisp_buyer":
         return (
@@ -603,15 +599,17 @@ Agreed agent welcome standard:
 - For an agent/broker/materials request, the standard first package is exactly two sends: intro video with a short language-matched caption + language-matched advantages carousel.
 - The video caption uses the approved agent text: 9 view villas on a hillside, school/infrastructure location, family living, views, privacy, quality materials, sound/thermal insulation and storage.
 - The carousel carries concrete numbers and advantages, including investment appeal based on long-term rental demand from international-school families and the scarcity of unique view projects.
-- The system has a tool named send_agent_welcome_pack. When the message is a real agent/materials scenario, the tool may send the pack automatically after your text reply.
+- The system has a tool named send_agent_welcome_pack. When the message is a real agent/broker/materials scenario, the bridge sends this pack by default without asking a preliminary qualifying question.
 - Do not say files/media were sent unless you include a link in your reply or the tool context says the system will send the pack.
-- Do not ask "specific client or materials for database" as a default question. Ask a next-step question only when it creates a useful branch, such as client profile, viewing timing, budget, or whether they work with families near international schools.
+- Do not ask "specific client or materials for database" as a default question. For agents, send the agreed pack first; after that, only ask a next-step question if the agent responds with a concrete client, viewing, budget, registration or commission issue.
 
-Rules:
+Dialogue rules:
 - Do not overpromise ROI, legal outcomes, immigration outcomes, completion dates beyond the stated C9 preview window, or availability.
-- Ask one relevant qualifying question unless the user gave a direct operational instruction.
+- Think like a trained Phuket real-estate sales agent, not like a scripted bot: infer the role and intent from the message, use the agreed project positioning, and answer the actual next step.
+- Ask a qualifying question only when it naturally moves the current conversation forward. Do not ask generic branch questions after the role is already clear.
 - For legal, investor, discount, contract, payment, or serious negotiation topics: acknowledge and escalate to Vladimir/Andrey or a short call.
-- For agents: mention 6% commission only when commission/cooperation is relevant; if qualifying, ask about client profile, viewing timing, or whether they work with families near international schools.
+- For agents: the first move is the agreed welcome pack. Do not ask whether they have a specific client or need materials for their database. After the pack, respond to the agent's actual reply: registration details, viewing timing, client profile, commission, availability, or a call.
+- Mention 6% commission only when commission/cooperation is relevant or the agent asks about terms.
 - For client registration: ask for client full name, country/city, timing, villa preference, and viewing date.
 - For route/viewing logistics: send the location pin only after viewing timing is confirmed. The correct access instruction is to enter through the soi next to The Big Bear Kitchen; avoid generic Google route assumptions.
 - For irrelevant/spam messages: politely ask them to clarify if this is about purchasing or representing a client for Canopy Hills.
@@ -699,6 +697,14 @@ def log_ai_agent_event(wa_id, inbound_message_id, status, reply="", error=""):
 def run_ai_agent_reply(item, classification):
     is_operator = item.get("wa_id") in AI_OPERATOR_WA_IDS
     tool_plan = ai_agent_tool_plan(item, classification)
+    if any(action.get("tool") == "send_agent_welcome_pack" for action in tool_plan):
+        if AI_AGENT_DRY_RUN:
+            log_ai_agent_event(item["wa_id"], item["message_id"], "dry_run", "send_agent_welcome_pack", "")
+            return "send_agent_welcome_pack"
+        tool_results = run_ai_agent_tools(item, classification, tool_plan)
+        reply = f"[tools] {json.dumps(tool_results, ensure_ascii=False)}"
+        log_ai_agent_event(item["wa_id"], item["message_id"], "sent", reply, "")
+        return reply
     metadata = {
         "wa_id": item.get("wa_id"),
         "profile_name": item.get("profile_name"),
@@ -1210,13 +1216,14 @@ def ai_agent_tool_plan(item, classification):
     text = item.get("text") or ""
     segment = classification.get("segment")
     is_operator = item.get("wa_id") in AI_OPERATOR_WA_IDS
-    if segment not in {"broker", "materials_request", "client_registration"}:
+    agent_scenario = is_agent_materials_scenario(text)
+    if segment not in {"broker", "materials_request", "client_registration"} and not agent_scenario:
         return []
-    if is_operator and not is_agent_materials_scenario(text):
+    if is_operator and not agent_scenario:
         return []
     if not is_operator and recent_agent_pack_sent(item.get("wa_id")):
         return []
-    if not is_agent_materials_scenario(text) and segment != "broker":
+    if not agent_scenario and segment != "broker":
         return []
     return [{"tool": "send_agent_welcome_pack", "language": "ru" if is_russian_text(text) else "en"}]
 
@@ -3924,22 +3931,16 @@ def draft_reply(contact, last_text=""):
     if segment == "materials_request":
         if ru:
             return (
-                "Конечно, отправлю короткую информацию по Canopy Hills и несколько рендеров, которые удобно переслать клиенту или коллеге.\n\n"
-                "Canopy Hills Villas - клубный поселок из 9 премиальных вилл на холме напротив British International School Phuket. "
-                "Проект создан для долгосрочной семейной жизни: просторные виллы 650-745 м², панорамные виды, приватность, тишина и повседневная инфраструктура рядом.\n\n"
-                "Главное отличие - сочетание BISP-location, просторных помещений, вида и качества строительства: продуманная инженерия, "
-                "термо- и шумоизоляция, качественные материалы, зоны хранения и планировки для реальной жизни семьи.\n\n"
-                "Вилла C9 будет готова в начале августа, строительство следующих вилл уже начато.\n\n"
-                "Подскажите, пожалуйста, у вас уже есть конкретный клиент под Canopy Hills или вы хотите получить материалы для базы?"
+                "Добрый день! Отправляю короткий агентский пакет по Canopy Hills: видео с основным позиционированием "
+                "и карусель с ключевыми преимуществами.\n\n"
+                "Если есть конкретный клиент или запрос на просмотр, следующим сообщением пришлите имя клиента, профиль запроса "
+                "и желаемые даты просмотра."
             )
         return (
-            "Sure, I will share a short Canopy Hills summary and several renders that are easy to forward to a client or colleague.\n\n"
-            "Canopy Hills Villas is a club-style estate of 9 premium hillside villas opposite British International School Phuket. "
-            "The project is designed for long-term family living: spacious 650-745 sqm homes, panoramic views, privacy, quiet surroundings and everyday infrastructure nearby.\n\n"
-            "The key difference is the combination of BISP location, spacious interiors, views and construction quality: thoughtful engineering, "
-            "thermal and sound insulation, high-quality materials, storage areas and layouts made for real family life.\n\n"
-            "Villa C9 will be ready in early August, and construction of the next villas has already started.\n\n"
-            "Do you already have a specific client for Canopy Hills, or would you like the materials for your database?"
+            "Hi, sharing a short Canopy Hills agent package: the intro video with the project positioning "
+            "and a carousel with the key advantages.\n\n"
+            "If you already have a specific client or viewing request, please send the client name, request profile "
+            "and preferred viewing dates as the next step."
         )
     if segment == "quality_engineering":
         if ru:
@@ -3985,13 +3986,15 @@ def draft_reply(contact, last_text=""):
         if ru:
             return (
                 "Добрый день! Спасибо за сообщение.\n\n"
-                "Мы работаем с агентами на комиссии 6%. Можем отправить актуальную доступность, прайс и правила регистрации клиента.\n\n"
-                "Подскажите, пожалуйста, у вас уже есть конкретный клиент под проект или вы хотите получить материалы для базы?"
+                "Отправляю агентский пакет по Canopy Hills: короткое видео и карусель с основными преимуществами проекта. "
+                "Стандартная комиссия для агентов - 6%.\n\n"
+                "Если есть клиент под проект, следующим шагом пришлите данные для регистрации клиента и желаемую дату просмотра."
             )
         return (
             "Hi, thank you for contacting Canopy Hills.\n\n"
-            "We work with agents on a 6% commission basis. We can share current availability, price list, and client registration details.\n\n"
-            "Do you already have a specific client for the project, or would you like the materials for your database?"
+            "Sharing the Canopy Hills agent package: a short intro video and the key advantages carousel. "
+            "The standard agent commission is 6%.\n\n"
+            "If you have a client for the project, please send the client registration details and preferred viewing date as the next step."
         )
     if segment == "family_bisp_buyer":
         if ru:
@@ -4062,11 +4065,10 @@ def suggested_materials(segment):
             "Construction/show unit/C9 proof photos or technical viewing.",
         ],
         "materials_request": [
-            "Welcome capsule text RU/EN.",
-            "4 approved renders: overall, terrace/view, living/kitchen, evening exterior.",
-            "Agents: forwardable broker intro plus SalesKit link.",
+            "Default agent welcome pack: intro video with caption + v5 advantages carousel.",
+            "Do not ask whether they have a specific client or want materials for database before sending the pack.",
+            "After the pack, ask for client registration/viewing details only if they respond with a concrete client or visit request.",
             "Clients: relevant RU/EN/CH presentation, not full SalesKit.",
-            "Then ask: specific client or materials for database?",
         ],
         "investor": [
             "No detailed investor offer before qualification.",
