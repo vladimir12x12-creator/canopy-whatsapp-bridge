@@ -599,7 +599,7 @@ Agreed agent welcome standard:
 - For an agent/broker/materials request, the standard first package is: intro video with a short language-matched caption and language-matched advantages carousel.
 - The video caption uses the approved agent text: 9 view villas on a hillside, school/infrastructure location, family living, views, privacy, quality materials, sound/thermal insulation and storage.
 - The carousel carries concrete numbers and advantages, including investment appeal based on long-term rental demand from international-school families and the scarcity of unique view projects. The L-size and XL-size layout cards link to grouped layout pages with C1-C9 source layout files; do not send separate layout PDF documents by default.
-- The system has a tool named send_agent_welcome_pack. When the message is a real agent/broker/materials scenario, the bridge sends this pack by default without asking a preliminary qualifying question.
+- The system has a tool named send_agent_welcome_pack. When the message is a real agent/broker/materials scenario, give a short context-aware AI reply first; the pack may then be sent as supporting material, never as a substitute for understanding the message.
 - Do not say files/media were sent unless you include a link in your reply or the tool context says the system will send the pack.
 - Do not ask "specific client or materials for database" as a default question. For agents, send the agreed pack first; after that, only ask a next-step question if the agent responds with a concrete client, viewing, budget, registration or commission issue.
 
@@ -609,6 +609,7 @@ Dialogue rules:
 - Ask a qualifying question only when it naturally moves the current conversation forward. Do not ask generic branch questions after the role is already clear.
 - For legal, investor, discount, contract, payment, or serious negotiation topics: acknowledge and escalate to Vladimir/Andrey or a short call.
 - For agents: the first move is the agreed welcome pack. Do not ask whether they have a specific client or need materials for their database. After the pack, respond to the agent's actual reply: registration details, viewing timing, client profile, commission, availability, or a call.
+- For Vladimir/operator messages: behave as an internal AI teammate. Do not auto-send sales templates, carousels or welcome packs unless the operator explicitly asks to send/test that exact pack.
 - Mention 6% commission only when commission/cooperation is relevant or the agent asks about terms.
 - For client registration: ask for client full name, country/city, timing, villa preference, and viewing date.
 - For route/viewing logistics: send the location pin only after viewing timing is confirmed. The correct access instruction is to enter through the soi next to The Big Bear Kitchen; avoid generic Google route assumptions.
@@ -697,14 +698,6 @@ def log_ai_agent_event(wa_id, inbound_message_id, status, reply="", error=""):
 def run_ai_agent_reply(item, classification):
     is_operator = item.get("wa_id") in AI_OPERATOR_WA_IDS
     tool_plan = ai_agent_tool_plan(item, classification)
-    if any(action.get("tool") == "send_agent_welcome_pack" for action in tool_plan):
-        if AI_AGENT_DRY_RUN:
-            log_ai_agent_event(item["wa_id"], item["message_id"], "dry_run", "send_agent_welcome_pack", "")
-            return "send_agent_welcome_pack"
-        tool_results = run_ai_agent_tools(item, classification, tool_plan)
-        reply = f"[tools] {json.dumps(tool_results, ensure_ascii=False)}"
-        log_ai_agent_event(item["wa_id"], item["message_id"], "sent", reply, "")
-        return reply
     metadata = {
         "wa_id": item.get("wa_id"),
         "profile_name": item.get("profile_name"),
@@ -1260,9 +1253,9 @@ def ai_agent_tool_plan(item, classification):
     segment = classification.get("segment")
     is_operator = item.get("wa_id") in AI_OPERATOR_WA_IDS
     agent_scenario = is_agent_materials_scenario(text)
-    if segment not in {"broker", "materials_request", "client_registration"} and not agent_scenario:
+    if is_operator:
         return []
-    if is_operator and not agent_scenario:
+    if segment not in {"broker", "materials_request", "client_registration"} and not agent_scenario:
         return []
     if not is_operator and recent_agent_pack_sent(item.get("wa_id")):
         return []
