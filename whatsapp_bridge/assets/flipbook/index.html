@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Canopy Hills Villas Book</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #12130f;
+        --panel: rgba(22, 24, 18, 0.86);
+        --line: rgba(255, 255, 255, 0.16);
+        --text: #f6f1e5;
+        --muted: #c9c2b2;
+        --accent: #b7d07a;
+        --accent-strong: #e7b95d;
+        --shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+        margin: 0;
+      }
+
+      body {
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at 12% 18%, rgba(183, 208, 122, 0.14), transparent 28rem),
+          linear-gradient(135deg, #0f100c 0%, #1b2016 44%, #151510 100%);
+        color: var(--text);
+        overflow: hidden;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      .app {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        min-height: 100vh;
+        padding: 16px clamp(12px, 2vw, 28px) 12px;
+        gap: 14px;
+      }
+
+      .topbar,
+      .controls,
+      .filmstrip {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        backdrop-filter: blur(18px);
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.24);
+      }
+
+      .topbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 16px;
+        min-height: 64px;
+        padding: 12px 14px 12px 18px;
+        border-radius: 8px;
+      }
+
+      .brand {
+        min-width: 0;
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: clamp(18px, 2vw, 26px);
+        line-height: 1.05;
+        letter-spacing: 0;
+      }
+
+      .brand p {
+        margin: 5px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .icon-button,
+      .text-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 42px;
+        height: 42px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+        text-decoration: none;
+        cursor: pointer;
+        transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+      }
+
+      .text-button {
+        gap: 8px;
+        min-width: auto;
+        padding: 0 14px;
+        white-space: nowrap;
+      }
+
+      .icon-button:hover,
+      .text-button:hover,
+      .icon-button:focus-visible,
+      .text-button:focus-visible {
+        border-color: rgba(231, 185, 93, 0.68);
+        background: rgba(231, 185, 93, 0.14);
+        outline: none;
+      }
+
+      .icon-button:active,
+      .text-button:active {
+        transform: translateY(1px);
+      }
+
+      .viewer {
+        position: relative;
+        display: grid;
+        place-items: center;
+        min-height: 0;
+        perspective: 1800px;
+      }
+
+      .book-shell {
+        position: relative;
+        width: min(100%, calc((100vh - 210px) * 2.83));
+        max-width: 1480px;
+        aspect-ratio: 2.828 / 1;
+        display: grid;
+        place-items: center;
+        filter: drop-shadow(var(--shadow));
+      }
+
+      .book-shell.cover {
+        width: min(100%, calc((100vh - 210px) * 1.414));
+        max-width: 760px;
+        aspect-ratio: 1.414 / 1;
+      }
+
+      .page-frame {
+        position: absolute;
+        inset: 0;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #181812;
+        transform-style: preserve-3d;
+      }
+
+      .page-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+        background: #151510;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
+
+      .page-frame::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          linear-gradient(90deg, rgba(0, 0, 0, 0.26), transparent 9%, transparent 91%, rgba(0, 0, 0, 0.24)),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 16%, transparent 84%, rgba(0, 0, 0, 0.2));
+      }
+
+      .flip-layer {
+        position: absolute;
+        inset: 0;
+        z-index: 3;
+        display: none;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #171711;
+        box-shadow: -24px 0 70px rgba(0, 0, 0, 0.36);
+        transform-origin: right center;
+        backface-visibility: hidden;
+      }
+
+      .flip-layer img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+      }
+
+      .book-shell.flipping-next .flip-layer {
+        display: block;
+        animation: flipNext 520ms cubic-bezier(0.2, 0.78, 0.2, 1) both;
+      }
+
+      .book-shell.flipping-prev .flip-layer {
+        display: block;
+        transform-origin: left center;
+        animation: flipPrev 520ms cubic-bezier(0.2, 0.78, 0.2, 1) both;
+      }
+
+      @keyframes flipNext {
+        from {
+          transform: rotateY(0deg);
+          filter: brightness(1);
+        }
+        to {
+          transform: rotateY(-105deg);
+          filter: brightness(0.58);
+        }
+      }
+
+      @keyframes flipPrev {
+        from {
+          transform: rotateY(0deg);
+          filter: brightness(1);
+        }
+        to {
+          transform: rotateY(105deg);
+          filter: brightness(0.58);
+        }
+      }
+
+      .hit-zone {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 28%;
+        z-index: 4;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+      }
+
+      .hit-zone.prev {
+        left: 0;
+      }
+
+      .hit-zone.next {
+        right: 0;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: auto minmax(120px, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 8px;
+      }
+
+      .page-count {
+        color: var(--muted);
+        min-width: 78px;
+        text-align: center;
+        font-size: 13px;
+      }
+
+      .range {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        accent-color: var(--accent);
+      }
+
+      .filmstrip {
+        display: flex;
+        gap: 8px;
+        min-height: 88px;
+        padding: 8px;
+        border-radius: 8px;
+        overflow-x: auto;
+        scrollbar-color: rgba(231, 185, 93, 0.52) transparent;
+      }
+
+      .thumb {
+        flex: 0 0 auto;
+        width: 132px;
+        height: 70px;
+        border: 2px solid transparent;
+        border-radius: 6px;
+        overflow: hidden;
+        background: #24241b;
+        padding: 0;
+        cursor: pointer;
+        opacity: 0.68;
+      }
+
+      .thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .thumb.active {
+        border-color: var(--accent-strong);
+        opacity: 1;
+      }
+
+      svg {
+        width: 20px;
+        height: 20px;
+        stroke-width: 2;
+      }
+
+      @media (max-width: 760px) {
+        body {
+          overflow: auto;
+        }
+
+        .app {
+          min-height: 100svh;
+          grid-template-rows: auto auto auto;
+          padding: 10px;
+          gap: 10px;
+        }
+
+        .topbar {
+          grid-template-columns: 1fr;
+          gap: 10px;
+          padding: 12px;
+        }
+
+        .actions {
+          width: 100%;
+        }
+
+        .text-button {
+          flex: 1;
+        }
+
+        .viewer {
+          min-height: auto;
+        }
+
+        .book-shell {
+          width: 100%;
+          aspect-ratio: 2.828 / 1;
+        }
+
+        .controls {
+          grid-template-columns: auto auto;
+        }
+
+        .range {
+          grid-column: 1 / -1;
+          grid-row: 1;
+        }
+
+        .filmstrip {
+          min-height: 76px;
+        }
+
+        .thumb {
+          width: 108px;
+          height: 58px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div class="brand">
+          <h1>Canopy Hills Villas</h1>
+          <p>Interactive client book</p>
+        </div>
+        <div class="actions">
+          <button class="icon-button" id="fitButton" type="button" aria-label="Toggle full screen" title="Full screen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
+              <path d="M16 3h3a2 2 0 0 1 2 2v3"></path>
+              <path d="M8 21H5a2 2 0 0 1-2-2v-3"></path>
+              <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+            </svg>
+          </button>
+          <a class="text-button" href="assets/Canopy_Hills_Villas_Book.pdf" download>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <path d="M7 10l5 5 5-5"></path>
+              <path d="M12 15V3"></path>
+            </svg>
+            PDF
+          </a>
+        </div>
+      </header>
+
+      <section class="viewer" aria-label="Book viewer">
+        <div class="book-shell" id="bookShell">
+          <div class="page-frame">
+            <img id="pageImage" src="assets/webp/page-01.webp" alt="Canopy Hills Villas book page 1">
+          </div>
+          <div class="flip-layer" id="flipLayer" aria-hidden="true">
+            <img id="flipImage" src="assets/webp/page-01.webp" alt="">
+          </div>
+          <button class="hit-zone prev" id="leftZone" type="button" aria-label="Previous page"></button>
+          <button class="hit-zone next" id="rightZone" type="button" aria-label="Next page"></button>
+        </div>
+      </section>
+
+      <nav class="controls" aria-label="Book controls">
+        <button class="icon-button" id="prevButton" type="button" aria-label="Previous page" title="Previous">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="M15 18l-6-6 6-6"></path>
+          </svg>
+        </button>
+        <div class="range">
+          <input id="pageRange" type="range" min="1" max="40" value="1" aria-label="Page">
+          <span class="page-count" id="pageCount">1 / 40</span>
+        </div>
+        <button class="icon-button" id="nextButton" type="button" aria-label="Next page" title="Next">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="M9 18l6-6-6-6"></path>
+          </svg>
+        </button>
+      </nav>
+
+      <div class="filmstrip" id="filmstrip" aria-label="Page thumbnails"></div>
+    </main>
+
+    <script>
+      const totalPages = 40;
+      const imagePath = (page) => `assets/webp/page-${String(page).padStart(2, "0")}.webp`;
+      const state = {
+        page: 1,
+        isAnimating: false,
+        touchStartX: 0,
+      };
+
+      const bookShell = document.getElementById("bookShell");
+      const pageImage = document.getElementById("pageImage");
+      const flipLayer = document.getElementById("flipLayer");
+      const flipImage = document.getElementById("flipImage");
+      const pageRange = document.getElementById("pageRange");
+      const pageCount = document.getElementById("pageCount");
+      const filmstrip = document.getElementById("filmstrip");
+
+      for (let page = 1; page <= totalPages; page += 1) {
+        const button = document.createElement("button");
+        button.className = "thumb";
+        button.type = "button";
+        button.setAttribute("aria-label", `Open page ${page}`);
+        button.innerHTML = `<img src="${imagePath(page)}" loading="lazy" alt="">`;
+        button.addEventListener("click", () => goTo(page));
+        filmstrip.appendChild(button);
+      }
+
+      const thumbs = [...document.querySelectorAll(".thumb")];
+
+      function setPage(page) {
+        state.page = Math.min(totalPages, Math.max(1, page));
+        pageImage.src = imagePath(state.page);
+        pageImage.alt = `Canopy Hills Villas book page ${state.page}`;
+        bookShell.classList.toggle("cover", state.page === 1);
+        pageRange.value = state.page;
+        pageCount.textContent = `${state.page} / ${totalPages}`;
+        thumbs.forEach((thumb, index) => thumb.classList.toggle("active", index + 1 === state.page));
+        thumbs[state.page - 1]?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+      }
+
+      function goTo(targetPage) {
+        if (state.isAnimating || targetPage === state.page) return;
+        const direction = targetPage > state.page ? "next" : "prev";
+        state.isAnimating = true;
+        flipImage.src = imagePath(state.page);
+        bookShell.classList.add(direction === "next" ? "flipping-next" : "flipping-prev");
+        window.setTimeout(() => setPage(targetPage), 160);
+        window.setTimeout(() => {
+          bookShell.classList.remove("flipping-next", "flipping-prev");
+          state.isAnimating = false;
+        }, 540);
+      }
+
+      function next() {
+        goTo(state.page + 1);
+      }
+
+      function prev() {
+        goTo(state.page - 1);
+      }
+
+      document.getElementById("nextButton").addEventListener("click", next);
+      document.getElementById("rightZone").addEventListener("click", next);
+      document.getElementById("prevButton").addEventListener("click", prev);
+      document.getElementById("leftZone").addEventListener("click", prev);
+      pageRange.addEventListener("input", (event) => goTo(Number(event.target.value)));
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowRight" || event.key === " ") next();
+        if (event.key === "ArrowLeft") prev();
+      });
+
+      bookShell.addEventListener("touchstart", (event) => {
+        state.touchStartX = event.changedTouches[0].clientX;
+      }, { passive: true });
+
+      bookShell.addEventListener("touchend", (event) => {
+        const delta = event.changedTouches[0].clientX - state.touchStartX;
+        if (Math.abs(delta) < 42) return;
+        if (delta < 0) next();
+        if (delta > 0) prev();
+      }, { passive: true });
+
+      document.getElementById("fitButton").addEventListener("click", async () => {
+        if (!document.fullscreenElement) {
+          await document.documentElement.requestFullscreen();
+        } else {
+          await document.exitFullscreen();
+        }
+      });
+
+      setPage(1);
+      [2, 3, 4].forEach((page) => {
+        const preload = new Image();
+        preload.src = imagePath(page);
+      });
+    </script>
+  </body>
+</html>

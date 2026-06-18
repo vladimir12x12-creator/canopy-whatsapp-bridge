@@ -12,7 +12,7 @@ from html import escape
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, unquote, urlencode, urlparse
 
 DB_PATH = os.environ.get(
     "WHATSAPP_BRIDGE_DB",
@@ -4711,6 +4711,32 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         params = parse_qs(parsed.query)
+        if parsed.path == "/flipbook":
+            self.send_response(302)
+            self.send_header("Location", "/flipbook/")
+            self.end_headers()
+            return
+        if parsed.path.startswith("/flipbook/"):
+            rel_path = unquote(parsed.path[len("/flipbook/"):]) or "index.html"
+            if rel_path.startswith("/") or ".." in Path(rel_path).parts:
+                self.send_json(403, {"error": "forbidden"})
+                return
+            root = (ASSET_DIR / "flipbook").resolve()
+            asset_path = (root / rel_path).resolve()
+            if asset_path.is_dir():
+                asset_path = asset_path / "index.html"
+            if not str(asset_path).startswith(str(root)) or not asset_path.exists() or not asset_path.is_file():
+                self.send_json(404, {"error": "flipbook asset not found"})
+                return
+            content_type = mimetypes.guess_type(str(asset_path))[0] or "application/octet-stream"
+            body = asset_path.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Cache-Control", "public, max-age=86400")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if parsed.path.startswith("/assets/"):
             name = Path(parsed.path).name
             asset_path = ASSET_DIR / name
