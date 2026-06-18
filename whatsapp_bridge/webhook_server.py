@@ -568,8 +568,6 @@ def generate_test_autoreply(item):
 def should_ai_agent_reply(item, classification):
     if not ENABLE_AI_AGENT:
         return False
-    if item.get("wa_id") in AI_OPERATOR_WA_IDS and not item.get("operator_test_mode"):
-        return False
     if is_developer_research_wa_id(item.get("wa_id")):
         return False
     if item.get("message_type") != "text":
@@ -615,11 +613,22 @@ def operator_test_mode_command(con, item):
         set_operator_mode(con, item["wa_id"], "lead_test")
         return (
             "Тестовый режим включён. Следующие сообщения от тебя буду воспринимать как симуляцию "
-            "входящего лида/агента, а не как рабочую переписку. Чтобы выйти: «стоп тест» или «рабочий режим»."
+            "входящего лида/агента, а не как рабочую переписку. Чтобы выйти: «тест закончен», «стоп тест» или «рабочий режим»."
         )
-    if command in {"стоп тест", "stop test", "рабочий режим", "work mode", "обычный режим"}:
+    if command in {
+        "тест закончен",
+        "тест окончен",
+        "закончили тест",
+        "стоп тест",
+        "stop test",
+        "test finished",
+        "end test",
+        "рабочий режим",
+        "work mode",
+        "обычный режим",
+    }:
         set_operator_mode(con, item["wa_id"], "work")
-        return "Тестовый режим выключен. Дальше общаемся как обычно по рабочим задачам."
+        return "Тестовый режим выключен. Дальше WhatsApp снова работает как обычный канал диалога с Codex по рабочим задачам."
     return ""
 
 
@@ -682,7 +691,7 @@ Dialogue rules:
 - For legal basics, it is allowed to state Hugs Management ownership, separate land title for each villa plot, and possible leasehold/freehold discussion. For legal/DD documents, contracts, detailed structure advice, investor docs, discount, payment-plan, villa-specific offer, or serious negotiation topics: acknowledge and escalate to Vladimir/Andrey or a short call.
 - For agents: the first move is the agreed welcome pack. Do not ask whether they have a specific client or need materials for their database. After the pack, respond to the agent's actual reply: registration details, viewing timing, client profile, commission, availability, or a call.
 - For Vladimir/operator messages: behave as an internal AI teammate unless `operator_test_mode` is true in metadata. If `operator_test_mode` is true, treat the incoming message as a simulated inbound lead/agent message and answer as the sales assistant being tested.
-- When Vladimir exits test mode, his next WhatsApp messages are working instructions/feedback. Do not answer them in WhatsApp as if they were leads.
+- When Vladimir exits test mode, his next WhatsApp messages are working instructions/feedback. Answer them in WhatsApp as Codex/internal teammate, not as a sales lead. Do not send lead materials or sales tools in work mode.
 - Do not auto-send sales templates, carousels or welcome packs to Vladimir unless test mode/tool context explicitly allows that exact pack.
 - Mention 6% commission only when commission/cooperation is relevant or the agent asks about terms.
 - For client registration: ask for client name and partial phone number. Registration is indefinite. If useful, also collect villa preference and timing, but do not make them mandatory.
