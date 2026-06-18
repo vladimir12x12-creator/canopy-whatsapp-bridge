@@ -24,6 +24,19 @@ STATE_PATH = Path(
     )
 )
 KNOWLEDGE_PATH = Path(__file__).with_name("codex_relay_knowledge.md")
+TEST_START_COMMANDS = {"тест", "test"}
+TEST_STOP_COMMANDS = {
+    "тест закончен",
+    "тест окончен",
+    "закончили тест",
+    "стоп тест",
+    "stop test",
+    "test finished",
+    "end test",
+    "рабочий режим",
+    "work mode",
+    "обычный режим",
+}
 
 
 def log(message):
@@ -107,6 +120,25 @@ def send_text(to, text):
         },
         timeout=45,
     )
+
+
+def normalize_command(text):
+    normalized = " ".join((text or "").strip().lower().split())
+    return normalized.strip(" .,!?:;\"'«»()[]{}")
+
+
+def operator_control_reply(item):
+    if not item.get("is_operator"):
+        return ""
+    command = normalize_command(item.get("text"))
+    if command in TEST_START_COMMANDS:
+        return (
+            "Тестовый режим включён. Следующие сообщения воспринимаю как симуляцию входящего лида/агента. "
+            "Чтобы выйти: «тест закончен», «стоп тест» или «рабочий режим»."
+        )
+    if command in TEST_STOP_COMMANDS:
+        return "Тестовый режим выключен. Дальше WhatsApp снова работает как обычный канал диалога с Codex по рабочим задачам."
+    return ""
 
 
 def build_prompt(item, recent_messages, knowledge):
@@ -226,8 +258,10 @@ def process_once(state, knowledge):
             mark_seen(state, message_id, "skipped", error=reason)
             continue
         try:
-            recent = fetch_recent_messages(wa_id)
-            reply = openai_reply(item, recent, knowledge)
+            reply = operator_control_reply(item)
+            if not reply:
+                recent = fetch_recent_messages(wa_id)
+                reply = openai_reply(item, recent, knowledge)
             send_text(wa_id, reply)
             mark_seen(state, message_id, "sent", reply=reply)
             log(f"sent reply to {wa_id} for {message_id}")
