@@ -265,6 +265,13 @@ def classify(text):
             "escalation_required": 1,
             "next_action": "Escalate to Vladimir/partner; offer a short call and send investor materials only after qualification.",
         }
+    if has_any(t, ["agent", "broker", "agency", "agencies", "commission", "realtor", "co-broker", "cooperate", "cooperation", "client registration", "register client", "my client", "for my client", "representing a client", "агент", "брокер", "комисс", "риэлтор", "сотруднич", "регистрация клиента", "зарегистрировать клиента", "мой клиент", "представляю клиента"]):
+        return {
+            "segment": "broker",
+            "priority": "P2",
+            "escalation_required": 0,
+            "next_action": "Send broker pack: availability, 6% commission, client registration.",
+        }
     if has_any(t, ["details", "send materials", "project materials", "sales kit", "salekit", "brochure", "presentation", "deck", "pdf", "send info", "send more", "share with my client", "подроб", "пришлите материалы", "отправьте материалы", "материалы по проекту", "презентац", "брошюр", "информац"]):
         return {
             "segment": "materials_request",
@@ -299,13 +306,6 @@ def classify(text):
             "priority": "P1",
             "escalation_required": 0,
             "next_action": "Explain C9 readiness, active construction of next villas, and offer private preview.",
-        }
-    if has_any(t, ["agent", "broker", "agency", "agencies", "commission", "realtor", "агент", "брокер", "комисс"]):
-        return {
-            "segment": "broker",
-            "priority": "P2",
-            "escalation_required": 0,
-            "next_action": "Send broker pack: availability, 6% commission, client registration.",
         }
     if has_any(t, ["bisp", "british", "school", "kids", "children", "family", "relocation", "long term", "школ", "дет", "семь", "переезд", "жить"]):
         return {
@@ -650,10 +650,15 @@ Project facts:
 Current agent knowledge policy:
 - Treat Canopy as: "9 hillside view villas near BISP and other international schools for families and long-term Phuket living." Lead with this definition when project context is needed.
 - Useful client profiles: families relocating to Phuket, school-side long-term rental investors, buyers focused on view/space/quiet, and lifestyle buyers who value marinas, golf, Central and daily infrastructure.
+- Direct client strategy: for a generic direct buyer request, send a short client intro plus the presentation link in the language of the conversation, then qualify gently. Identify whether the client is (1) family with school-age children, (2) lifestyle/permanent-living buyer without school as the main driver, or (3) investor. Then highlight the matching Canopy advantages instead of dumping generic materials.
+- Family with school-age children: highlight BISP/other international schools, quiet green location, family layouts, storage, bedrooms, 650/750 sqm scale, long-term living. Ask about relocation timing, school area, and bedrooms only when useful.
+- Lifestyle/permanent-living buyer: highlight hillside views, quiet green surroundings, privacy, Central Phuket, marinas, golf, daily infrastructure, and Ko Kaeo as a practical island location. Ask whether it is full-time residence or second home, and what matters most: view, privacy, marinas/golf, or infrastructure.
+- Investor/direct investment buyer: use only the approved soft thesis: stable long-term rental demand from international-school families and scarcity of unique view residences for permanent living. Ask about long-term rental demand, capital preservation, personal use with rental potential, and investment horizon. Do not promise ROI.
 - Use the current SalesKit price list for availability and prices. Do not use old 2025 price lists, old villa offers, old payment-plan files, or old special-offer language.
 - Use soft investment logic only: stable long-term rental demand from international-school families, and Canopy's uniqueness as residences for permanent living with views. Do not promise ROI or repeat hard claims such as 15% annual appreciation, 30% below market, or any "below market" claim.
 - Approved documents/media that may be sent when relevant: anything inside the SalesKit as a full folder link or individual files, EN/RU/CH presentations from SalesKit, current SalesKit price list, approved intro video and advantage visuals, layout links/pages, standard/current agency agreement template, and company/DBD corporate registration documents needed for agency agreement. Old invitation/show-unit materials are stale; do not send them as a separate default package.
 - Manual-only documents: villa-specific offers, payment plans/payment details, NDA/investor documents, and legal/DD documents including chanotes, permits, title documents, sale/lease agreement samples, common-area legal documents and legal structure advice.
+- Legal basics allowed in WhatsApp: the land plot is owned by Hugs Management Co., Ltd.; each villa plot has its own separate land title; leasehold and freehold structures can be discussed depending on the buyer and transaction structure. Do not send title/chanote/DD documents or give detailed legal advice automatically; offer a project-team/legal discussion for detailed review.
 - Agency agreement workflow: when an agent wants to cooperate or asks for an agency agreement, collect company legal name, registration number, registered address, authorized representative name/title, phone, email, and DBD/company registration documents. Standard commission is 6%. Codex prepares the filled agreement from the current master template; the WhatsApp agent should collect data and route the task, not improvise legal text.
 - Do not use stale/rejected wording: "камерный", "intro-pack", "carousel" to clients/agents, "video below", "emotional context", "real progress not only renders", "strong engineering quality", "materials for your database", "special conditions until September", or old 2025 discounts/prices.
 
@@ -670,7 +675,8 @@ Dialogue rules:
 - Do not overpromise ROI, legal outcomes, immigration outcomes, completion dates beyond the stated C9 preview window, or availability.
 - Think like a trained Phuket real-estate sales agent, not like a scripted bot: infer the role and intent from the message, use the agreed project positioning, and answer the actual next step.
 - Ask a qualifying question only when it naturally moves the current conversation forward. Do not ask generic branch questions after the role is already clear.
-- For legal, investor, discount, contract, payment-plan, villa-specific offer, or serious negotiation topics: acknowledge and escalate to Vladimir/Andrey or a short call.
+- For direct clients: first identify family/school, lifestyle/permanent-living, or investor logic; then highlight the relevant Canopy advantages. Do not ask many questions at once.
+- For legal basics, it is allowed to state Hugs Management ownership, separate land title for each villa plot, and possible leasehold/freehold discussion. For legal/DD documents, contracts, detailed structure advice, investor docs, discount, payment-plan, villa-specific offer, or serious negotiation topics: acknowledge and escalate to Vladimir/Andrey or a short call.
 - For agents: the first move is the agreed welcome pack. Do not ask whether they have a specific client or need materials for their database. After the pack, respond to the agent's actual reply: registration details, viewing timing, client profile, commission, availability, or a call.
 - For Vladimir/operator messages: behave as an internal AI teammate unless `operator_test_mode` is true in metadata. If `operator_test_mode` is true, treat the incoming message as a simulated inbound lead/agent message and answer as the sales assistant being tested.
 - Do not auto-send sales templates, carousels or welcome packs to Vladimir unless test mode/tool context explicitly allows that exact pack.
@@ -4158,29 +4164,37 @@ def draft_reply(contact, last_text=""):
         if ru:
             return (
                 "Понимаю вопрос. Для серьезного покупателя юридическая и строительная проверка важна не меньше, чем планировка.\n\n"
-                "Земля находится у Hugs Management Co., Ltd.; структура сделки предусматривает договор на виллу и leasehold на земельный участок. "
-                "Для предметного обсуждения можем подготовить юридический пакет и отдельный созвон с командой проекта.\n\n"
+                "Земельный участок находится в собственности Hugs Management Co., Ltd. Под каждую виллу выделен отдельный титул права собственности, "
+                "поэтому структуру сделки можно обсуждать как в формате leasehold, так и freehold - в зависимости от ситуации покупателя и выбранной структуры.\n\n"
+                "Для детальной юридической проверки можем организовать отдельное обсуждение с командой проекта и предоставить документы на этапе due diligence.\n\n"
                 "У вас уже есть юрист/консультант, который будет смотреть документы?"
             )
         return (
             "I understand the question. For a serious buyer, legal and construction due diligence is as important as the layout.\n\n"
-            "The land is held by Hugs Management Co., Ltd.; the transaction structure uses a villa sale agreement and leasehold for the land plot. "
-            "For a serious review, we can prepare a legal package and arrange a call with the project team.\n\n"
+            "The land plot is owned by Hugs Management Co., Ltd. Each villa plot has its own separate land title, "
+            "so the transaction structure can be discussed as either leasehold or freehold, depending on the buyer's situation and preferred structure.\n\n"
+            "For a detailed legal review, we can arrange a separate discussion with the project team and provide the relevant documents at the due diligence stage.\n\n"
             "Do you already have a lawyer/advisor who will review the documents?"
         )
     if segment == "materials_request":
         if ru:
             return (
-                "Добрый день! Отправляю короткий агентский пакет по Canopy Hills: видео с основным позиционированием "
-                "и карусель с ключевыми преимуществами.\n\n"
-                "Если есть конкретный клиент или запрос на просмотр, следующим сообщением пришлите имя клиента, профиль запроса "
-                "и желаемые даты просмотра."
+                "Добрый день! Спасибо за интерес к Canopy Hills.\n\n"
+                "Canopy Hills - клубный поселок из 9 видовых вилл на холме в Ko Kaeo, рядом с BISP, международными школами, "
+                "Central Phuket, гольфом, маринами и повседневной инфраструктурой. Проект рассчитан на тех, кто ищет просторный "
+                "приватный дом в тихой зеленой локации с открытыми видами на долину, озера и холмы.\n\n"
+                "Презентация проекта: https://drive.google.com/file/d/1jlBF9tc1mtX-ygI1kletcuqf9skex58T/view\n\n"
+                "Чтобы дать вам наиболее релевантную информацию, подскажите, пожалуйста: вы рассматриваете виллу в первую очередь "
+                "для семейной жизни, lifestyle/переезда или как инвестицию?"
             )
         return (
-            "Hi, sharing a short Canopy Hills agent package: the intro video with the project positioning "
-            "and a carousel with the key advantages.\n\n"
-            "If you already have a specific client or viewing request, please send the client name, request profile "
-            "and preferred viewing dates as the next step."
+            "Hi, thank you for your interest in Canopy Hills.\n\n"
+            "Canopy Hills is a club-style estate of 9 hillside view villas in Ko Kaeo, close to BISP, international schools, "
+            "Central Phuket, golf, marinas and everyday infrastructure. The project is designed for people who want a spacious "
+            "private home in a quiet green location, with open views over the valley, lakes and hills.\n\n"
+            "Project presentation: https://drive.google.com/file/d/1c1djBre5fRbmeoLXPsLYAczRFFIXbUvL/view\n\n"
+            "To send you the most relevant details, may I ask if you are considering a villa mainly for family living, "
+            "lifestyle/relocation, or investment?"
         )
     if segment == "quality_engineering":
         if ru:
@@ -4226,13 +4240,13 @@ def draft_reply(contact, last_text=""):
         if ru:
             return (
                 "Добрый день! Спасибо за сообщение.\n\n"
-                "Отправляю агентский пакет по Canopy Hills: короткое видео и карусель с основными преимуществами проекта. "
+                "Отправляю агентский пакет по Canopy Hills: короткое видео и визуальный обзор ключевых преимуществ проекта. "
                 "Стандартная комиссия для агентов - 6%.\n\n"
                 "Если есть клиент под проект, следующим шагом пришлите данные для регистрации клиента и желаемую дату просмотра."
             )
         return (
             "Hi, thank you for contacting Canopy Hills.\n\n"
-            "Sharing the Canopy Hills agent package: a short intro video and the key advantages carousel. "
+            "Sharing the Canopy Hills agent package: a short intro video and a visual overview of the key advantages. "
             "The standard agent commission is 6%.\n\n"
             "If you have a client for the project, please send the client registration details and preferred viewing date as the next step."
         )
