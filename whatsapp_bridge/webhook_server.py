@@ -559,6 +559,8 @@ def generate_test_autoreply(item):
 def should_ai_agent_reply(item, classification):
     if not ENABLE_AI_AGENT:
         return False
+    if item.get("wa_id") in AI_OPERATOR_WA_IDS:
+        return False
     if is_developer_research_wa_id(item.get("wa_id")):
         return False
     if item.get("message_type") != "text":
