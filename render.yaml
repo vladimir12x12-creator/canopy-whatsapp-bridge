@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: starter
     buildCommand: "pip install -r whatsapp_bridge/requirements.txt"
-    startCommand: "WHATSAPP_BRIDGE_HOST=0.0.0.0 WHATSAPP_BRIDGE_PORT=$PORT python whatsapp_bridge/webhook_server.py"
+    startCommand: "WHATSAPP_BRIDGE_HOST=0.0.0.0 WHATSAPP_BRIDGE_PORT=$PORT sh -c 'while true; do CODEX_RELAY_STATE_PATH=/var/data/codex_relay_state.json python whatsapp_bridge/codex_relay_runner.py; echo codex relay crashed, restarting in 10s; sleep 10; done & exec python whatsapp_bridge/webhook_server.py'"
     disk:
       name: canopy-whatsapp-data
       mountPath: /var/data

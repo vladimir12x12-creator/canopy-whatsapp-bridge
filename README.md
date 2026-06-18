@@ -75,29 +75,37 @@ Voice note transcription requires these Render environment variables:
 - `OPENAI_TRANSCRIBE_LANGUAGE` - optional, defaults to `ru`.
 - `ENABLE_AI_AUDIO_TRANSCRIPTION=1` - transcribe inbound WhatsApp voice notes and pass the transcript to the AI agent. Defaults to `1` in code.
 
-## 24/7 AI Agent
+## WhatsApp Codex Relay
 
-Current implementation:
+Production decision:
 
-- Inbound WhatsApp messages are stored in SQLite and classified.
-- Inbound WhatsApp voice notes are transcribed automatically, stored back onto the message, reclassified, and passed to the same AI reply flow.
-- If `ENABLE_AI_AGENT=1`, the bridge asks OpenAI to draft a concise WhatsApp reply using Canopy Hills project context and guardrails.
-- If `AI_AGENT_DRY_RUN=0`, the bridge sends the reply through WhatsApp Cloud API and records the result in `/ai-agent-events`.
-- If `ENABLE_AI_AGENT_TOOLS=1`, broker/materials/client-registration scenarios can trigger the agreed `send_agent_welcome_pack` tool: intro video with a short language-matched caption and SalesKit link, followed by the language-matched advantages carousel.
-- For Vladimir/operator wa_id values, the agent replies as an internal operations assistant rather than a sales lead handler.
-- Complex legal, investor, discount, contract, payment, or negotiation topics are answered conservatively and escalated to Vladimir/Andrey.
+- the webhook bridge is transport only;
+- the bridge receives/stores WhatsApp messages and exposes protected outbound send endpoints;
+- the bridge's old autonomous reply path stays disabled by default;
+- the thinking layer is a separate runner: `whatsapp_bridge/codex_relay_runner.py`.
 
-Render environment variables:
+The relay runner:
 
-- `ENABLE_AI_AGENT=1` - enable the live AI agent. Defaults to `1` in code.
-- `ENABLE_AI_AUDIO_TRANSCRIPTION=1` - enable automatic voice-note transcription for the AI agent. Defaults to `1` in code.
-- `ENABLE_AI_AGENT_TOOLS=1` - enable deterministic WhatsApp tools for approved sales scenarios. Defaults to `1` in code.
-- `AI_AGENT_DRY_RUN=0` - send replies. Use `1` for testing without sending.
-- `AI_AGENT_MODEL=gpt-4.1-mini` - optional model override.
-- `AI_OPERATOR_WA_IDS=66628512432` - comma-separated wa_id list treated as internal operator/Vladimir.
-- `AI_AGENT_WA_ID_ALLOWLIST=` - optional comma-separated allowlist. Empty means all inbound contacts.
-- `OPENAI_API_KEY` - required for AI replies.
-- `WHATSAPP_ACCESS_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID` - required for outbound WhatsApp sends.
+- polls `GET /operator-feed`;
+- ignores already processed message ids;
+- on first launch skips existing history so old tests are not answered retroactively;
+- reads `whatsapp_bridge/codex_relay_knowledge.md`;
+- asks OpenAI for one contextual WhatsApp reply;
+- sends via `POST /send-text` with `BRIDGE_SEND_TOKEN`.
+
+Render starts the relay as a sidecar process next to the webhook server. Required env:
+
+- `OPENAI_API_KEY`;
+- `BRIDGE_SEND_TOKEN`;
+- `WHATSAPP_ACCESS_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID`;
+- `CODEX_RELAY_MODEL` optional, defaults to `gpt-4.1`;
+- `CODEX_RELAY_POLL_SECONDS` optional, defaults to `15`;
+- `CODEX_RELAY_DRY_RUN=1` optional for no-send testing.
+
+Keep these disabled for normal operation unless explicitly testing legacy bridge behavior:
+
+- `ENABLE_BRIDGE_AUTONOMOUS_REPLIES=0`;
+- `ENABLE_AI_AGENT_TOOLS=0`.
 
 Production check after deploy:
 
@@ -107,12 +115,13 @@ curl -sS 'https://canopy-whatsapp-bridge.onrender.com/operator-feed?limit=5'
 curl -sS https://canopy-whatsapp-bridge.onrender.com/ai-agent-events
 ```
 
-Expected `/health` values for live AI mode:
+Expected `/health` values for relay mode:
 
 - `render_git_commit` should match the latest GitHub commit.
-- `ai_agent_enabled` should be `true`.
-- `ai_agent_dry_run` should be `false`.
+- `bridge_autonomous_replies_enabled` should be `false`.
+- `ai_agent_tools_enabled` should be `false`.
 - `has_openai_api_key` should be `true`.
+- `has_bridge_send_token` should be `true`.
 - `has_whatsapp_access_token` should be `true`.
 
 Staging voice transcription test:

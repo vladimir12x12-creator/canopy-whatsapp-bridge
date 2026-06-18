@@ -4622,11 +4622,12 @@ def operator_feed(limit=20):
         """,
         (limit,),
     ).fetchall()
-    con.close()
 
     items = []
     for row in rows:
         contact = dict(row)
+        operator_mode = get_operator_mode(con, row["wa_id"])
+        is_operator = row["wa_id"] in AI_OPERATOR_WA_IDS
         items.append(
             {
                 "message_id": row["id"],
@@ -4638,10 +4639,14 @@ def operator_feed(limit=20):
                 "segment": row["segment"],
                 "priority": row["priority"],
                 "next_action": row["next_action"],
+                "is_operator": is_operator,
+                "operator_mode": operator_mode,
+                "operator_test_mode": bool(is_operator and operator_mode == "lead_test"),
                 "suggested_reply": draft_reply(contact, contact.get("text") or ""),
                 "suggested_materials": suggested_materials(row["segment"]),
             }
         )
+    con.close()
     return items
 
 
@@ -4929,6 +4934,7 @@ class Handler(BaseHTTPRequestHandler):
                     "ai_agent_model": AI_AGENT_MODEL,
                     "ai_operator_wa_ids": sorted(AI_OPERATOR_WA_IDS),
                     "has_openai_api_key": bool(os.environ.get("OPENAI_API_KEY", "").strip()),
+                    "has_bridge_send_token": bool(SEND_API_TOKEN),
                     "has_whatsapp_access_token": bool(os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()),
                     "developer_research": developer_research_stats(),
                 },
