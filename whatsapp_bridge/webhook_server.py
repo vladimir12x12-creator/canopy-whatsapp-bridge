@@ -270,7 +270,7 @@ def classify(text):
             "segment": "materials_request",
             "priority": "P2",
             "escalation_required": 0,
-            "next_action": "Send welcome capsule with approved renders/media, then qualify buyer vs agent/client.",
+            "next_action": "Qualify whether this is a buyer/family, investor, or agent before sending role-specific materials.",
         }
     if has_any(t, ["quality", "engineering", "insulation", "sound", "roof", "windows", "construction quality", "specs", "качество", "инженер", "изоляц", "крыша", "окна", "строительств"]):
         return {
@@ -659,6 +659,7 @@ Current agent knowledge policy:
 
 Agreed agent welcome standard:
 - For an agent/broker/materials request, the standard first package is: intro video with a short language-matched caption and language-matched advantages carousel.
+- Do not treat a generic "more information/details" message as an agent request. If the role is unclear, first ask whether they are considering the villa for themselves/family or representing a client; do not send the agent welcome pack yet.
 - The video caption uses the approved agent text: 9 view villas on a hillside, school/infrastructure location, family living, views, privacy, quality materials, sound/thermal insulation and storage.
 - The carousel carries concrete numbers and advantages, including investment appeal based on long-term rental demand from international-school families and the scarcity of unique view projects. The L-size and XL-size layout cards link to grouped layout pages with C1-C9 source layout files; do not send separate layout PDF documents by default.
 - The system has a tool named send_agent_welcome_pack. When the message is a real agent/broker/materials scenario, give a short context-aware AI reply first; the pack may then be sent as supporting material, never as a substitute for understanding the message.
@@ -1115,7 +1116,12 @@ def is_agent_materials_scenario(text):
         "broker",
         "agency",
         "realtor",
-        "client",
+        "commission",
+        "co-broker",
+        "cooperate",
+        "cooperation",
+        "client registration",
+        "register client",
         "my client",
         "for client",
         "for my client",
@@ -1123,8 +1129,12 @@ def is_agent_materials_scenario(text):
         "агент",
         "брокер",
         "риэлтор",
-        "клиент",
+        "комисс",
+        "сотруднич",
+        "регистрация клиента",
+        "зарегистрировать клиента",
         "для клиента",
+        "мой клиент",
         "представляю клиента",
         "материалы для базы",
     ]
@@ -1143,7 +1153,7 @@ def is_agent_materials_scenario(text):
         "подроб",
         "информац",
     ]
-    return has_any(t, agent_terms) or has_any(t, material_terms)
+    return has_any(t, agent_terms)
 
 
 def agent_intro_video_caption(language="en"):
@@ -1939,7 +1949,6 @@ def transcribe_audio_message(message_id):
     )
     con.commit()
     con.close()
-    log_developer_research_outbound(to, text, response, now)
     return {
         "message_id": message_id,
         "wa_id": row["wa_id"],
@@ -1978,6 +1987,7 @@ def process_audio_message_for_ai(message_id, original_item=None):
         "message_type": "text",
         "text": f"[WhatsApp voice note transcript]\n{result['transcript']}",
         "raw": (original_item or {}).get("raw", {}),
+        "operator_test_mode": (original_item or {}).get("operator_test_mode", False),
     }
     if not should_ai_agent_reply(voice_item, result["classification"]):
         return {**result, "ai_reply": "", "skipped": "ai agent disabled or filtered"}
