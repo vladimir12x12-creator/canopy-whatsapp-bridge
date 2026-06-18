@@ -92,11 +92,15 @@ TEST_AUTOREPLY_PREFIXES = (
     "investor:",
 )
 ENABLE_AI_AGENT = os.environ.get("ENABLE_AI_AGENT", "1").strip().lower() in {"1", "true", "yes", "on"}
+ENABLE_BRIDGE_AUTONOMOUS_REPLIES = (
+    os.environ.get("ENABLE_BRIDGE_AUTONOMOUS_REPLIES", "0").strip().lower()
+    in {"1", "true", "yes", "on"}
+)
 ENABLE_AI_AUDIO_TRANSCRIPTION = (
     os.environ.get("ENABLE_AI_AUDIO_TRANSCRIPTION", "1").strip().lower()
     in {"1", "true", "yes", "on"}
 )
-ENABLE_AI_AGENT_TOOLS = os.environ.get("ENABLE_AI_AGENT_TOOLS", "1").strip().lower() in {"1", "true", "yes", "on"}
+ENABLE_AI_AGENT_TOOLS = os.environ.get("ENABLE_AI_AGENT_TOOLS", "0").strip().lower() in {"1", "true", "yes", "on"}
 AGENT_WELCOME_PACK_APPROVED = (
     os.environ.get("AGENT_WELCOME_PACK_APPROVED", "1").strip().lower()
     in {"1", "true", "yes", "on"}
@@ -567,6 +571,8 @@ def generate_test_autoreply(item):
 
 def should_ai_agent_reply(item, classification):
     if not ENABLE_AI_AGENT:
+        return False
+    if not ENABLE_BRIDGE_AUTONOMOUS_REPLIES:
         return False
     if is_developer_research_wa_id(item.get("wa_id")):
         return False
@@ -4915,6 +4921,7 @@ class Handler(BaseHTTPRequestHandler):
                     "test_autoreply_require_explicit_prefix": TEST_AUTOREPLY_REQUIRE_EXPLICIT_PREFIX,
                     "test_autoreply_wa_ids": sorted(TEST_AUTOREPLY_WA_IDS),
                     "ai_agent_enabled": ENABLE_AI_AGENT,
+                    "bridge_autonomous_replies_enabled": ENABLE_BRIDGE_AUTONOMOUS_REPLIES,
                     "ai_audio_transcription_enabled": ENABLE_AI_AUDIO_TRANSCRIPTION,
                     "ai_agent_tools_enabled": ENABLE_AI_AGENT_TOOLS,
                     "agent_welcome_pack_approved": AGENT_WELCOME_PACK_APPROVED,
