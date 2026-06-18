@@ -160,6 +160,15 @@ def db():
     )
     con.execute(
         """
+        CREATE TABLE IF NOT EXISTS operator_modes (
+            wa_id TEXT PRIMARY KEY,
+            mode TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    con.execute(
+        """
         CREATE TABLE IF NOT EXISTS developer_research_targets (
             wa_id TEXT PRIMARY KEY,
             developer TEXT NOT NULL,
@@ -559,7 +568,7 @@ def generate_test_autoreply(item):
 def should_ai_agent_reply(item, classification):
     if not ENABLE_AI_AGENT:
         return False
-    if item.get("wa_id") in AI_OPERATOR_WA_IDS:
+    if item.get("wa_id") in AI_OPERATOR_WA_IDS and not item.get("operator_test_mode"):
         return False
     if is_developer_research_wa_id(item.get("wa_id")):
         return False
@@ -572,6 +581,46 @@ def should_ai_agent_reply(item, classification):
     if classification.get("segment") == "low_relevance":
         return True
     return True
+
+
+def normalize_mode_command(text):
+    return " ".join((text or "").strip().lower().split())
+
+
+def get_operator_mode(con, wa_id):
+    row = con.execute("SELECT mode FROM operator_modes WHERE wa_id = ?", (wa_id,)).fetchone()
+    return row["mode"] if row else ""
+
+
+def set_operator_mode(con, wa_id, mode):
+    con.execute(
+        """
+        INSERT INTO operator_modes(wa_id, mode, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(wa_id) DO UPDATE SET
+          mode = excluded.mode,
+          updated_at = excluded.updated_at
+        """,
+        (wa_id, mode, utc_now()),
+    )
+
+
+def operator_test_mode_command(con, item):
+    if item.get("wa_id") not in AI_OPERATOR_WA_IDS:
+        return ""
+    if item.get("message_type") != "text":
+        return ""
+    command = normalize_mode_command(item.get("text"))
+    if command in {"тест", "test"}:
+        set_operator_mode(con, item["wa_id"], "lead_test")
+        return (
+            "Тестовый режим включён. Следующие сообщения от тебя буду воспринимать как симуляцию "
+            "входящего лида/агента, а не как рабочую переписку. Чтобы выйти: «стоп тест» или «рабочий режим»."
+        )
+    if command in {"стоп тест", "stop test", "рабочий режим", "work mode", "обычный режим"}:
+        set_operator_mode(con, item["wa_id"], "work")
+        return "Тестовый режим выключен. Дальше общаемся как обычно по рабочим задачам."
+    return ""
 
 
 def ai_agent_system_prompt(is_operator=False):
@@ -622,7 +671,8 @@ Dialogue rules:
 - Ask a qualifying question only when it naturally moves the current conversation forward. Do not ask generic branch questions after the role is already clear.
 - For legal, investor, discount, contract, payment-plan, villa-specific offer, or serious negotiation topics: acknowledge and escalate to Vladimir/Andrey or a short call.
 - For agents: the first move is the agreed welcome pack. Do not ask whether they have a specific client or need materials for their database. After the pack, respond to the agent's actual reply: registration details, viewing timing, client profile, commission, availability, or a call.
-- For Vladimir/operator messages: behave as an internal AI teammate. Do not auto-send sales templates, carousels or welcome packs unless the operator explicitly asks to send/test that exact pack.
+- For Vladimir/operator messages: behave as an internal AI teammate unless `operator_test_mode` is true in metadata. If `operator_test_mode` is true, treat the incoming message as a simulated inbound lead/agent message and answer as the sales assistant being tested.
+- Do not auto-send sales templates, carousels or welcome packs to Vladimir unless test mode/tool context explicitly allows that exact pack.
 - Mention 6% commission only when commission/cooperation is relevant or the agent asks about terms.
 - For client registration: ask for client name and partial phone number. Registration is indefinite. If useful, also collect villa preference and timing, but do not make them mandatory.
 - For quotation, reservation, payment plan, special price, villa-specific offer, legal due diligence, sale/lease agreement samples, NDA/investor documents, or client registration confirmation: do not improvise; gather only the missing practical detail and escalate.
@@ -719,6 +769,7 @@ def run_ai_agent_reply(item, classification):
         "priority": classification.get("priority"),
         "next_action": classification.get("next_action"),
         "is_operator": is_operator,
+        "operator_test_mode": bool(item.get("operator_test_mode")),
         "tool_plan": tool_plan,
     }
     reply = openai_response_text(
@@ -772,6 +823,7 @@ def store_payload(payload):
         (json.dumps(payload, ensure_ascii=False), now),
     )
     for item in extract_messages(payload):
+        item["operator_test_mode"] = False
         classification = classify(item["text"])
         cur = con.execute(
             """
@@ -793,6 +845,19 @@ def store_payload(payload):
         mark_whatsapp_message_read(item["message_id"])
         if developer_research_contact:
             continue
+        mode_reply = operator_test_mode_command(con, item)
+        if mode_reply:
+            con.commit()
+            if inserted:
+                try:
+                    send_whatsapp_text(item["wa_id"], mode_reply)
+                    log_ai_agent_event(item["wa_id"], item["message_id"], "operator_mode", mode_reply, "")
+                except Exception as exc:
+                    log_ai_agent_event(item["wa_id"], item["message_id"], "operator_mode_error", "", str(exc))
+                    print(f"operator mode reply failed for {item['wa_id']}: {exc}")
+            continue
+        if item.get("wa_id") in AI_OPERATOR_WA_IDS and get_operator_mode(con, item["wa_id"]) == "lead_test":
+            item["operator_test_mode"] = True
         con.execute(
             """
             INSERT INTO contacts
@@ -1266,8 +1331,9 @@ def ai_agent_tool_plan(item, classification):
     text = item.get("text") or ""
     segment = classification.get("segment")
     is_operator = item.get("wa_id") in AI_OPERATOR_WA_IDS
+    operator_test_mode = bool(item.get("operator_test_mode"))
     agent_scenario = is_agent_materials_scenario(text)
-    if is_operator:
+    if is_operator and not operator_test_mode:
         return []
     if segment not in {"broker", "materials_request", "client_registration"} and not agent_scenario:
         return []
