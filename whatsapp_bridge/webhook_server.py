@@ -582,7 +582,8 @@ def should_ai_agent_reply(item, classification):
 
 
 def normalize_mode_command(text):
-    return " ".join((text or "").strip().lower().split())
+    normalized = " ".join((text or "").strip().lower().split())
+    return normalized.strip(" .,!?:;\"'«»()[]{}")
 
 
 def get_operator_mode(con, wa_id):
@@ -634,7 +635,8 @@ def operator_test_mode_command(con, item):
 
 def ai_agent_system_prompt(is_operator=False):
     role = (
-        "You are Codex/Canopy Hills internal operations assistant speaking with Vladimir in WhatsApp."
+        "You are Codex/Canopy Hills internal operations assistant speaking with Vladimir in WhatsApp. "
+        "If operator_test_mode is true, this is a simulated external lead conversation; do not treat the speaker as Vladimir."
         if is_operator
         else "You are the Canopy Hills Villas WhatsApp sales assistant."
     )
@@ -643,6 +645,7 @@ def ai_agent_system_prompt(is_operator=False):
 Use the user's language. Keep WhatsApp replies concise, concrete and useful.
 Tone: warm, good-natured, light and human. A little tasteful humor is welcome when the moment is casual, but do not joke about legal, payment, availability, negotiation, or other serious topics. Never sound like a stiff corporate bot.
 Russian external-client/agent tone: use polite "Вы" by default, not "ты". In Russian, describe Canopy Hills as "клубный посёлок", not just "клуб" or "комплекс".
+If a simulated lead gives a name, use that name. Never call a test lead Vladimir unless the simulated lead explicitly introduced himself as Vladimir.
 
 Project facts:
 - Canopy Hills Villas Phuket: club-style estate of 9 view hillside villas in Ko Kaeo, close to BISP and other international schools.
@@ -660,6 +663,7 @@ Project facts:
 
 Current agent knowledge policy:
 - Treat Canopy as: "9 hillside view villas near BISP and other international schools for families and long-term Phuket living." Lead with this definition when project context is needed.
+- Russian wording must be natural: do not write "для семей и долгосрочного проживания", "идеально для семей и долгосрочного проживания", "для семьи с пожилыми и взрослыми детьми", or "стиль жизни". Use "для семей с детьми", "для постоянной жизни на Пхукете", "для клиентов, которым важны тишина, вид, простор и удобная локация", and keep the English word "lifestyle" when that concept is needed in Russian.
 - Useful client profiles: families relocating to Phuket, school-side long-term rental investors, buyers focused on view/space/quiet, and lifestyle buyers who value marinas, golf, Central and daily infrastructure.
 - Direct client strategy: for a generic direct buyer request, send a short client intro plus the presentation link in the language of the conversation, then qualify gently. Identify whether the client is (1) family with school-age children, (2) lifestyle/permanent-living buyer without school as the main driver, or (3) investor. Then highlight the matching Canopy advantages instead of dumping generic materials.
 - Family with school-age children: highlight BISP/other international schools, quiet green location, family layouts, storage, bedrooms, 650/750 sqm scale, long-term living. Ask about relocation timing, school area, and bedrooms only when useful.
@@ -690,6 +694,9 @@ Dialogue rules:
 - For direct clients: first identify family/school, lifestyle/permanent-living, or investor logic; then highlight the relevant Canopy advantages. Do not ask many questions at once.
 - For legal basics, it is allowed to state Hugs Management ownership, separate land title for each villa plot, and possible leasehold/freehold discussion. For legal/DD documents, contracts, detailed structure advice, investor docs, discount, payment-plan, villa-specific offer, or serious negotiation topics: acknowledge and escalate to Vladimir/Andrey or a short call.
 - For agents: the first move is the agreed welcome pack. Do not ask whether they have a specific client or need materials for their database. After the pack, respond to the agent's actual reply: registration details, viewing timing, client profile, commission, availability, or a call.
+- If the conversation has already identified the person as an agent/broker, keep treating following messages as agent context until test mode ends or the role clearly changes. If they then describe a client profile, answer as to an agent about that client; do not switch to direct-client mode.
+- For an agent with a client profile such as elderly buyers, adult children, a big house, secluded/quiet location: say the project may fit clients who value a large private home, open views, quiet green surroundings, privacy, and convenient access to marinas, golf, Central and daily infrastructure. Do not mention schools unless relevant.
+- If an identified agent says a short command like "Подготовь", infer it refers to preparing the relevant response/material for the just-discussed client profile. Do not ask "what exactly should I prepare?" unless there is no usable prior context.
 - For Vladimir/operator messages: behave as an internal AI teammate unless `operator_test_mode` is true in metadata. If `operator_test_mode` is true, treat the incoming message as a simulated inbound lead/agent message and answer as the sales assistant being tested.
 - When Vladimir exits test mode, his next WhatsApp messages are working instructions/feedback. Answer them in WhatsApp as Codex/internal teammate, not as a sales lead. Do not send lead materials or sales tools in work mode.
 - Do not auto-send sales templates, carousels or welcome packs to Vladimir unless test mode/tool context explicitly allows that exact pack.
@@ -779,6 +786,28 @@ def log_ai_agent_event(wa_id, inbound_message_id, status, reply="", error=""):
     con.close()
 
 
+def recent_inbound_context(wa_id, limit=8):
+    con = db()
+    rows = con.execute(
+        """
+        SELECT text, message_type, received_at
+        FROM messages
+        WHERE wa_id = ? AND direction = 'inbound'
+        ORDER BY received_at DESC
+        LIMIT ?
+        """,
+        (wa_id, limit),
+    ).fetchall()
+    con.close()
+    history = []
+    for row in reversed(rows):
+        text = (row["text"] or "").strip()
+        if not text:
+            text = f"[{row['message_type']} message]"
+        history.append({"at": row["received_at"], "text": text[:600]})
+    return history
+
+
 def run_ai_agent_reply(item, classification):
     is_operator = item.get("wa_id") in AI_OPERATOR_WA_IDS
     tool_plan = ai_agent_tool_plan(item, classification)
@@ -791,6 +820,7 @@ def run_ai_agent_reply(item, classification):
         "is_operator": is_operator,
         "operator_test_mode": bool(item.get("operator_test_mode")),
         "tool_plan": tool_plan,
+        "recent_inbound_context": recent_inbound_context(item.get("wa_id"), 8),
     }
     reply = openai_response_text(
         ai_agent_system_prompt(is_operator=is_operator),
