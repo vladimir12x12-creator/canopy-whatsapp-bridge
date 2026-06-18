@@ -4622,6 +4622,26 @@ def operator_feed(limit=20):
         """,
         (limit,),
     ).fetchall()
+    for row in reversed(rows):
+        if row["wa_id"] not in AI_OPERATOR_WA_IDS or row["message_type"] != "text":
+            continue
+        command = normalize_mode_command(row["text"])
+        if command in {"тест", "test"}:
+            set_operator_mode(con, row["wa_id"], "lead_test")
+        elif command in {
+            "тест закончен",
+            "тест окончен",
+            "закончили тест",
+            "стоп тест",
+            "stop test",
+            "test finished",
+            "end test",
+            "рабочий режим",
+            "work mode",
+            "обычный режим",
+        }:
+            set_operator_mode(con, row["wa_id"], "work")
+    con.commit()
 
     items = []
     for row in rows:
