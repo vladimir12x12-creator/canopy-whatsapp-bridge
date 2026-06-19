@@ -46,9 +46,10 @@ PRESENTATION_DOCUMENTS = {
         ).strip(),
         "filename": os.environ.get(
             "CODEX_RELAY_PRESENTATION_DOCUMENT_FILENAME_EN",
-            "Canopy_Hills_Villas_EN.pdf",
+            "Canopy Hills ENG.pdf",
         ).strip(),
         "caption": "Canopy Hills Villas presentation.",
+        "source": "SalesKit file: Canopy Hills  ENG.pdf",
     },
     "ru": {
         "url": os.environ.get(
@@ -57,9 +58,10 @@ PRESENTATION_DOCUMENTS = {
         ).strip(),
         "filename": os.environ.get(
             "CODEX_RELAY_PRESENTATION_DOCUMENT_FILENAME_RU",
-            "Canopy_Hills_Villas_RU.pdf",
+            "Canopy Hills RUS.pdf",
         ).strip(),
         "caption": "Презентация Canopy Hills Villas.",
+        "source": "SalesKit file: Canopy Hills  RUS.pdf",
     },
     "zh": {
         "url": os.environ.get(
@@ -68,11 +70,16 @@ PRESENTATION_DOCUMENTS = {
         ).strip(),
         "filename": os.environ.get(
             "CODEX_RELAY_PRESENTATION_DOCUMENT_FILENAME_ZH",
-            "Canopy_Hills_Villas_ZH.pdf",
+            "Canopy Hills CH.pdf",
         ).strip(),
         "caption": "Canopy Hills Villas presentation.",
+        "source": "SalesKit file: Canopy Hills CH.pdf",
     },
 }
+INTRO_VIDEO_URL = os.environ.get(
+    "CODEX_RELAY_INTRO_VIDEO_URL",
+    f"{BASE_URL}/assets/agent_intro_video.mp4",
+).strip()
 
 
 def log(message):
@@ -173,6 +180,29 @@ def send_document(to, link, caption="", filename=""):
             "link": link,
             "caption": caption,
             "filename": filename,
+        },
+        headers={
+            "Content-Type": "application/json",
+            "X-Bridge-Token": SEND_TOKEN,
+        },
+        timeout=60,
+    )
+
+
+def send_video(to, link, caption=""):
+    if DRY_RUN:
+        log(f"dry-run video to {to}: {link}")
+        return {"ok": True, "dry_run": True}
+    if not SEND_TOKEN:
+        raise RuntimeError("BRIDGE_SEND_TOKEN is not set")
+    return request_json(
+        "POST",
+        f"{BASE_URL}/send-media",
+        {
+            "to": to,
+            "type": "video",
+            "link": link,
+            "caption": caption,
         },
         headers={
             "Content-Type": "application/json",
@@ -368,6 +398,12 @@ def should_send_presentation_document(item, recent_messages):
     return role in {"direct", "investor"} and bool(presentation_document(item).get("url"))
 
 
+def should_send_client_intro_video(item, recent_messages):
+    if not INTRO_VIDEO_URL:
+        return False
+    return should_send_presentation_document(item, recent_messages)
+
+
 def should_send_agent_welcome_pack(item, recent_messages):
     if item.get("is_operator") and not item.get("operator_test_mode"):
         return False
@@ -384,6 +420,18 @@ def presentation_document(item):
     if not document.get("url"):
         return {}
     return document
+
+
+def client_intro_video_caption(item):
+    if is_russian(item.get("text") or ""):
+        return (
+            "Короткое видео Canopy Hills Villas: видовые виллы на холме в Ko Kaeo, "
+            "рядом с BISP, международными школами, Central Phuket, маринами и гольфом."
+        )
+    return (
+        "Short Canopy Hills Villas video: hillside view villas in Ko Kaeo, close to BISP, "
+        "international schools, Central Phuket, marinas and golf."
+    )
 
 
 def build_prompt(item, recent_messages, knowledge):
@@ -406,13 +454,15 @@ def build_prompt(item, recent_messages, knowledge):
             "content": (
                 "You are the Canopy Hills Codex-side WhatsApp relay. "
                 "You are not a rigid bot and not a template sender. "
-                "Write one concise WhatsApp reply that directly answers the latest message. "
+                "Your job is to sell Canopy Hills intelligently, not merely answer. "
+                "Every reply must move the conversation toward a clear commercial next step: role qualification, correct material delivery, client registration, viewing, call, or escalation. "
+                "Write one concise WhatsApp reply that directly answers the latest message and advances that next step. "
                 "Use the same language as the contact unless the context clearly requires otherwise. "
                 "No markdown headings. No JSON. No internal analysis. "
                 "Do not invent facts, prices, payment plans, dates, legal advice, discounts, or ROI. "
                 "If the contact role is unclear and they ask for materials/details, ask whether they are an agent/broker or a direct buyer before pitching. "
-                "Never send or promise a client presentation to an agent. For agents, use SalesKit/video/advantages pack. "
-                "For direct clients, the presentation must match the conversation language. "
+                "Never send or promise a client presentation to an agent. For agents, use SalesKit/video/advantages visual pack and guide them toward client registration, a client-specific call, or a viewing. "
+                "For direct clients, the presentation and intro video must match the conversation language and buyer profile. "
                 "Do not paste Drive presentation links; if a presentation is requested, say it is attached only when the role is clear. "
                 "If escalation is needed, say you will check/prepare it with the team. "
                 "If the sender is Vladimir/operator outside test mode, answer as an internal teammate."
@@ -517,6 +567,8 @@ def process_once(state, knowledge):
             send_text(wa_id, reply)
             if should_send_presentation_document(item, recent):
                 document = presentation_document(item)
+                if should_send_client_intro_video(item, recent):
+                    send_video(wa_id, INTRO_VIDEO_URL, client_intro_video_caption(item))
                 send_document(
                     wa_id,
                     document["url"],
