@@ -37,6 +37,17 @@ TEST_STOP_COMMANDS = {
     "work mode",
     "обычный режим",
 }
+PRESENTATION_DOCUMENT_URL = (
+    os.environ.get(
+        "CODEX_RELAY_PRESENTATION_DOCUMENT_URL",
+        f"{BASE_URL}/flipbook/assets/Canopy_Hills_Villas_Book.pdf",
+    )
+    .strip()
+)
+PRESENTATION_DOCUMENT_FILENAME = os.environ.get(
+    "CODEX_RELAY_PRESENTATION_DOCUMENT_FILENAME",
+    "Canopy_Hills_Villas_Book.pdf",
+).strip()
 
 
 def log(message):
@@ -122,6 +133,30 @@ def send_text(to, text):
     )
 
 
+def send_document(to, link, caption="", filename=""):
+    if DRY_RUN:
+        log(f"dry-run document to {to}: {link}")
+        return {"ok": True, "dry_run": True}
+    if not SEND_TOKEN:
+        raise RuntimeError("BRIDGE_SEND_TOKEN is not set")
+    return request_json(
+        "POST",
+        f"{BASE_URL}/send-media",
+        {
+            "to": to,
+            "type": "document",
+            "link": link,
+            "caption": caption,
+            "filename": filename,
+        },
+        headers={
+            "Content-Type": "application/json",
+            "X-Bridge-Token": SEND_TOKEN,
+        },
+        timeout=60,
+    )
+
+
 def normalize_command(text):
     normalized = " ".join((text or "").strip().lower().split())
     return normalized.strip(" .,!?:;\"'«»()[]{}")
@@ -139,6 +174,132 @@ def operator_control_reply(item):
     if command in TEST_STOP_COMMANDS:
         return "Тестовый режим выключен. Дальше WhatsApp снова работает как обычный канал диалога с Codex по рабочим задачам."
     return ""
+
+
+def text_blob(item, recent_messages):
+    chunks = [(item.get("text") or "")]
+    for row in recent_messages[-6:]:
+        if row.get("direction") == "inbound":
+            chunks.append(row.get("text") or "")
+    return "\n".join(chunks).lower()
+
+
+def is_russian(text):
+    return any("а" <= ch <= "я" or ch == "ё" for ch in (text or "").lower())
+
+
+def has_any(text, terms):
+    return any(term in text for term in terms)
+
+
+def role_from_text(blob):
+    agent_terms = [
+        "agent",
+        "broker",
+        "agency",
+        "realtor",
+        "my client",
+        "our client",
+        "client registration",
+        "commission",
+        "co-broker",
+        "агент",
+        "брокер",
+        "агентство",
+        "риэлтор",
+        "мой клиент",
+        "наш клиент",
+        "для клиента",
+        "регистрация клиента",
+        "комиссия",
+    ]
+    direct_terms = [
+        "for myself",
+        "for my family",
+        "we are looking",
+        "i am looking",
+        "i want to buy",
+        "для себя",
+        "для семьи",
+        "мы ищем",
+        "я ищу",
+        "хочу купить",
+        "рассматриваю для себя",
+        "покупатель",
+    ]
+    investor_terms = ["investor", "investment", "roi", "инвестор", "инвести", "доходность"]
+    if has_any(blob, agent_terms):
+        return "agent"
+    if has_any(blob, investor_terms):
+        return "investor"
+    if has_any(blob, direct_terms):
+        return "direct"
+    return "unknown"
+
+
+def is_materials_request(text):
+    t = (text or "").lower()
+    return has_any(
+        t,
+        [
+            "presentation",
+            "brochure",
+            "pdf",
+            "deck",
+            "details",
+            "materials",
+            "send info",
+            "send information",
+            "send me",
+            "share",
+            "презентац",
+            "брошюр",
+            "pdf",
+            "пдф",
+            "материал",
+            "подроб",
+            "информац",
+            "пришл",
+            "отправ",
+        ],
+    )
+
+
+def unknown_role_gate_reply(item, recent_messages):
+    if item.get("is_operator") and not item.get("operator_test_mode"):
+        return ""
+    blob = text_blob(item, recent_messages)
+    if role_from_text(blob) != "unknown":
+        return ""
+    latest = item.get("text") or ""
+    if not is_materials_request(latest):
+        return ""
+    if is_russian(latest):
+        return (
+            "Подскажите, пожалуйста, Вы агент/брокер с клиентом или рассматриваете виллу для себя? "
+            "Так я отправлю правильные материалы и сориентирую по сути."
+        )
+    return (
+        "Could you please let me know if you are an agent/broker working with a client, "
+        "or are you considering the villa for yourself? I’ll send the right materials and guide you accordingly."
+    )
+
+
+def should_send_presentation_document(item, recent_messages):
+    if item.get("is_operator") and not item.get("operator_test_mode"):
+        return False
+    if not PRESENTATION_DOCUMENT_URL:
+        return False
+    if not is_materials_request(item.get("text") or ""):
+        return False
+    role = role_from_text(text_blob(item, recent_messages))
+    return role in {"agent", "direct", "investor"}
+
+
+def presentation_caption(item):
+    if is_russian(item.get("text") or ""):
+        return "Презентация Canopy Hills Villas."
+    return "Canopy Hills Villas presentation."
 
 
 def build_prompt(item, recent_messages, knowledge):
@@ -165,6 +326,8 @@ def build_prompt(item, recent_messages, knowledge):
                 "Use the same language as the contact unless the context clearly requires otherwise. "
                 "No markdown headings. No JSON. No internal analysis. "
                 "Do not invent facts, prices, payment plans, dates, legal advice, discounts, or ROI. "
+                "If the contact role is unclear and they ask for materials/details, ask whether they are an agent/broker or a direct buyer before pitching. "
+                "Do not paste Drive presentation links; if a presentation is requested, say it is attached only when the role is clear. "
                 "If escalation is needed, say you will check/prepare it with the team. "
                 "If the sender is Vladimir/operator outside test mode, answer as an internal teammate."
             ),
@@ -259,10 +422,20 @@ def process_once(state, knowledge):
             continue
         try:
             reply = operator_control_reply(item)
+            recent = []
             if not reply:
                 recent = fetch_recent_messages(wa_id)
+                reply = unknown_role_gate_reply(item, recent)
+            if not reply:
                 reply = openai_reply(item, recent, knowledge)
             send_text(wa_id, reply)
+            if should_send_presentation_document(item, recent):
+                send_document(
+                    wa_id,
+                    PRESENTATION_DOCUMENT_URL,
+                    presentation_caption(item),
+                    PRESENTATION_DOCUMENT_FILENAME,
+                )
             mark_seen(state, message_id, "sent", reply=reply)
             log(f"sent reply to {wa_id} for {message_id}")
             processed += 1
