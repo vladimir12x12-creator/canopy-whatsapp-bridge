@@ -26,6 +26,7 @@ STATE_PATH = Path(
 KNOWLEDGE_PATH = Path(__file__).with_name("codex_relay_knowledge.md")
 TEST_START_COMMANDS = {"тест", "test"}
 TEST_STOP_COMMANDS = {
+    "стоп",
     "тест закончен",
     "тест окончен",
     "закончили тест",
@@ -37,17 +38,41 @@ TEST_STOP_COMMANDS = {
     "work mode",
     "обычный режим",
 }
-PRESENTATION_DOCUMENT_URL = (
-    os.environ.get(
-        "CODEX_RELAY_PRESENTATION_DOCUMENT_URL",
-        f"{BASE_URL}/flipbook/assets/Canopy_Hills_Villas_Book.pdf",
-    )
-    .strip()
-)
-PRESENTATION_DOCUMENT_FILENAME = os.environ.get(
-    "CODEX_RELAY_PRESENTATION_DOCUMENT_FILENAME",
-    "Canopy_Hills_Villas_Book.pdf",
-).strip()
+PRESENTATION_DOCUMENTS = {
+    "en": {
+        "url": os.environ.get(
+            "CODEX_RELAY_PRESENTATION_DOCUMENT_URL_EN",
+            "https://drive.google.com/uc?export=download&id=1c1djBre5fRbmeoLXPsLYAczRFFIXbUvL",
+        ).strip(),
+        "filename": os.environ.get(
+            "CODEX_RELAY_PRESENTATION_DOCUMENT_FILENAME_EN",
+            "Canopy_Hills_Villas_EN.pdf",
+        ).strip(),
+        "caption": "Canopy Hills Villas presentation.",
+    },
+    "ru": {
+        "url": os.environ.get(
+            "CODEX_RELAY_PRESENTATION_DOCUMENT_URL_RU",
+            "https://drive.google.com/uc?export=download&id=1jlBF9tc1mtX-ygI1kletcuqf9skex58T",
+        ).strip(),
+        "filename": os.environ.get(
+            "CODEX_RELAY_PRESENTATION_DOCUMENT_FILENAME_RU",
+            "Canopy_Hills_Villas_RU.pdf",
+        ).strip(),
+        "caption": "Презентация Canopy Hills Villas.",
+    },
+    "zh": {
+        "url": os.environ.get(
+            "CODEX_RELAY_PRESENTATION_DOCUMENT_URL_ZH",
+            "https://drive.google.com/uc?export=download&id=1bgW4eOAdl_Zh_MTeoQAijaiq5Bn8IOhO",
+        ).strip(),
+        "filename": os.environ.get(
+            "CODEX_RELAY_PRESENTATION_DOCUMENT_FILENAME_ZH",
+            "Canopy_Hills_Villas_ZH.pdf",
+        ).strip(),
+        "caption": "Canopy Hills Villas presentation.",
+    },
+}
 
 
 def log(message):
@@ -157,6 +182,24 @@ def send_document(to, link, caption="", filename=""):
     )
 
 
+def send_agent_welcome_pack(to, language):
+    if DRY_RUN:
+        log(f"dry-run agent welcome pack to {to}: {language}")
+        return {"ok": True, "dry_run": True}
+    if not SEND_TOKEN:
+        raise RuntimeError("BRIDGE_SEND_TOKEN is not set")
+    return request_json(
+        "POST",
+        f"{BASE_URL}/send-agent-welcome-pack",
+        {"to": to, "language": language},
+        headers={
+            "Content-Type": "application/json",
+            "X-Bridge-Token": SEND_TOKEN,
+        },
+        timeout=90,
+    )
+
+
 def normalize_command(text):
     normalized = " ".join((text or "").strip().lower().split())
     return normalized.strip(" .,!?:;\"'«»()[]{}")
@@ -186,6 +229,18 @@ def text_blob(item, recent_messages):
 
 def is_russian(text):
     return any("а" <= ch <= "я" or ch == "ё" for ch in (text or "").lower())
+
+
+def is_chinese(text):
+    return any("\u4e00" <= ch <= "\u9fff" for ch in (text or ""))
+
+
+def message_language(text):
+    if is_russian(text):
+        return "ru"
+    if is_chinese(text):
+        return "zh"
+    return "en"
 
 
 def has_any(text, terms):
@@ -235,6 +290,23 @@ def role_from_text(blob):
     if has_any(blob, direct_terms):
         return "direct"
     return "unknown"
+
+
+def context_after_last_operator_control(item, recent_messages):
+    chunks = []
+    for row in recent_messages:
+        if row.get("direction") != "inbound":
+            continue
+        text = row.get("text") or ""
+        command = normalize_command(text)
+        if item.get("is_operator") and command in (TEST_START_COMMANDS | TEST_STOP_COMMANDS):
+            chunks = []
+            continue
+        chunks.append(text)
+    latest = item.get("text") or ""
+    if not chunks or chunks[-1] != latest:
+        chunks.append(latest)
+    return "\n".join(chunks).lower()
 
 
 def is_materials_request(text):
@@ -288,18 +360,30 @@ def unknown_role_gate_reply(item, recent_messages):
 def should_send_presentation_document(item, recent_messages):
     if item.get("is_operator") and not item.get("operator_test_mode"):
         return False
-    if not PRESENTATION_DOCUMENT_URL:
-        return False
     if not is_materials_request(item.get("text") or ""):
         return False
-    role = role_from_text(text_blob(item, recent_messages))
-    return role in {"agent", "direct", "investor"}
+    role = role_from_text(context_after_last_operator_control(item, recent_messages))
+    if role == "agent":
+        return False
+    return role in {"direct", "investor"} and bool(presentation_document(item).get("url"))
 
 
-def presentation_caption(item):
-    if is_russian(item.get("text") or ""):
-        return "Презентация Canopy Hills Villas."
-    return "Canopy Hills Villas presentation."
+def should_send_agent_welcome_pack(item, recent_messages):
+    if item.get("is_operator") and not item.get("operator_test_mode"):
+        return False
+    latest = item.get("text") or ""
+    if not is_materials_request(latest):
+        return False
+    role = role_from_text(context_after_last_operator_control(item, recent_messages))
+    return role == "agent"
+
+
+def presentation_document(item):
+    language = message_language(item.get("text") or "")
+    document = PRESENTATION_DOCUMENTS.get(language) or PRESENTATION_DOCUMENTS["en"]
+    if not document.get("url"):
+        return {}
+    return document
 
 
 def build_prompt(item, recent_messages, knowledge):
@@ -327,6 +411,8 @@ def build_prompt(item, recent_messages, knowledge):
                 "No markdown headings. No JSON. No internal analysis. "
                 "Do not invent facts, prices, payment plans, dates, legal advice, discounts, or ROI. "
                 "If the contact role is unclear and they ask for materials/details, ask whether they are an agent/broker or a direct buyer before pitching. "
+                "Never send or promise a client presentation to an agent. For agents, use SalesKit/video/advantages pack. "
+                "For direct clients, the presentation must match the conversation language. "
                 "Do not paste Drive presentation links; if a presentation is requested, say it is attached only when the role is clear. "
                 "If escalation is needed, say you will check/prepare it with the team. "
                 "If the sender is Vladimir/operator outside test mode, answer as an internal teammate."
@@ -430,12 +516,15 @@ def process_once(state, knowledge):
                 reply = openai_reply(item, recent, knowledge)
             send_text(wa_id, reply)
             if should_send_presentation_document(item, recent):
+                document = presentation_document(item)
                 send_document(
                     wa_id,
-                    PRESENTATION_DOCUMENT_URL,
-                    presentation_caption(item),
-                    PRESENTATION_DOCUMENT_FILENAME,
+                    document["url"],
+                    document.get("caption", ""),
+                    document.get("filename", ""),
                 )
+            if should_send_agent_welcome_pack(item, recent):
+                send_agent_welcome_pack(wa_id, message_language(item.get("text") or ""))
             mark_seen(state, message_id, "sent", reply=reply)
             log(f"sent reply to {wa_id} for {message_id}")
             processed += 1
