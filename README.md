@@ -75,34 +75,17 @@ Voice note transcription requires these Render environment variables:
 - `OPENAI_TRANSCRIBE_LANGUAGE` - optional, defaults to `ru`.
 - `ENABLE_AI_AUDIO_TRANSCRIPTION=1` - transcribe inbound WhatsApp voice notes and pass the transcript to the AI agent. Defaults to `1` in code.
 
-## WhatsApp Codex Relay
+## WhatsApp Transport Mode
 
 Production decision:
 
 - the webhook bridge is transport only;
 - the bridge receives/stores WhatsApp messages and exposes protected outbound send endpoints;
-- the bridge's old autonomous reply path stays disabled by default;
-- the thinking layer is a separate runner: `whatsapp_bridge/codex_relay_runner.py`.
+- the bridge's old autonomous reply path stays disabled;
+- the previous `whatsapp_bridge/codex_relay_runner.py` sidecar is legacy and is not started in production;
+- Codex/project context is the brain; WhatsApp is only the channel.
 
-The relay runner:
-
-- polls `GET /operator-feed`;
-- ignores already processed message ids;
-- on first launch skips existing history so old tests are not answered retroactively;
-- reads `whatsapp_bridge/codex_relay_knowledge.md`;
-- asks OpenAI for one contextual WhatsApp reply;
-- sends via `POST /send-text` with `BRIDGE_SEND_TOKEN`.
-
-Render starts the relay as a sidecar process next to the webhook server. Required env:
-
-- `OPENAI_API_KEY`;
-- `BRIDGE_SEND_TOKEN`;
-- `WHATSAPP_ACCESS_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID`;
-- `CODEX_RELAY_MODEL` optional, defaults to `gpt-4.1`;
-- `CODEX_RELAY_POLL_SECONDS` optional, defaults to `15`;
-- `CODEX_RELAY_DRY_RUN=1` optional for no-send testing.
-
-Keep these disabled for normal operation unless explicitly testing legacy bridge behavior:
+Keep these disabled for normal operation:
 
 - `ENABLE_BRIDGE_AUTONOMOUS_REPLIES=0`;
 - `ENABLE_AI_AGENT_TOOLS=0`.
@@ -115,14 +98,11 @@ curl -sS 'https://canopy-whatsapp-bridge.onrender.com/operator-feed?limit=5'
 curl -sS https://canopy-whatsapp-bridge.onrender.com/ai-agent-events
 ```
 
-Expected `/health` values for relay mode:
+Expected `/health` values for transport mode:
 
 - `render_git_commit` should match the latest GitHub commit.
 - `bridge_autonomous_replies_enabled` should be `false`.
 - `ai_agent_tools_enabled` should be `false`.
-- `has_openai_api_key` should be `true`.
-- `has_bridge_send_token` should be `true`.
-- `has_whatsapp_access_token` should be `true`.
 
 Staging voice transcription test:
 

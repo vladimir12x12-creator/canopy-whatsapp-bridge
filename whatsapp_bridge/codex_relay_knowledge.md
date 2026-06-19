@@ -1,5 +1,7 @@
 # Canopy Hills Codex Relay Knowledge
 
+LEGACY STATUS: this file belongs to the previous autonomous/sidecar relay approach. Current production rule is WhatsApp as transport only and the Canopy Hills Codex project as the brain. Do not treat this file as permission to run or re-enable `codex_relay_runner.py` without Vladimir's explicit current instruction.
+
 This is the compact canonical layer for the WhatsApp Codex relay. Treat it as higher priority than older playbooks, old WhatsApp scripts, old offers, or stale presentation wording.
 
 ## Role
