@@ -5189,6 +5189,16 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
+        if path.startswith("/send-") and path.endswith("-test"):
+            self.send_json(
+                410,
+                {
+                    "ok": False,
+                    "error": "disabled",
+                    "reason": "legacy WhatsApp send test endpoints are disabled; WhatsApp is transport only",
+                },
+            )
+            return
         if path == "/send-agent-packet-test":
             if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
                 self.send_json(401, {"error": "unauthorized"})
@@ -5599,64 +5609,34 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, {"ok": all(item.get("ok") for item in result), "results": result})
             return
         if path == "/send-agent-welcome-pack":
-            payload = self.read_authorized_json()
-            if payload is None:
-                return
-            to = str(payload.get("to", "")).strip()
-            language = str(payload.get("language", "") or "en").strip().lower()
-            if language in {"rus", "russian"}:
-                language = "ru"
-            if language in {"zh", "cn", "ch", "chi", "chinese"}:
-                language = "zh"
-            if language not in {"en", "ru", "zh"}:
-                language = "en"
-            if not to:
-                self.send_json(400, {"error": "to is required"})
-                return
-            try:
-                result = send_agent_welcome_pack(to, language)
-            except Exception as exc:
-                self.send_json(502, {"ok": False, "error": str(exc)})
-                return
-            self.send_json(200, {"ok": all(item.get("ok") for item in result), "results": result})
+            self.send_json(
+                410,
+                {
+                    "ok": False,
+                    "error": "disabled",
+                    "reason": "agent welcome pack automation is disabled; WhatsApp is transport only",
+                },
+            )
             return
         if path == "/send-text":
-            payload = self.read_authorized_json()
-            if payload is None:
-                return
-            to = str(payload.get("to", "")).strip()
-            text = str(payload.get("text", "")).strip()
-            if not to or not text:
-                self.send_json(400, {"error": "to and text are required"})
-                return
-            try:
-                result = send_whatsapp_text(to, text)
-            except Exception as exc:
-                self.send_json(502, {"error": str(exc)})
-                return
-            self.send_json(200, {"ok": True, "meta": result})
+            self.send_json(
+                410,
+                {
+                    "ok": False,
+                    "error": "disabled",
+                    "reason": "free-text relay is disabled; WhatsApp is transport only",
+                },
+            )
             return
         if path == "/send-vladimir-text-test":
-            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
-                self.send_json(401, {"error": "unauthorized"})
-                return
-            length = int(self.headers.get("Content-Length", "0"))
-            raw = self.rfile.read(length)
-            try:
-                payload = json.loads(raw.decode("utf-8")) if raw else {}
-            except json.JSONDecodeError:
-                self.send_json(400, {"error": "invalid json"})
-                return
-            text = str(payload.get("text", "")).strip()
-            if not text:
-                self.send_json(400, {"error": "text is required"})
-                return
-            try:
-                result = send_whatsapp_text("66628512432", text)
-            except Exception as exc:
-                self.send_json(502, {"error": str(exc)})
-                return
-            self.send_json(200, {"ok": True, "meta": result})
+            self.send_json(
+                410,
+                {
+                    "ok": False,
+                    "error": "disabled",
+                    "reason": "free-text test relay is disabled; WhatsApp is transport only",
+                },
+            )
             return
         if path == "/send-canopy-market-intel-outreach-20260617":
             self.send_json(
