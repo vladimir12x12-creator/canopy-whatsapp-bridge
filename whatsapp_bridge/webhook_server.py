@@ -618,10 +618,7 @@ def operator_test_mode_command(con, item):
     command = normalize_mode_command(item.get("text"))
     if command in {"тест", "test"}:
         set_operator_mode(con, item["wa_id"], "lead_test")
-        return (
-            "Тестовый режим включён. Следующие сообщения от тебя буду воспринимать как симуляцию "
-            "входящего лида/агента, а не как рабочую переписку. Чтобы выйти: «тест закончен», «стоп тест» или «рабочий режим»."
-        )
+        return ""
     if command in {
         "тест закончен",
         "тест окончен",
@@ -635,7 +632,7 @@ def operator_test_mode_command(con, item):
         "обычный режим",
     }:
         set_operator_mode(con, item["wa_id"], "work")
-        return "Тестовый режим выключен. Дальше WhatsApp снова работает как обычный канал диалога с Codex по рабочим задачам."
+        return ""
     return ""
 
 
