@@ -5628,6 +5628,28 @@ class Handler(BaseHTTPRequestHandler):
                 },
             )
             return
+        if path == "/codex-manual-text":
+            payload = self.read_authorized_json()
+            if payload is None:
+                return
+            if self.headers.get("X-Codex-Manual-Send", "") != "1":
+                self.send_json(403, {"error": "manual send header is required"})
+                return
+            to = str(payload.get("to", "")).strip()
+            text = str(payload.get("text", "")).strip()
+            if to != "66628512432":
+                self.send_json(403, {"error": "manual Codex text is restricted to Vladimir"})
+                return
+            if not text:
+                self.send_json(400, {"error": "text is required"})
+                return
+            try:
+                result = send_whatsapp_text(to, text)
+            except Exception as exc:
+                self.send_json(502, {"error": str(exc)})
+                return
+            self.send_json(200, {"ok": True, "meta": result})
+            return
         if path == "/send-vladimir-text-test":
             self.send_json(
                 410,
