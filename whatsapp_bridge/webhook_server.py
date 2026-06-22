@@ -4660,12 +4660,12 @@ def operator_feed(limit=20):
                 "received_at": row["received_at"],
                 "segment": row["segment"],
                 "priority": row["priority"],
-                "next_action": row["next_action"],
+                "next_action": None,
                 "is_operator": is_operator,
                 "operator_mode": operator_mode,
                 "operator_test_mode": bool(is_operator and operator_mode == "lead_test"),
-                "suggested_reply": draft_reply(contact, contact.get("text") or ""),
-                "suggested_materials": suggested_materials(row["segment"]),
+                "suggested_reply": None,
+                "suggested_materials": [],
             }
         )
     con.close()
