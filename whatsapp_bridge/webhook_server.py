@@ -1285,6 +1285,51 @@ def send_agent_carousel_v7(to, language="en"):
     )
 
 
+def send_agent_carousel_v8(to, language="en"):
+    base = f"{BASE_URL}/assets"
+    image_names = [
+        "carousel_v3_01_private_hillside_estate.jpg",
+        "carousel_v3_07_real_view.jpg",
+        "carousel_v3_02_usable_large_plots.jpg",
+        "carousel_v3_03_real_family_scale.jpg",
+        "carousel_v3_04_7m_living_room.jpg",
+        "carousel_v3_05_investment_bisp.jpg",
+        "carousel_v3_06_green_district.jpg",
+        "carousel_v3_08_heat_noise_insulation.jpg",
+        "carousel_v3_09_villa_l_layout.jpg",
+        "carousel_v3_10_villa_xl_layout.jpg",
+    ]
+    components = [
+        {
+            "type": "carousel",
+            "cards": [
+                {
+                    "card_index": index,
+                    "components": [
+                        {
+                            "type": "header",
+                            "parameters": [
+                                {
+                                    "type": "image",
+                                    "image": {"link": f"{base}/{name}"},
+                                }
+                            ],
+                        }
+                    ],
+                }
+                for index, name in enumerate(image_names)
+            ],
+        },
+    ]
+    template_language = "ru" if language == "ru" else "en_US"
+    return send_whatsapp_template(
+        to,
+        "canopy_agent_advantages_carousel_10_v8",
+        template_language,
+        components,
+    )
+
+
 def send_agent_carousel_v6(to):
     return send_agent_carousel_v7(to, "en")
 
@@ -2249,6 +2294,24 @@ def canopy_template_payload(template_key):
     ]
     carousel_l_layout_buttons_ru = [
         {"type": "URL", "text": "L layouts", "url": f"{BASE_URL}/assets/canopy_layouts_l.html"},
+    ]
+    def carousel_advantage_buttons(slug):
+        return [{"type": "URL", "text": "Learn more", "url": f"{BASE_URL}/assets/advantages.html#{slug}"}]
+
+    def carousel_advantage_buttons_ru(slug):
+        return [{"type": "URL", "text": "Узнать подробнее", "url": f"{BASE_URL}/assets/advantages.html#{slug}"}]
+
+    carousel_xl_layout_more_buttons = [
+        {"type": "URL", "text": "Learn more", "url": f"{BASE_URL}/assets/canopy_layouts_xl.html"},
+    ]
+    carousel_l_layout_more_buttons = [
+        {"type": "URL", "text": "Learn more", "url": f"{BASE_URL}/assets/canopy_layouts_l.html"},
+    ]
+    carousel_xl_layout_more_buttons_ru = [
+        {"type": "URL", "text": "Узнать подробнее", "url": f"{BASE_URL}/assets/canopy_layouts_xl.html"},
+    ]
+    carousel_l_layout_more_buttons_ru = [
+        {"type": "URL", "text": "Узнать подробнее", "url": f"{BASE_URL}/assets/canopy_layouts_l.html"},
     ]
 
     def carousel_image_card(handle_placeholder, text, include_buttons=True, buttons=None):
@@ -3567,6 +3630,52 @@ def canopy_template_payload(template_key):
                         carousel_image_card("__CAROUSEL10V3_INSULATION_HANDLE__", "Тепло- и шумоизоляция на 50% выше стандарта", buttons=carousel_saleskit_buttons_ru),
                         carousel_image_card("__CAROUSEL10V3_L_LAYOUT_HANDLE__", "Планировка L-size: 650 м²", buttons=carousel_l_layout_buttons_ru),
                         carousel_image_card("__CAROUSEL10V3_XL_LAYOUT_HANDLE__", "Планировка XL-size: 750 м²", buttons=carousel_xl_layout_buttons_ru),
+                    ],
+                },
+            ],
+        },
+        "agent_advantages_carousel_10_v8_en": {
+            "name": "canopy_agent_advantages_carousel_10_v8",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {"type": "BODY", "text": "Key Canopy Hills advantages:"},
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card("__CAROUSEL10V3_ESTATE_HANDLE__", "Only 9 view villas on a hillside", buttons=carousel_advantage_buttons("estate")),
+                        carousel_image_card("__CAROUSEL10V3_VIEW_HANDLE__", "Open views: valley, lakes, hills and sunset", buttons=carousel_advantage_buttons("views")),
+                        carousel_image_card("__CAROUSEL10V3_PLOTS_HANDLE__", "Land plots: 670-1,214 sqm", buttons=carousel_advantage_buttons("plots")),
+                        carousel_image_card("__CAROUSEL10V3_SCALE_HANDLE__", "L-size: 650 sqm / XL-size: 750 sqm", buttons=carousel_advantage_buttons("scale")),
+                        carousel_image_card("__CAROUSEL10V3_LIVING_HANDLE__", "7m living room ceiling", buttons=carousel_advantage_buttons("living")),
+                        carousel_image_card("__CAROUSEL10V3_INVEST_HANDLE__", "Sustained demand for long-term rentals", buttons=carousel_advantage_buttons("investment")),
+                        carousel_image_card("__CAROUSEL10V3_GREEN_HANDLE__", "Quiet Ko Kaeo location, away from tourist zones", buttons=carousel_advantage_buttons("location")),
+                        carousel_image_card("__CAROUSEL10V3_INSULATION_HANDLE__", "Heat and noise insulation 50% above standard", buttons=carousel_advantage_buttons("insulation")),
+                        carousel_image_card("__CAROUSEL10V3_L_LAYOUT_HANDLE__", "Villa L-size layout: 650 sqm", buttons=carousel_l_layout_more_buttons),
+                        carousel_image_card("__CAROUSEL10V3_XL_LAYOUT_HANDLE__", "Villa XL-size layout: 750 sqm", buttons=carousel_xl_layout_more_buttons),
+                    ],
+                },
+            ],
+        },
+        "agent_advantages_carousel_10_v8_ru": {
+            "name": "canopy_agent_advantages_carousel_10_v8",
+            "language": "ru",
+            "category": "MARKETING",
+            "components": [
+                {"type": "BODY", "text": "Ключевые преимущества Canopy Hills:"},
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card("__CAROUSEL10V3_ESTATE_HANDLE__", "Только 9 видовых вилл на холме", buttons=carousel_advantage_buttons_ru("estate")),
+                        carousel_image_card("__CAROUSEL10V3_VIEW_HANDLE__", "Открытые виды: долина, озера, холмы и закат", buttons=carousel_advantage_buttons_ru("views")),
+                        carousel_image_card("__CAROUSEL10V3_PLOTS_HANDLE__", "Участки: 670-1,214 м²", buttons=carousel_advantage_buttons_ru("plots")),
+                        carousel_image_card("__CAROUSEL10V3_SCALE_HANDLE__", "L-size: 650 м² / XL-size: 750 м²", buttons=carousel_advantage_buttons_ru("scale")),
+                        carousel_image_card("__CAROUSEL10V3_LIVING_HANDLE__", "Гостиная с потолком 7 м", buttons=carousel_advantage_buttons_ru("living")),
+                        carousel_image_card("__CAROUSEL10V3_INVEST_HANDLE__", "Устойчивый спрос на долгосрочную аренду", buttons=carousel_advantage_buttons_ru("investment")),
+                        carousel_image_card("__CAROUSEL10V3_GREEN_HANDLE__", "Тихая локация Ko Kaeo, не туристическая зона", buttons=carousel_advantage_buttons_ru("location")),
+                        carousel_image_card("__CAROUSEL10V3_INSULATION_HANDLE__", "Тепло- и шумоизоляция на 50% выше стандарта", buttons=carousel_advantage_buttons_ru("insulation")),
+                        carousel_image_card("__CAROUSEL10V3_L_LAYOUT_HANDLE__", "Планировка L-size: 650 м²", buttons=carousel_l_layout_more_buttons_ru),
+                        carousel_image_card("__CAROUSEL10V3_XL_LAYOUT_HANDLE__", "Планировка XL-size: 750 м²", buttons=carousel_xl_layout_more_buttons_ru),
                     ],
                 },
             ],
@@ -5569,6 +5678,38 @@ class Handler(BaseHTTPRequestHandler):
                 return
             try:
                 result = send_agent_carousel_v7("66628512432", "ru")
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc)})
+                return
+            self.send_json(200, {"ok": True, "meta": result})
+            return
+        if path == "/create-carousel-v15-en-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = create_canopy_template("agent_advantages_carousel_10_v8_en")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/create-carousel-v15-ru-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = create_canopy_template("agent_advantages_carousel_10_v8_ru")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/carousel-v15-template-status-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = whatsapp_templates("canopy_agent_advantages_carousel_10_v8")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/send-carousel-v15-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            try:
+                result = send_agent_carousel_v8("66628512432", "ru")
             except Exception as exc:
                 self.send_json(502, {"ok": False, "error": str(exc)})
                 return
