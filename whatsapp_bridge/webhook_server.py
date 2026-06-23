@@ -91,7 +91,9 @@ TEST_AUTOREPLY_PREFIXES = (
     "buyer:",
     "investor:",
 )
-ENABLE_AI_AGENT = os.environ.get("ENABLE_AI_AGENT", "1").strip().lower() in {"1", "true", "yes", "on"}
+# The bridge is transport only. Codex in the active project is the brain.
+# Keep legacy embedded AI reply code unreachable even if old Render env vars exist.
+ENABLE_AI_AGENT = False
 ENABLE_BRIDGE_AUTONOMOUS_REPLIES = (
     os.environ.get("ENABLE_BRIDGE_AUTONOMOUS_REPLIES", "0").strip().lower()
     in {"1", "true", "yes", "on"}
@@ -100,7 +102,7 @@ ENABLE_AI_AUDIO_TRANSCRIPTION = (
     os.environ.get("ENABLE_AI_AUDIO_TRANSCRIPTION", "1").strip().lower()
     in {"1", "true", "yes", "on"}
 )
-ENABLE_AI_AGENT_TOOLS = os.environ.get("ENABLE_AI_AGENT_TOOLS", "0").strip().lower() in {"1", "true", "yes", "on"}
+ENABLE_AI_AGENT_TOOLS = False
 AGENT_WELCOME_PACK_APPROVED = (
     os.environ.get("AGENT_WELCOME_PACK_APPROVED", "1").strip().lower()
     in {"1", "true", "yes", "on"}
