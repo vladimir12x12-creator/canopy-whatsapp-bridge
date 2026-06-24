@@ -5112,9 +5112,13 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
             return
         if parsed.path.startswith("/assets/"):
-            name = Path(parsed.path).name
-            asset_path = ASSET_DIR / name
-            if not asset_path.exists() or not asset_path.is_file():
+            rel_path = unquote(parsed.path[len("/assets/"):])
+            if rel_path.startswith("/") or ".." in Path(rel_path).parts:
+                self.send_json(403, {"error": "forbidden"})
+                return
+            asset_path = (ASSET_DIR / rel_path).resolve()
+            root = ASSET_DIR.resolve()
+            if not str(asset_path).startswith(str(root)) or not asset_path.exists() or not asset_path.is_file():
                 self.send_json(404, {"error": "asset not found"})
                 return
             content_type = mimetypes.guess_type(str(asset_path))[0] or "application/octet-stream"
