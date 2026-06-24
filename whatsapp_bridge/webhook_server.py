@@ -4119,6 +4119,8 @@ def create_canopy_template(template_key):
         "agent_advantages_carousel_10_v6_ru",
         "agent_advantages_carousel_10_v7_en",
         "agent_advantages_carousel_10_v7_ru",
+        "agent_advantages_carousel_10_v8_en",
+        "agent_advantages_carousel_10_v8_ru",
     ):
         carousel_samples = [
             ("__CAROUSEL10V3_ESTATE_HANDLE__", ASSET_DIR / "carousel_v3_01_private_hillside_estate.jpg"),
