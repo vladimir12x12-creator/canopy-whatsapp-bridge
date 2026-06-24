@@ -2370,11 +2370,16 @@ def canopy_template_payload(template_key):
                 {
                     "type": "BODY",
                     "text": (
-                        "Codex status: {{1}}\n"
-                        "Type: {{2}}\n"
-                        "Message: {{3}}\n"
-                        "Next: {{4}}\n"
-                        "Link: {{5}}"
+                        "Codex operator update for Vladimir from the Canopy workspace.\n\n"
+                        "Project: {{1}}\n"
+                        "Update type: {{2}}\n\n"
+                        "Message from Codex:\n"
+                        "{{3}}\n\n"
+                        "Suggested next step:\n"
+                        "{{4}}\n\n"
+                        "Reference link or file, if relevant:\n"
+                        "{{5}}\n\n"
+                        "This is a manual status notification from Codex, not an automated sales bot reply."
                     ),
                     "example": {
                         "body_text": [
