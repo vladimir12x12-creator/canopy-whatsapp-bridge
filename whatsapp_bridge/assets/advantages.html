@@ -7,8 +7,8 @@
   <style>
     :root {
       color-scheme: light;
-      --ink: #18231d;
-      --muted: #667067;
+      --ink: #17231d;
+      --muted: #657067;
       --line: #d9ded7;
       --bg: #f7f8f4;
       --panel: #ffffff;
@@ -24,7 +24,7 @@
       line-height: 1.45;
     }
     header {
-      padding: 28px 18px 18px;
+      padding: 26px 18px 18px;
       background: var(--panel);
       border-bottom: 1px solid var(--line);
     }
@@ -37,18 +37,17 @@
       color: var(--accent-dark);
       font-size: 13px;
       font-weight: 700;
-      letter-spacing: .04em;
       text-transform: uppercase;
     }
     h1 {
       margin: 0;
-      font-size: clamp(28px, 4vw, 46px);
-      line-height: 1.05;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.08;
       letter-spacing: 0;
     }
     .lead {
-      max-width: 760px;
-      margin: 14px 0 0;
+      max-width: 780px;
+      margin: 12px 0 0;
       color: var(--muted);
       font-size: 17px;
     }
@@ -84,7 +83,7 @@
     }
     .grid {
       display: grid;
-      grid-template-columns: minmax(0, 1.05fr) minmax(280px, .95fr);
+      grid-template-columns: minmax(0, 1.02fr) minmax(300px, .98fr);
       gap: 24px;
       align-items: start;
     }
@@ -94,6 +93,7 @@
       border-left: 4px solid var(--accent);
       background: #fff;
       font-weight: 700;
+      margin-bottom: 14px;
     }
     .agent-line {
       margin-top: 14px;
@@ -110,7 +110,7 @@
     .visual img {
       width: 100%;
       display: block;
-      aspect-ratio: 4 / 3;
+      aspect-ratio: 16 / 10;
       object-fit: cover;
       border-radius: 6px;
       border: 1px solid var(--line);
@@ -118,10 +118,10 @@
     }
     .thumbs {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 10px;
     }
-    .thumbs img { aspect-ratio: 1 / 1; }
+    .thumbs img { aspect-ratio: 16 / 10; }
     .cta {
       display: flex;
       gap: 10px;
@@ -135,7 +135,7 @@
     }
     @media (max-width: 760px) {
       .grid { grid-template-columns: 1fr; }
-      .thumbs { grid-template-columns: repeat(2, 1fr); }
+      .thumbs { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -144,14 +144,14 @@
     <div class="wrap">
       <p class="eyebrow">Canopy Hills Villas Phuket</p>
       <h1>Ключевые преимущества Canopy Hills</h1>
-      <p class="lead">Короткий sales layer для агента: почему это преимущество важно клиенту и как его объяснять без длинной презентации.</p>
+      <p class="lead">Короткий sales layer для агента: внутри каждого преимущества - три согласованных визуала и понятный аргумент для клиента.</p>
       <nav aria-label="Advantages">
         <a href="#estate">9 вилл</a>
         <a href="#views">Виды</a>
         <a href="#plots">Участки</a>
         <a href="#scale">L / XL</a>
         <a href="#living">7 м гостиная</a>
-        <a href="#investment">Аренда</a>
+        <a href="#investment">Инвестиции</a>
         <a href="#location">Ko Kaeo</a>
         <a href="#insulation">Комфорт</a>
         <a href="canopy_layouts_l.html">L layout</a>
@@ -164,19 +164,18 @@
     <section id="estate">
       <div class="wrap grid">
         <div class="copy">
-          <h2>Только 9 видовых вилл на холме</h2>
-          <div class="sales-point">Это не массовый поселок, а ограниченный клубный формат, где редкость продукта становится частью ценности.</div>
-          <p>Canopy Hills - клубный поселок из 9 вилл на холме в Ko Kaeo. Для клиента это означает приватность, меньше соседей, спокойную среду и ощущение редкой резиденции, а не массового девелоперского продукта.</p>
-          <p>Ограниченное предложение помогает агенту объяснять ценность: клиент покупает не просто дом, а редкий формат постоянного проживания на Пхукете с видами, тишиной и масштабом.</p>
-          <div class="agent-line">Если клиент не хочет обычный большой поселок и ищет что-то более редкое и приватное, Canopy стоит показать отдельно.</div>
+          <h2>Клубный поселок из 9 видовых вилл на холме</h2>
+          <div class="sales-point">Это не массовый поселок, а ограниченный клубный формат: 9 видовых вилл, меньше соседей, больше приватности и понятная среда для постоянного проживания.</div>
+          <p>Canopy Hills - жилой проект из 9 вилл на холме в Ko Kaeo. Клубность поддерживается не только количеством вилл: в поселке предусмотрены clubhouse, офис управляющей компании с concierge-сервисом, gym для жителей и зеленая общая зона около 200 м² с детской площадкой и местами отдыха.</p>
+          <p>Для семей это создает не просто набор домов, а небольшое комьюнити рядом с международными школами. Весь поселок планируется завершить к концу 2027 года, поэтому покупатель не живет годами внутри бесконечной стройки.</p>
+          <div class="agent-line">Если клиент ищет не массовый village, а редкую видовую резиденцию для жизни на Пхукете, Canopy Hills нужно показывать отдельно.</div>
           <div class="cta"><a class="primary" href="https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5">Open Sales Kit</a><a href="#views">Следующее преимущество</a></div>
         </div>
         <div class="visual">
-          <img src="carousel_v3_01_private_hillside_estate.jpg" alt="Canopy Hills hillside estate">
+          <img src="carousel_v9_detail/card_01_main.jpg" alt="Canopy Hills top view">
           <div class="thumbs">
-            <img src="carousel_v3_07_real_view.jpg" alt="Canopy Hills view">
-            <img src="carousel_v3_02_usable_large_plots.jpg" alt="Canopy Hills plots">
-            <img src="carousel_v3_03_real_family_scale.jpg" alt="Canopy Hills villa scale">
+            <img src="carousel_v9_detail/card_01_support_1.jpg" alt="Canopy Hills hillside perspective">
+            <img src="carousel_v9_detail/card_01_support_2.jpg" alt="Canopy Hills village scale">
           </div>
         </div>
       </div>
@@ -186,18 +185,17 @@
       <div class="wrap grid">
         <div class="copy">
           <h2>Открытые виды: долина, озера, холмы и закат</h2>
-          <div class="sales-point">Вид - главное универсальное отличие Canopy Hills: он отделяет проект от вилл с видом в забор.</div>
-          <p>В Canopy Hills вид - не бонус, а основа продукта. Из вилл раскрываются долина, озера, холмы и закатная сторона. Это влияет не только на эмоцию от дома, но и на ликвидность: видовые объекты проще объяснять, легче запомнить и сильнее отличать от однотипных вилл.</p>
-          <p>Для клиента это ежедневное ощущение пространства и свободы. Для агента - простой аргумент, почему проект нельзя сравнивать только по цене за квадратный метр.</p>
-          <div class="agent-line">Если клиенту важен не просто метраж, а ощущение дома и открытого пространства, главный аргумент здесь - вид.</div>
+          <div class="sales-point">Вид - главное универсальное отличие Canopy Hills: это ежедневное ощущение пространства и фактор будущей ликвидности.</div>
+          <p>Из вилл раскрываются долина, озера, холмы и закатная сторона. Это не декоративная деталь, а часть ценности дома: вид нельзя добавить после покупки, и именно он помогает объекту выделяться среди однотипных вилл.</p>
+          <p>Для агента это простой sales point: Canopy Hills нельзя сравнивать только по цене за квадратный метр. Покупатель получает видовую резиденцию, которая сильнее запоминается и лучше объясняется клиенту.</p>
+          <div class="agent-line">Если клиенту важно ощущение дома, вид и приватность, здесь главный аргумент - открытый вид.</div>
           <div class="cta"><a class="primary" href="https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5">Open Sales Kit</a><a href="#investment">Инвестиционный аргумент</a></div>
         </div>
         <div class="visual">
-          <img src="carousel_v3_07_real_view.jpg" alt="Open view from Canopy Hills">
+          <img src="carousel_v9_detail/card_02_main.jpg" alt="Canopy Hills sunset view">
           <div class="thumbs">
-            <img src="carousel_v3_01_private_hillside_estate.jpg" alt="Hillside estate">
-            <img src="carousel_v3_04_7m_living_room.jpg" alt="Living room with views">
-            <img src="carousel_v3_03_real_family_scale.jpg" alt="Villa exterior">
+            <img src="carousel_v9_detail/card_02_support_1.jpg" alt="Canopy Hills real daytime view">
+            <img src="carousel_v9_detail/card_02_support_2.jpg" alt="Canopy Hills view terrace">
           </div>
         </div>
       </div>
@@ -206,19 +204,18 @@
     <section id="plots">
       <div class="wrap grid">
         <div class="copy">
-          <h2>Участки: 670-1,214 м²</h2>
-          <div class="sales-point">Большой usable участок дает клиенту не землю на бумаге, а сценарии жизни: сад, террасы, бассейн, парковку и воздух между виллами.</div>
-          <p>Участки Canopy Hills - от 670 до 1,214 м². Для семейной резиденции это критично: дом не зажат на маленьком участке, а работает вместе с садом, бассейном, террасами и внешними зонами.</p>
-          <p>Здесь участок усиливает качество жизни: больше приватности, больше воздуха, больше реальных outdoor-сценариев.</p>
-          <div class="agent-line">Это не просто большая вилла. Здесь у клиента есть земля, которой реально можно пользоваться.</div>
+          <h2>Функциональные участки: 670-1,214 м²</h2>
+          <div class="sales-point">Это не просто площадь земли в таблице, а ровные usable участки для сада, бассейна, террас, парковки и приватной семейной жизни.</div>
+          <p>Для проекта на холме особенно важно, что участок работает вместе с домом. Ровная бетонная платформа помогает держать грунт сухим и устойчивым, снижая риски подтопления, оползней и движения грунта.</p>
+          <p>Для клиента это два преимущества одновременно: больше реальных сценариев жизни на участке и более понятная инженерная надежность проекта на холме.</p>
+          <div class="agent-line">Здесь земля не просто есть - ей реально можно пользоваться каждый день.</div>
           <div class="cta"><a class="primary" href="https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5">Open Sales Kit</a><a href="#scale">Смотреть форматы вилл</a></div>
         </div>
         <div class="visual">
-          <img src="carousel_v3_02_usable_large_plots.jpg" alt="Large usable plots">
+          <img src="carousel_v9_detail/card_03_main.jpg" alt="Canopy Hills usable plot">
           <div class="thumbs">
-            <img src="carousel_v3_01_private_hillside_estate.jpg" alt="Masterplan feel">
-            <img src="carousel_v3_03_real_family_scale.jpg" alt="Villa scale">
-            <img src="carousel_v3_07_real_view.jpg" alt="View and land">
+            <img src="carousel_v9_detail/card_03_support_1.jpg" alt="Canopy Hills exterior and plot at night">
+            <img src="carousel_v9_detail/card_03_support_2.jpg" alt="Canopy Hills usable land context">
           </div>
         </div>
       </div>
@@ -228,18 +225,17 @@
       <div class="wrap grid">
         <div class="copy">
           <h2>L-size 650 м² / XL-size 750 м²</h2>
-          <div class="sales-point">Два понятных формата помогают быстро подобрать виллу под профиль клиента.</div>
-          <p>В Canopy Hills есть два основных формата: L-size 650 м² и XL-size 750 м². Это упрощает работу агента: можно быстро объяснить клиенту разницу не через десятки PDF, а через понятный выбор масштаба.</p>
-          <p>L-size - просторная семейная резиденция. XL-size - более крупный формат для клиента, которому важны статус, дополнительные комнаты и больший объем дома.</p>
-          <div class="agent-line">L-size - сильный семейный формат, XL-size - резиденция большего масштаба.</div>
+          <div class="sales-point">Два понятных формата для постоянной жизни: L-size - 4 спальни + study, XL-size - 5 спален + study.</div>
+          <p>L-size 650 м² подходит семье, которой нужен просторный дом с 4 спальнями и отдельным кабинетом или multifunction room. XL-size 750 м² - более крупный формат с 5 спальнями и дополнительным рабочим/многофункциональным пространством.</p>
+          <p>Гостиная около 100 м² с двойным светом 7 м и спальни от 20 м² дают не гостиничный формат, а нормальное личное пространство для каждого члена семьи.</p>
+          <div class="agent-line">Это не holiday villa для короткого отпуска, а дом, где семье удобно жить постоянно.</div>
           <div class="cta"><a class="primary" href="canopy_layouts_l.html">L layout</a><a class="primary" href="canopy_layouts_xl.html">XL layout</a></div>
         </div>
         <div class="visual">
-          <img src="carousel_v3_03_real_family_scale.jpg" alt="Villa L and XL scale">
+          <img src="carousel_v9_detail/card_04_main.jpg" alt="Canopy Hills bedroom">
           <div class="thumbs">
-            <img src="carousel_v3_09_villa_l_layout.jpg" alt="L layout">
-            <img src="carousel_v3_10_villa_xl_layout.jpg" alt="XL layout">
-            <img src="carousel_v3_04_7m_living_room.jpg" alt="Interior scale">
+            <img src="carousel_v9_detail/card_04_support_1.jpg" alt="Canopy Hills private bedroom">
+            <img src="carousel_v9_detail/card_04_support_2.jpg" alt="Canopy Hills hall gallery">
           </div>
         </div>
       </div>
@@ -249,18 +245,17 @@
       <div class="wrap grid">
         <div class="copy">
           <h2>Гостиная с потолком 7 м</h2>
-          <div class="sales-point">7-метровая гостиная продает не цифру, а ощущение: воздух, свет, высота и ментальное пространство внутри дома.</div>
-          <p>Гостиная с потолком 7 метров создает главный эмоциональный эффект дома. В таком пространстве больше света, воздуха и ощущения свободы.</p>
-          <p>Для семьи это центр жизни: место, где собираются вместе, принимают гостей, смотрят на вид и ощущают масштаб резиденции каждый день.</p>
-          <div class="agent-line">Для клиентов, которые много времени проводят дома, такой объем очень сильно меняет восприятие виллы.</div>
+          <div class="sales-point">7-метровая гостиная продает не цифру, а ощущение: воздух, свет, высота, видовая перспектива и эмоциональный масштаб дома.</div>
+          <p>Для семьи, которая живет на Пхукете постоянно, такая гостиная становится главным пространством: здесь собираются вместе, принимают гостей, работают, отдыхают и каждый день чувствуют уровень резиденции.</p>
+          <p>В премиальном сегменте именно такие пространства отличают настоящий дом от просто большой виллы. На просмотре это работает особенно сильно.</p>
+          <div class="agent-line">Показывайте это как главный emotional proof дома: свет, воздух, вид и пространство, в котором семья реально живет.</div>
           <div class="cta"><a class="primary" href="https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5">Open Sales Kit</a><a href="#views">Вернуться к видам</a></div>
         </div>
         <div class="visual">
-          <img src="carousel_v3_04_7m_living_room.jpg" alt="7m living room ceiling">
+          <img src="carousel_v9_detail/card_05_main.jpg" alt="Canopy Hills 7m living room">
           <div class="thumbs">
-            <img src="carousel_v3_03_real_family_scale.jpg" alt="Villa scale">
-            <img src="carousel_living.jpg" alt="Living room">
-            <img src="carousel_view.jpg" alt="View from home">
+            <img src="carousel_v9_detail/card_05_support_1.jpg" alt="Canopy Hills double height living">
+            <img src="carousel_v9_detail/card_05_support_2.jpg" alt="Canopy Hills family scale">
           </div>
         </div>
       </div>
@@ -269,19 +264,18 @@
     <section id="investment">
       <div class="wrap grid">
         <div class="copy">
-          <h2>Устойчивый спрос на долгосрочную аренду</h2>
-          <div class="sales-point">Инвестору продаем не обещание ROI, а более спокойную инвестиционную логику: долгосрочный спрос от семей, меньше сезонности и меньше рисков посуточной аренды.</div>
-          <p>Canopy Hills не строится вокруг посуточной туристической аренды. Инвестиционная логика проекта основана на долгосрочном residential спросе: семьи с детьми в международных школах, expat families, клиенты, которым нужен качественный дом для жизни на Пхукете.</p>
-          <p>Такой спрос меньше зависит от сезона и туристического потока. Для инвестора это более понятная модель: качественная резиденция, редкий видовой продукт и практичная локация рядом со школами и ежедневной инфраструктурой.</p>
-          <div class="agent-line">Если клиент-инвестор не хочет зависеть только от посуточной аренды и сезона, здесь логика другая.</div>
-          <div class="cta"><a class="primary" href="https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5">Open Sales Kit</a><a href="#location">Локация для жизни</a></div>
+          <h2>Инвестиционная привлекательность</h2>
+          <div class="sales-point">Инвестиционная привлекательность складывается из устойчивого спроса на долгосрочную аренду и редкости самого продукта.</div>
+          <p>Инвестиционная логика Canopy Hills строится на более устойчивом жилом сценарии. В районе международных школ есть спрос со стороны семей, которым нужен качественный дом для жизни на год и дольше. Такая аренда меньше зависит от сезона и не требует отдавать 30-40% управляющей компании за посуточное управление.</p>
+          <p>Вторая часть инвестиционной ценности - капитализация редкого продукта. На рынке с высокой конкуренцией среди однотипных off-plan вилл сильнее держатся объекты, которые можно ясно отличить: вид, ограниченное предложение, Ko Kaeo для постоянного проживания, масштаб дома и реальный прогресс строительства.</p>
+          <div class="agent-line">Инвестору здесь продаем не гарантированный ROI, а более спокойную модель: понятный долгосрочный арендатор, меньше сезонности, меньше управленческих расходов и редкий видовой жилой продукт.</div>
+          <div class="cta"><a class="primary" href="https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5">Open Sales Kit</a><a href="#location">Локация Ko Kaeo</a></div>
         </div>
         <div class="visual">
-          <img src="carousel_v3_05_investment_bisp.jpg" alt="BISP and long-term rental demand">
+          <img src="carousel_v9_detail/card_06_main.jpg" alt="BISP and school-family demand">
           <div class="thumbs">
-            <img src="carousel_v3_05_investment_c9_progress.jpg" alt="C9 construction progress">
-            <img src="carousel_v3_07_real_view.jpg" alt="View product">
-            <img src="carousel_v3_06_green_district.jpg" alt="Green residential district">
+            <img src="carousel_v9_detail/card_06_support_1.jpg" alt="Canopy Hills premium night exterior">
+            <img src="carousel_v9_detail/card_06_support_2.jpg" alt="Canopy Hills entry and ownership quality">
           </div>
         </div>
       </div>
@@ -290,19 +284,18 @@
     <section id="location">
       <div class="wrap grid">
         <div class="copy">
-          <h2>Тихая локация Ko Kaeo, не туристическая зона</h2>
-          <div class="sales-point">Ko Kaeo нужно продавать как локацию для жизни: школы, марины, гольф, Central, госпитали, спокойствие и ежедневная логистика.</div>
-          <p>Canopy Hills находится в Ko Kaeo - спокойной зеленой зоне для постоянного проживания. Для семей и expat-клиентов это часто важнее, чем жизнь в туристическом трафике.</p>
-          <p>Это локация для клиента, который живет на Пхукете, возит детей в школу, работает, занимается спортом, пользуется маринами и хочет возвращаться домой в тихое место.</p>
-          <div class="agent-line">Если клиент выбирает Пхукет для жизни, а не только для отпуска, Ko Kaeo очень логичен.</div>
-          <div class="cta"><a class="primary" href="https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5">Open Sales Kit</a><a href="#estate">К началу</a></div>
+          <h2>Ko Kaeo: тихая локация для жизни</h2>
+          <div class="sales-point">Ko Kaeo нужно продавать как локацию для постоянной жизни, а не как пляжную туристическую витрину.</div>
+          <p>Для семей и expat buyers часто важнее ежедневная логистика: школа, дорога, Central, госпитали, марины, гольф и возможность возвращаться домой в тихую зеленую среду.</p>
+          <p>Активность крупных девелоперов в жилом и luxury-сегменте подтверждает сдвиг спроса в сторону районов для жизни, а не только туристической аренды. В Ko Kaeo уже представлены семейные жилые проекты рядом с BISP, включая Sansiri Kohkaew Retreat, Botanica Majestia и The Title Casa de Monte.</p>
+          <div class="agent-line">Если клиент выбирает Пхукет как место жизни, Ko Kaeo логичен: школы, марины, гольф, ежедневная инфраструктура и тишина.</div>
+          <div class="cta"><a class="primary" href="https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5">Open Sales Kit</a><a href="#insulation">Комфорт дома</a></div>
         </div>
         <div class="visual">
-          <img src="carousel_v3_06_green_district.jpg" alt="Quiet Ko Kaeo location">
+          <img src="carousel_v9_detail/card_07_main.jpg" alt="Ko Kaeo green location">
           <div class="thumbs">
-            <img src="carousel_v3_05_investment_bisp.jpg" alt="School demand">
-            <img src="carousel_v3_07_real_view.jpg" alt="Green views">
-            <img src="carousel_v3_01_private_hillside_estate.jpg" alt="Residential estate">
+            <img src="carousel_v9_detail/card_07_support_1.jpg" alt="Ko Kaeo green surroundings">
+            <img src="carousel_v9_detail/card_07_support_2.jpg" alt="Ko Kaeo district context">
           </div>
         </div>
       </div>
@@ -312,18 +305,17 @@
       <div class="wrap grid">
         <div class="copy">
           <h2>Тепло- и шумоизоляция на 50% выше стандарта</h2>
-          <div class="sales-point">Инженерия продается через ежедневный комфорт: тише, прохладнее, спокойнее, меньше усталости от дома в жарком климате.</div>
-          <p>Canopy Hills проектировался как резиденция для постоянного проживания. Поэтому важны не только виды и рендеры, но и то, как дом ощущается каждый день.</p>
-          <p>Тепло- и шумоизоляция выше стандарта помогает дому быть спокойнее и комфортнее в климате Пхукета. Для семьи это не техническая деталь, а качество жизни.</p>
-          <div class="agent-line">Клиент покупает дом, в котором будет жить каждый день. Здесь инженерия работает на комфорт.</div>
-          <div class="cta"><a class="primary" href="https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5">Open Sales Kit</a><a href="#living">Гостиная 7 м</a></div>
+          <div class="sales-point">Это не абстрактное качество строительства, а понятная бытовая ценность: тише, прохладнее, спокойнее и комфортнее каждый день.</div>
+          <p>Canopy Hills проектируется как дом для постоянной жизни, поэтому инженерия здесь важна не меньше, чем рендеры. Улучшенная тепло- и шумоизоляция дает более стабильную температуру, меньше внешнего шума и ощущение приватности внутри дома.</p>
+          <p>Для семьи это ежедневный комфорт: дети учатся и спят спокойнее, взрослые работают дома без лишнего шума, а владелец получает более предсказуемое качество эксплуатации.</p>
+          <div class="agent-line">Продаем это как ежедневный комфорт, а не как сухую инженерную характеристику.</div>
+          <div class="cta"><a class="primary" href="https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5">Open Sales Kit</a><a href="#estate">К началу</a></div>
         </div>
         <div class="visual">
-          <img src="carousel_v3_08_heat_noise_insulation.jpg" alt="Heat and noise insulation">
+          <img src="carousel_v9_detail/card_08_main.jpg" alt="Canopy Hills insulation and comfort">
           <div class="thumbs">
-            <img src="carousel8_05_private_bedroom.jpg" alt="Quiet bedroom">
-            <img src="carousel8_06_daily_comfort.jpg" alt="Daily comfort">
-            <img src="carousel_v3_04_7m_living_room.jpg" alt="Comfortable living space">
+            <img src="carousel_v9_detail/card_08_support_1.jpg" alt="Canopy Hills bathroom finish detail">
+            <img src="carousel_v9_detail/card_08_support_2.jpg" alt="Canopy Hills material detail">
           </div>
         </div>
       </div>
