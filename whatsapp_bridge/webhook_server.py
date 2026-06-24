@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import base64
 import json
 import mimetypes
 import os
@@ -2109,6 +2110,38 @@ def transcribe_latest_audio_for(wa_id):
     if not row:
         raise RuntimeError("No inbound audio messages found for this wa_id")
     return transcribe_audio_message(row["id"])
+
+
+def fetch_latest_audio_for_codex(wa_id):
+    con = db()
+    row = con.execute(
+        """
+        SELECT * FROM messages
+        WHERE wa_id = ? AND direction = 'inbound' AND message_type = 'audio'
+        ORDER BY received_at DESC
+        LIMIT 1
+        """,
+        (wa_id,),
+    ).fetchone()
+    con.close()
+    if not row:
+        raise RuntimeError("No inbound audio messages found for this wa_id")
+    raw = json.loads(row["raw_json"])
+    if raw.get("type") != "audio":
+        raise RuntimeError("Latest audio row is not an audio message")
+    audio = raw.get("audio", {})
+    audio_bytes, content_type = download_whatsapp_media(
+        audio.get("id", ""),
+        audio.get("url", ""),
+    )
+    return {
+        "message_id": row["id"],
+        "wa_id": row["wa_id"],
+        "received_at": row["received_at"],
+        "content_type": content_type,
+        "bytes": len(audio_bytes),
+        "audio_base64": base64.b64encode(audio_bytes).decode("ascii"),
+    }
 
 
 def process_audio_message_for_ai(message_id, original_item=None):
@@ -5959,6 +5992,24 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(502, {"error": str(exc)})
                 return
             self.send_json(200, {"ok": True, "meta": result})
+            return
+        if path == "/codex-fetch-latest-audio":
+            payload = self.read_authorized_json()
+            if payload is None:
+                return
+            if self.headers.get("X-Codex-Manual-Send", "") != "1":
+                self.send_json(403, {"error": "manual Codex header is required"})
+                return
+            wa_id = str(payload.get("wa_id", "66628512432")).strip()
+            if wa_id != "66628512432":
+                self.send_json(403, {"error": "audio fetch is restricted to Vladimir"})
+                return
+            try:
+                result = fetch_latest_audio_for_codex(wa_id)
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc)})
+                return
+            self.send_json(200, {"ok": True, **result})
             return
         if path == "/send-vladimir-text-test":
             self.send_json(
