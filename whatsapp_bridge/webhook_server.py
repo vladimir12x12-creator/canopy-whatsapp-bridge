@@ -2362,6 +2362,34 @@ def canopy_template_payload(template_key):
         return {"components": components}
 
     templates = {
+        "codex_status_update_ru": {
+            "name": "codex_status_update",
+            "language": "ru",
+            "category": "UTILITY",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": (
+                        "Codex status: {{1}}\n"
+                        "Type: {{2}}\n"
+                        "Message: {{3}}\n"
+                        "Next: {{4}}\n"
+                        "Link: {{5}}"
+                    ),
+                    "example": {
+                        "body_text": [
+                            [
+                                "Canopy WhatsApp",
+                                "status",
+                                "Связь проверена, ручной канал работает.",
+                                "Ничего делать не нужно.",
+                                "-",
+                            ]
+                        ]
+                    },
+                }
+            ],
+        },
         "agent_video_intro_cta_v1": {
             "name": "canopy_agent_video_intro_cta_v1",
             "language": "en_US",
