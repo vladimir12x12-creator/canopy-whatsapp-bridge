@@ -137,6 +137,16 @@
       .grid { grid-template-columns: 1fr; }
       .thumbs { grid-template-columns: 1fr; }
     }
+    body.focus-mode header .lead,
+    body.focus-mode header nav,
+    body.focus-mode main > section { display: none; }
+    body.focus-mode main > section:target { display: block; }
+    body.focus-mode header {
+      padding-bottom: 14px;
+    }
+    body.focus-mode header h1 {
+      font-size: 24px;
+    }
   </style>
 </head>
 <body>
@@ -321,5 +331,17 @@
       </div>
     </section>
   </main>
+  <script>
+    function applyFocusMode() {
+      var hash = window.location.hash;
+      var target = hash ? document.querySelector(hash) : null;
+      document.body.classList.toggle('focus-mode', Boolean(target));
+      if (target) {
+        target.scrollIntoView({ block: 'start' });
+      }
+    }
+    window.addEventListener('hashchange', applyFocusMode);
+    applyFocusMode();
+  </script>
 </body>
 </html>
