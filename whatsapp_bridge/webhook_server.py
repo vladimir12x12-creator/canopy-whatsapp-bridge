@@ -5287,7 +5287,10 @@ class Handler(BaseHTTPRequestHandler):
             body = asset_path.read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", content_type)
-            self.send_header("Cache-Control", "public, max-age=86400")
+            if content_type.startswith("text/html"):
+                self.send_header("Cache-Control", "no-store, max-age=0")
+            else:
+                self.send_header("Cache-Control", "public, max-age=86400")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
