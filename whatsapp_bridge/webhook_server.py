@@ -1458,6 +1458,9 @@ def recent_agent_pack_sent(to):
             text LIKE '%quick agent intro%'
             OR text LIKE '%коротко для агента%'
             OR text LIKE 'document:%Canopy_Hills_L_size_layout.pdf%'
+            OR text LIKE 'template:canopy_agent_advantages_carousel_10_v10:%'
+            OR text LIKE 'template:canopy_agent_advantages_carousel_10_v9:%'
+            OR text LIKE 'template:canopy_agent_advantages_carousel_10_v8:%'
             OR text LIKE 'template:canopy_agent_advantages_carousel_10_v7:%'
             OR text LIKE 'template:canopy_agent_advantages_carousel_10_v6:%'
             OR text LIKE 'template:canopy_agent_advantages_carousel_10_v5:%'
@@ -1489,7 +1492,7 @@ def send_agent_welcome_pack(to, language="en"):
     results = []
     sends = [
         ("agent-intro-video", lambda: send_agent_intro_video(to, language)),
-        ("agent-carousel-v7", lambda: send_agent_carousel_v7(to, language)),
+        ("agent-carousel-v10", lambda: send_agent_carousel_v10(to, language)),
     ]
     for label, send in sends:
         try:
@@ -6134,6 +6137,28 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(502, {"ok": False, "error": str(exc)})
                 return
             self.send_json(200, {"ok": True, "meta": result})
+            return
+        if path == "/codex-manual-agent-welcome-pack":
+            payload = self.read_authorized_json()
+            if payload is None:
+                return
+            if self.headers.get("X-Codex-Manual-Send", "") != "1":
+                self.send_json(403, {"error": "manual send header is required"})
+                return
+            to = str(payload.get("to", "")).strip()
+            language = str(payload.get("language", "ru")).strip().lower()
+            if to != "66628512432":
+                self.send_json(403, {"error": "manual Codex agent pack is restricted to Vladimir"})
+                return
+            if language not in {"ru", "en"}:
+                self.send_json(400, {"error": "language must be ru or en"})
+                return
+            try:
+                result = send_agent_welcome_pack(to, language)
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc)})
+                return
+            self.send_json(200, {"ok": all(item.get("ok") for item in result), "results": result})
             return
         if path == "/codex-fetch-latest-audio":
             payload = self.read_authorized_json()
