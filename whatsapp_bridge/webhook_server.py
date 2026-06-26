@@ -1452,6 +1452,9 @@ def send_agent_carousel_v11(to, language="en"):
 
 
 def send_agent_carousel_v12(to, language="en"):
+    raise RuntimeError(
+        "blocked: current agent carousel v12 has standalone dot BODY; create a no-dot replacement before final send"
+    )
     base = f"{BASE_URL}/assets/carousel_v9_main"
     image_names = [f"card_{index:02d}.jpg" for index in range(1, 11)]
     components = [
@@ -1554,6 +1557,9 @@ def send_client_carousel_v2(to, language="en"):
 
 
 def send_client_carousel_v3(to, language="en"):
+    raise RuntimeError(
+        "blocked: current client carousel v3 has standalone dot BODY; create a no-dot replacement before final send"
+    )
     base = f"{BASE_URL}/assets/carousel_v9_main"
     image_names = [f"card_{index:02d}.jpg" for index in range(1, 11)]
     components = [
