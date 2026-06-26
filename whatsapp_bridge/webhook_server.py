@@ -655,7 +655,7 @@ Russian external-client/agent tone: use polite "Вы" by default, not "ты". In
 If a simulated lead gives a name, use that name. Never call a test lead Vladimir unless the simulated lead explicitly introduced himself as Vladimir.
 
 Project facts:
-- Canopy Hills Villas Phuket: club-style estate of 9 view hillside villas in Ko Kaeo, close to BISP and other international schools.
+- Canopy Hills Villas Phuket: club-style estate of 9 view hillside villas near BISP and other international schools.
 - Positioning: large family homes for everyday island living, not generic holiday rental villas.
 - Core value: open views over the green valley, lakes, hills and sunset; school-side Phuket living; spacious homes; quiet green surroundings; privacy; quality materials; thermal/sound insulation; storage; family layouts.
 - Location logic: schools, Central, marinas, golf and everyday infrastructure nearby, away from tourist bustle.
@@ -675,7 +675,7 @@ Current agent knowledge policy:
 - Useful client profiles: families relocating to Phuket, school-side long-term rental investors, buyers focused on view/space/quiet, and lifestyle buyers who value marinas, golf, Central and daily infrastructure.
 - Direct client strategy: for a generic direct buyer request, send a short client intro plus the presentation link in the language of the conversation, then qualify gently. Identify whether the client is (1) family with school-age children, (2) lifestyle/permanent-living buyer without school as the main driver, or (3) investor. Then highlight the matching Canopy advantages instead of dumping generic materials.
 - Family with school-age children: highlight BISP/other international schools, quiet green location, family layouts, storage, bedrooms, 650/750 sqm scale, long-term living. Ask about relocation timing, school area, and bedrooms only when useful.
-- Lifestyle/permanent-living buyer: highlight hillside views, quiet green surroundings, privacy, Central Phuket, marinas, golf, daily infrastructure, and Ko Kaeo as a practical island location. Ask whether it is full-time residence or second home, and what matters most: view, privacy, marinas/golf, or infrastructure.
+- Lifestyle/permanent-living buyer: highlight hillside views, quiet green surroundings, privacy, Central Phuket, marinas, golf, sport and daily family infrastructure. Ask whether it is full-time residence or second home, and what matters most: view, privacy, marinas/golf/sport, or infrastructure.
 - Investor/direct investment buyer: use only the approved soft thesis: stable long-term rental demand from international-school families and scarcity of unique view residences for permanent living. Ask about long-term rental demand, capital preservation, personal use with rental potential, and investment horizon. Do not promise ROI.
 - Use the current SalesKit price list for availability and prices. Do not use old 2025 price lists, old villa offers, old payment-plan files, or old special-offer language.
 - Use soft investment logic only: stable long-term rental demand from international-school families, and Canopy's uniqueness as residences for permanent living with views. Do not promise ROI or repeat hard claims such as 15% annual appreciation, 30% below market, or any "below market" claim.
@@ -1215,23 +1215,23 @@ def is_agent_materials_scenario(text):
 
 def agent_intro_video_caption(language="en"):
     if language == "ru":
-        return """Canopy Hills Villas - клубный поселок из 9 видовых вилл на холме, рядом с British International School Phuket и другими международными школами. Из вилл открываются виды на зеленую долину, озера, холмы и закат.
+        return """Canopy Hills Villas - клубный поселок из 9 видовых вилл на холме рядом с British International School Phuket и другими международными школами.
 
-Проект хорошо подходит семьям с детьми и клиентам, которые живут на Пхукете или планируют переезд: рядом школы, Central, марины, гольф и вся повседневная инфраструктура. При этом локация спокойная, зеленая и без туристической суеты.
+Проект хорошо подходит семьям с детьми и клиентам, которые живут на Пхукете или планируют переезд: открытые виды на долину, озера, холмы и закат, рядом школы, Central, марины, гольф, спорт и повседневная семейная инфраструктура.
 
-Это большой семейный дом для жизни, а не вилла на отпуск: просторные планировки, приватность, качественные материалы, хорошая шумо- и теплоизоляция, много места для хранения и повседневного быта.
+Это большой семейный дом для жизни, а не вилла на отпуск: 650-750 м², спальни около 20-30 м², приватность, шумо- и теплоизоляция, хранение, laundry, Thai kitchen и крытая зона у бассейна.
 
-Такой объект стоит предлагать клиентам, которым важны вид, пространство, тишина, удобная локация и уровень дома выше обычных поселков рядом со школами.
+Важный аргумент для hillside-формата: участок остается юзабельным, а структура виллы и платформы помогает снизить риски намокания грунта, подтоплений и движения склона.
 
 Full Sales Kit:
 https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5"""
-    return """Canopy Hills Villas is a club-style estate of 9 view villas on a hillside, close to British International School Phuket and other international schools. The villas open to views of the green valley, lakes, hills and sunset.
+    return """Canopy Hills Villas is a club-style estate of 9 view villas on a hillside near British International School Phuket and other international schools.
 
-The project is a strong fit for families with children and clients who live in Phuket or plan to relocate: schools, Central, marinas, golf and everyday infrastructure are all nearby, while the location remains quiet, green and away from tourist areas.
+It fits families who live in Phuket or plan to relocate: open valley, lake, hill and sunset views, with schools, Central, marinas, golf, sport and daily family infrastructure nearby.
 
-This is a large family home for everyday island living, not a holiday villa: spacious layouts, privacy, quality materials, strong sound and thermal insulation, generous storage and practical spaces for daily family life.
+This is a large family home for everyday living, not a holiday villa: 650-750 sqm homes, 20-30 sqm bedrooms, privacy, sound/thermal insulation, storage, laundry, Thai kitchen and a covered poolside area.
 
-It is worth offering to clients who value views, space, quiet surroundings, convenient location and a higher level of home than standard housing estates near the schools.
+For a hillside project, the usable land is important: the villa/platform structure helps reduce exposure to wet soil, flooding and slope movement risks.
 
 Full Sales Kit:
 https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5"""
@@ -1239,23 +1239,23 @@ https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5"""
 
 def client_intro_video_caption(language="en"):
     if language == "ru":
-        return """Canopy Hills Villas - клубный поселок из 9 видовых вилл на холме, рядом с British International School Phuket и повседневной инфраструктурой центральной части Пхукета.
+        return """Canopy Hills Villas - клубный поселок из 9 видовых вилл на холме рядом с British International School Phuket и семейной инфраструктурой центральной части Пхукета.
 
-Проект создан для долгосрочной семейной жизни на острове: просторные виллы, приватные участки, открытые виды на зеленую долину, озера, холмы и закат, спокойная среда без туристической суеты.
+Проект создан для долгосрочной семейной жизни: открытые виды на долину, озера, холмы и закат, 650-750 м², спальни около 20-30 м², гостиная с потолком 7 м, privacy, хранение, laundry, Thai kitchen и крытая зона у бассейна.
 
-Это не формат короткой отпускной виллы, а большой дом для жизни: 4+1 и 5+1 спальни, просторные общие зоны, потолок 7 м в гостиной, качественные материалы, хорошая шумо- и теплоизоляция и много места для хранения.
+Для hillside-формата важно, что участок остается юзабельным, а структура виллы и платформы помогает снизить риски намокания грунта, подтоплений и движения склона.
 
-Если Вы рассматриваете дом для семьи, переезда на Пхукет, жизни рядом со школами или как редкий видовой актив для долгосрочного спроса, Canopy Hills стоит посмотреть отдельно.
+Если Вы рассматриваете дом для семьи, переезда на Пхукет или редкий видовой актив с долгосрочным спросом, Canopy Hills стоит посмотреть отдельно.
 
 Презентация проекта:
 https://drive.google.com/file/d/1jlBF9tc1mtX-ygI1kletcuqf9skex58T/view"""
-    return """Canopy Hills Villas is a club-style estate of 9 hillside view villas, close to British International School Phuket and the everyday infrastructure of central Phuket.
+    return """Canopy Hills Villas is a club-style estate of 9 hillside view villas near British International School Phuket and central Phuket family infrastructure.
 
-The project is designed for long-term family living on the island: spacious villas, private land plots, open views over the green valley, lakes, hills and sunset, and a calm residential setting away from tourist noise.
+It is designed for long-term family living: open valley, lake, hill and sunset views, 650-750 sqm homes, 20-30 sqm bedrooms, a 7m living-room ceiling, privacy, storage, laundry, Thai kitchen and a covered poolside area.
 
-This is not a compact holiday-villa format, but a large home for daily life: 4+1 and 5+1 bedrooms, generous shared spaces, a 7m living-room ceiling, quality materials, strong sound and thermal insulation, and practical storage.
+For a hillside project, the usable land matters: the villa/platform structure helps reduce exposure to wet soil, flooding and slope movement risks.
 
-If you are considering a home for your family, relocation to Phuket, school-side living or a rare view residence with long-term demand, Canopy Hills is worth reviewing in detail.
+If you are considering a family home, Phuket relocation or a rare view residence with long-term demand, Canopy Hills is worth reviewing in detail.
 
 Project presentation:
 https://drive.google.com/file/d/1c1djBre5fRbmeoLXPsLYAczRFFIXbUvL/view"""
@@ -1423,6 +1423,40 @@ def send_agent_carousel_v10(to, language="en"):
     )
 
 
+def send_agent_carousel_v11(to, language="en"):
+    base = f"{BASE_URL}/assets/carousel_v9_main"
+    image_names = [f"card_{index:02d}.jpg" for index in range(1, 11)]
+    components = [
+        {
+            "type": "carousel",
+            "cards": [
+                {
+                    "card_index": index,
+                    "components": [
+                        {
+                            "type": "header",
+                            "parameters": [
+                                {
+                                    "type": "image",
+                                    "image": {"link": f"{base}/{name}"},
+                                }
+                            ],
+                        }
+                    ],
+                }
+                for index, name in enumerate(image_names)
+            ],
+        },
+    ]
+    template_language = "ru" if language == "ru" else "en_US"
+    return send_whatsapp_template(
+        to,
+        "canopy_agent_advantages_carousel_10_v11",
+        template_language,
+        components,
+    )
+
+
 def send_client_carousel_v1(to, language="en"):
     base = f"{BASE_URL}/assets/carousel_v9_main"
     image_names = [f"card_{index:02d}.jpg" for index in range(1, 11)]
@@ -1452,6 +1486,40 @@ def send_client_carousel_v1(to, language="en"):
     return send_whatsapp_template(
         to,
         "canopy_client_advantages_carousel_10_v1",
+        template_language,
+        components,
+    )
+
+
+def send_client_carousel_v2(to, language="en"):
+    base = f"{BASE_URL}/assets/carousel_v9_main"
+    image_names = [f"card_{index:02d}.jpg" for index in range(1, 11)]
+    components = [
+        {
+            "type": "carousel",
+            "cards": [
+                {
+                    "card_index": index,
+                    "components": [
+                        {
+                            "type": "header",
+                            "parameters": [
+                                {
+                                    "type": "image",
+                                    "image": {"link": f"{base}/{name}"},
+                                }
+                            ],
+                        }
+                    ],
+                }
+                for index, name in enumerate(image_names)
+            ],
+        },
+    ]
+    template_language = "ru" if language == "ru" else "en_US"
+    return send_whatsapp_template(
+        to,
+        "canopy_client_advantages_carousel_10_v2",
         template_language,
         components,
     )
@@ -1559,7 +1627,7 @@ def send_agent_welcome_pack(to, language="en"):
     results = []
     sends = [
         ("agent-intro-video", lambda: send_agent_intro_video(to, language)),
-        ("agent-carousel-v10", lambda: send_agent_carousel_v10(to, language)),
+        ("agent-carousel-v11", lambda: send_agent_carousel_v11(to, language)),
     ]
     for label, send in sends:
         try:
@@ -1577,7 +1645,7 @@ def send_client_welcome_pack(to, language="en"):
     results = []
     sends = [
         ("client-intro-video", lambda: send_client_intro_video(to, language)),
-        ("client-carousel-v1", lambda: send_client_carousel_v1(to, language)),
+        ("client-carousel-v2", lambda: send_client_carousel_v2(to, language)),
     ]
     for label, send in sends:
         try:
@@ -2496,11 +2564,23 @@ def canopy_template_payload(template_key):
     def carousel_advantage_buttons_v2_ru(slug):
         return [{"type": "URL", "text": "Узнать подробнее", "url": f"{BASE_URL}/assets/advantages-v2.html#{slug}"}]
 
+    def carousel_advantage_buttons_v3(slug):
+        return [{"type": "URL", "text": "Learn more", "url": f"{BASE_URL}/assets/advantages-v3.html#{slug}"}]
+
+    def carousel_advantage_buttons_v3_ru(slug):
+        return [{"type": "URL", "text": "Узнать подробнее", "url": f"{BASE_URL}/assets/advantages-v3.html#{slug}"}]
+
     def client_advantage_buttons_v1(slug):
         return [{"type": "URL", "text": "Learn more", "url": f"{BASE_URL}/assets/client-advantages-v1.html#{slug}"}]
 
     def client_advantage_buttons_v1_ru(slug):
         return [{"type": "URL", "text": "Узнать подробнее", "url": f"{BASE_URL}/assets/client-advantages-v1.html#{slug}"}]
+
+    def client_advantage_buttons_v2(slug):
+        return [{"type": "URL", "text": "Learn more", "url": f"{BASE_URL}/assets/client-advantages-v2.html#{slug}"}]
+
+    def client_advantage_buttons_v2_ru(slug):
+        return [{"type": "URL", "text": "Узнать подробнее", "url": f"{BASE_URL}/assets/client-advantages-v2.html#{slug}"}]
 
     carousel_xl_layout_more_buttons = [
         {"type": "URL", "text": "Learn more", "url": f"{BASE_URL}/assets/canopy_layouts_xl.html"},
@@ -4006,6 +4086,52 @@ def canopy_template_payload(template_key):
                 },
             ],
         },
+        "agent_advantages_carousel_10_v11_en": {
+            "name": "canopy_agent_advantages_carousel_10_v11",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {"type": "BODY", "text": "Key Canopy Hills advantages for agents and relevant buyers:"},
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card("__CAROUSEL10V3_ESTATE_HANDLE__", "Only 9 hillside view residences", buttons=carousel_advantage_buttons_v3("estate")),
+                        carousel_image_card("__CAROUSEL10V3_VIEW_HANDLE__", "Open valley, lake, hill and sunset views", buttons=carousel_advantage_buttons_v3("views")),
+                        carousel_image_card("__CAROUSEL10V3_PLOTS_HANDLE__", "Usable land plots, engineered for slope safety", buttons=carousel_advantage_buttons_v3("plots")),
+                        carousel_image_card("__CAROUSEL10V3_SCALE_HANDLE__", "650-750 sqm homes, 20-30 sqm bedrooms", buttons=carousel_advantage_buttons_v3("scale")),
+                        carousel_image_card("__CAROUSEL10V3_LIVING_HANDLE__", "7m living room ceiling", buttons=carousel_advantage_buttons_v3("living")),
+                        carousel_image_card("__CAROUSEL10V3_INVEST_HANDLE__", "Investment appeal: views + school-family demand", buttons=carousel_advantage_buttons_v3("investment")),
+                        carousel_image_card("__CAROUSEL10V3_GREEN_HANDLE__", "Family infrastructure within 10-15 minutes", buttons=carousel_advantage_buttons_v3("location")),
+                        carousel_image_card("__CAROUSEL10V3_INSULATION_HANDLE__", "Service zones for real long-term living", buttons=carousel_advantage_buttons_v3("insulation")),
+                        carousel_image_card("__CAROUSEL10V3_L_LAYOUT_HANDLE__", "L-size: 650 sqm, 4+1 bedrooms", buttons=carousel_l_layout_more_buttons),
+                        carousel_image_card("__CAROUSEL10V3_XL_LAYOUT_HANDLE__", "XL-size: 750 sqm, 5+1 bedrooms", buttons=carousel_xl_layout_more_buttons),
+                    ],
+                },
+            ],
+        },
+        "agent_advantages_carousel_10_v11_ru": {
+            "name": "canopy_agent_advantages_carousel_10_v11",
+            "language": "ru",
+            "category": "MARKETING",
+            "components": [
+                {"type": "BODY", "text": "Ключевые преимущества Canopy Hills для агентов и релевантных покупателей:"},
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card("__CAROUSEL10V3_ESTATE_HANDLE__", "Только 9 видовых резиденций на холме", buttons=carousel_advantage_buttons_v3_ru("estate")),
+                        carousel_image_card("__CAROUSEL10V3_VIEW_HANDLE__", "Открытые виды: долина, озера, холмы и закат", buttons=carousel_advantage_buttons_v3_ru("views")),
+                        carousel_image_card("__CAROUSEL10V3_PLOTS_HANDLE__", "Юзабельные участки и безопасность склона", buttons=carousel_advantage_buttons_v3_ru("plots")),
+                        carousel_image_card("__CAROUSEL10V3_SCALE_HANDLE__", "650-750 м², спальни 20-30 м²", buttons=carousel_advantage_buttons_v3_ru("scale")),
+                        carousel_image_card("__CAROUSEL10V3_LIVING_HANDLE__", "Гостиная с потолком 7 м", buttons=carousel_advantage_buttons_v3_ru("living")),
+                        carousel_image_card("__CAROUSEL10V3_INVEST_HANDLE__", "Инвестиционная привлекательность", buttons=carousel_advantage_buttons_v3_ru("investment")),
+                        carousel_image_card("__CAROUSEL10V3_GREEN_HANDLE__", "Семейная инфраструктура в 10-15 минутах", buttons=carousel_advantage_buttons_v3_ru("location")),
+                        carousel_image_card("__CAROUSEL10V3_INSULATION_HANDLE__", "Сервисные зоны для долгой жизни", buttons=carousel_advantage_buttons_v3_ru("insulation")),
+                        carousel_image_card("__CAROUSEL10V3_L_LAYOUT_HANDLE__", "L-size: 650 м², 4+1 спальни", buttons=carousel_l_layout_more_buttons_ru),
+                        carousel_image_card("__CAROUSEL10V3_XL_LAYOUT_HANDLE__", "XL-size: 750 м², 5+1 спален", buttons=carousel_xl_layout_more_buttons_ru),
+                    ],
+                },
+            ],
+        },
         "client_advantages_carousel_10_v1_en": {
             "name": "canopy_client_advantages_carousel_10_v1",
             "language": "en_US",
@@ -4048,6 +4174,52 @@ def canopy_template_payload(template_key):
                         carousel_image_card("__CAROUSEL10V3_INSULATION_HANDLE__", "Комфорт внутри дома", buttons=client_advantage_buttons_v1_ru("insulation")),
                         carousel_image_card("__CAROUSEL10V3_L_LAYOUT_HANDLE__", "L-size: семейная резиденция", buttons=client_advantage_buttons_v1_ru("l-layout")),
                         carousel_image_card("__CAROUSEL10V3_XL_LAYOUT_HANDLE__", "XL-size: больше масштаба", buttons=client_advantage_buttons_v1_ru("xl-layout")),
+                    ],
+                },
+            ],
+        },
+        "client_advantages_carousel_10_v2_en": {
+            "name": "canopy_client_advantages_carousel_10_v2",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {"type": "BODY", "text": "Key Canopy Hills advantages for living in Phuket:"},
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card("__CAROUSEL10V3_ESTATE_HANDLE__", "9 hillside view residences", buttons=client_advantage_buttons_v2("estate")),
+                        carousel_image_card("__CAROUSEL10V3_VIEW_HANDLE__", "Open views every day", buttons=client_advantage_buttons_v2("views")),
+                        carousel_image_card("__CAROUSEL10V3_PLOTS_HANDLE__", "Usable land, engineered for slope safety", buttons=client_advantage_buttons_v2("plots")),
+                        carousel_image_card("__CAROUSEL10V3_SCALE_HANDLE__", "Space for family life", buttons=client_advantage_buttons_v2("scale")),
+                        carousel_image_card("__CAROUSEL10V3_LIVING_HANDLE__", "Living room with 7m ceiling", buttons=client_advantage_buttons_v2("living")),
+                        carousel_image_card("__CAROUSEL10V3_INVEST_HANDLE__", "Investment appeal", buttons=client_advantage_buttons_v2("investment")),
+                        carousel_image_card("__CAROUSEL10V3_GREEN_HANDLE__", "Family infrastructure in 10-15 minutes", buttons=client_advantage_buttons_v2("location")),
+                        carousel_image_card("__CAROUSEL10V3_INSULATION_HANDLE__", "Comfort and service zones inside the home", buttons=client_advantage_buttons_v2("insulation")),
+                        carousel_image_card("__CAROUSEL10V3_L_LAYOUT_HANDLE__", "L-size: 650 sqm, 4+1 bedrooms", buttons=client_advantage_buttons_v2("l-layout")),
+                        carousel_image_card("__CAROUSEL10V3_XL_LAYOUT_HANDLE__", "XL-size: 750 sqm, 5+1 bedrooms", buttons=client_advantage_buttons_v2("xl-layout")),
+                    ],
+                },
+            ],
+        },
+        "client_advantages_carousel_10_v2_ru": {
+            "name": "canopy_client_advantages_carousel_10_v2",
+            "language": "ru",
+            "category": "MARKETING",
+            "components": [
+                {"type": "BODY", "text": "Ключевые преимущества Canopy Hills для жизни на Пхукете:"},
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card("__CAROUSEL10V3_ESTATE_HANDLE__", "9 видовых резиденций на холме", buttons=client_advantage_buttons_v2_ru("estate")),
+                        carousel_image_card("__CAROUSEL10V3_VIEW_HANDLE__", "Открытые виды каждый день", buttons=client_advantage_buttons_v2_ru("views")),
+                        carousel_image_card("__CAROUSEL10V3_PLOTS_HANDLE__", "Юзабельный участок и безопасность склона", buttons=client_advantage_buttons_v2_ru("plots")),
+                        carousel_image_card("__CAROUSEL10V3_SCALE_HANDLE__", "Простор для семьи", buttons=client_advantage_buttons_v2_ru("scale")),
+                        carousel_image_card("__CAROUSEL10V3_LIVING_HANDLE__", "Гостиная с потолком 7 м", buttons=client_advantage_buttons_v2_ru("living")),
+                        carousel_image_card("__CAROUSEL10V3_INVEST_HANDLE__", "Инвестиционная привлекательность", buttons=client_advantage_buttons_v2_ru("investment")),
+                        carousel_image_card("__CAROUSEL10V3_GREEN_HANDLE__", "Семейная инфраструктура в 10-15 минутах", buttons=client_advantage_buttons_v2_ru("location")),
+                        carousel_image_card("__CAROUSEL10V3_INSULATION_HANDLE__", "Комфорт и сервисные зоны дома", buttons=client_advantage_buttons_v2_ru("insulation")),
+                        carousel_image_card("__CAROUSEL10V3_L_LAYOUT_HANDLE__", "L-size: 650 м², 4+1 спальни", buttons=client_advantage_buttons_v2_ru("l-layout")),
+                        carousel_image_card("__CAROUSEL10V3_XL_LAYOUT_HANDLE__", "XL-size: 750 м², 5+1 спален", buttons=client_advantage_buttons_v2_ru("xl-layout")),
                     ],
                 },
             ],
@@ -4497,16 +4669,24 @@ def create_canopy_template(template_key):
         "agent_advantages_carousel_10_v9_ru",
         "agent_advantages_carousel_10_v10_en",
         "agent_advantages_carousel_10_v10_ru",
+        "agent_advantages_carousel_10_v11_en",
+        "agent_advantages_carousel_10_v11_ru",
         "client_advantages_carousel_10_v1_en",
         "client_advantages_carousel_10_v1_ru",
+        "client_advantages_carousel_10_v2_en",
+        "client_advantages_carousel_10_v2_ru",
     ):
         if template_key in (
             "agent_advantages_carousel_10_v9_en",
             "agent_advantages_carousel_10_v9_ru",
             "agent_advantages_carousel_10_v10_en",
             "agent_advantages_carousel_10_v10_ru",
+            "agent_advantages_carousel_10_v11_en",
+            "agent_advantages_carousel_10_v11_ru",
             "client_advantages_carousel_10_v1_en",
             "client_advantages_carousel_10_v1_ru",
+            "client_advantages_carousel_10_v2_en",
+            "client_advantages_carousel_10_v2_ru",
         ):
             carousel_samples = [
                 ("__CAROUSEL10V3_ESTATE_HANDLE__", ASSET_DIR / "carousel_v9_main/card_01.jpg"),
@@ -4740,8 +4920,8 @@ def draft_reply(contact, last_text=""):
         if ru:
             return (
                 "Добрый день! Спасибо за интерес к Canopy Hills.\n\n"
-                "Canopy Hills - клубный поселок из 9 видовых вилл на холме в Ko Kaeo, рядом с BISP, международными школами, "
-                "Central Phuket, гольфом, маринами и повседневной инфраструктурой. Проект рассчитан на тех, кто ищет просторный "
+                "Canopy Hills - клубный поселок из 9 видовых вилл на холме рядом с BISP, международными школами, "
+                "Central Phuket, гольфом, маринами, спортом и повседневной семейной инфраструктурой. Проект рассчитан на тех, кто ищет просторный "
                 "приватный дом в тихой зеленой локации с открытыми видами на долину, озера и холмы.\n\n"
                 "Презентация проекта: https://drive.google.com/file/d/1jlBF9tc1mtX-ygI1kletcuqf9skex58T/view\n\n"
                 "Чтобы дать вам наиболее релевантную информацию, подскажите, пожалуйста: вы рассматриваете виллу в первую очередь "
@@ -4749,8 +4929,8 @@ def draft_reply(contact, last_text=""):
             )
         return (
             "Hi, thank you for your interest in Canopy Hills.\n\n"
-            "Canopy Hills is a club-style estate of 9 hillside view villas in Ko Kaeo, close to BISP, international schools, "
-            "Central Phuket, golf, marinas and everyday infrastructure. The project is designed for people who want a spacious "
+            "Canopy Hills is a club-style estate of 9 hillside view villas near BISP, international schools, "
+            "Central Phuket, golf, marinas, sport and everyday family infrastructure. The project is designed for people who want a spacious "
             "private home in a quiet green location, with open views over the valley, lakes and hills.\n\n"
             "Project presentation: https://drive.google.com/file/d/1c1djBre5fRbmeoLXPsLYAczRFFIXbUvL/view\n\n"
             "To send you the most relevant details, may I ask if you are considering a villa mainly for family living, "
@@ -6179,6 +6359,27 @@ class Handler(BaseHTTPRequestHandler):
             result = whatsapp_templates("canopy_agent_advantages_carousel_10_v10")
             self.send_json(200 if result.get("ok") else 502, result)
             return
+        if path == "/create-agent-carousel-v11-en-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = create_canopy_template("agent_advantages_carousel_10_v11_en")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/create-agent-carousel-v11-ru-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = create_canopy_template("agent_advantages_carousel_10_v11_ru")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/agent-carousel-v11-template-status-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = whatsapp_templates("canopy_agent_advantages_carousel_10_v11")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
         if path == "/create-client-carousel-v1-en-template-test":
             if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
                 self.send_json(401, {"error": "unauthorized"})
@@ -6198,6 +6399,27 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(401, {"error": "unauthorized"})
                 return
             result = whatsapp_templates("canopy_client_advantages_carousel_10_v1")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/create-client-carousel-v2-en-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = create_canopy_template("client_advantages_carousel_10_v2_en")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/create-client-carousel-v2-ru-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = create_canopy_template("client_advantages_carousel_10_v2_ru")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/client-carousel-v2-template-status-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = whatsapp_templates("canopy_client_advantages_carousel_10_v2")
             self.send_json(200 if result.get("ok") else 502, result)
             return
         if path == "/create-agent-video-cta-template-test":
@@ -6278,7 +6500,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self.send_json(200, {"ok": True, "meta": result})
             return
-        if path == "/codex-manual-carousel-v9":
+        if path in {"/codex-manual-carousel-v9", "/codex-manual-agent-carousel-v11"}:
             payload = self.read_authorized_json()
             if payload is None:
                 return
@@ -6294,13 +6516,13 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(400, {"error": "language must be ru or en"})
                 return
             try:
-                result = send_agent_carousel_v10(to, language)
+                result = send_agent_carousel_v11(to, language)
             except Exception as exc:
                 self.send_json(502, {"ok": False, "error": str(exc)})
                 return
             self.send_json(200, {"ok": True, "meta": result})
             return
-        if path == "/codex-manual-client-carousel-v1":
+        if path in {"/codex-manual-client-carousel-v1", "/codex-manual-client-carousel-v2"}:
             payload = self.read_authorized_json()
             if payload is None:
                 return
@@ -6316,7 +6538,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(400, {"error": "language must be ru or en"})
                 return
             try:
-                result = send_client_carousel_v1(to, language)
+                result = send_client_carousel_v2(to, language)
             except Exception as exc:
                 self.send_json(502, {"ok": False, "error": str(exc)})
                 return
