@@ -4214,6 +4214,7 @@ def canopy_template_payload(template_key):
             "language": "en_US",
             "category": "MARKETING",
             "components": [
+                {"type": "BODY", "text": "\u200b"},
                 {
                     "type": "CAROUSEL",
                     "cards": [
@@ -4236,6 +4237,7 @@ def canopy_template_payload(template_key):
             "language": "ru",
             "category": "MARKETING",
             "components": [
+                {"type": "BODY", "text": "\u200b"},
                 {
                     "type": "CAROUSEL",
                     "cards": [
@@ -4350,6 +4352,7 @@ def canopy_template_payload(template_key):
             "language": "en_US",
             "category": "MARKETING",
             "components": [
+                {"type": "BODY", "text": "\u200b"},
                 {
                     "type": "CAROUSEL",
                     "cards": [
@@ -4372,6 +4375,7 @@ def canopy_template_payload(template_key):
             "language": "ru",
             "category": "MARKETING",
             "components": [
+                {"type": "BODY", "text": "\u200b"},
                 {
                     "type": "CAROUSEL",
                     "cards": [
