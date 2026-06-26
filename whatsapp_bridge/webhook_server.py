@@ -1221,20 +1221,14 @@ def agent_intro_video_caption(language="en"):
 
 Это большой семейный дом для жизни, а не вилла на отпуск: 650-750 м², спальни около 20-30 м², приватность, шумо- и теплоизоляция, хранение, laundry, Thai kitchen и крытая зона у бассейна.
 
-Важный аргумент для hillside-формата: участок остается юзабельным, а структура виллы и платформы помогает снизить риски намокания грунта, подтоплений и движения склона.
-
-Full Sales Kit:
-https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5"""
+Важный аргумент для hillside-формата: участок остается юзабельным, а структура виллы и платформы помогает снизить риски намокания грунта, подтоплений и движения склона."""
     return """Canopy Hills Villas is a club-style estate of 9 view villas on a hillside near British International School Phuket and other international schools.
 
 It fits families who live in Phuket or plan to relocate: open valley, lake, hill and sunset views, with schools, Central, marinas, golf, sport and daily family infrastructure nearby.
 
 This is a large family home for everyday living, not a holiday villa: 650-750 sqm homes, 20-30 sqm bedrooms, privacy, sound/thermal insulation, storage, laundry, Thai kitchen and a covered poolside area.
 
-For a hillside project, the usable land is important: the villa/platform structure helps reduce exposure to wet soil, flooding and slope movement risks.
-
-Full Sales Kit:
-https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5"""
+For a hillside project, the usable land is important: the villa/platform structure helps reduce exposure to wet soil, flooding and slope movement risks."""
 
 
 def client_intro_video_caption(language="en"):
@@ -1245,20 +1239,14 @@ def client_intro_video_caption(language="en"):
 
 Для hillside-формата важно, что участок остается юзабельным, а структура виллы и платформы помогает снизить риски намокания грунта, подтоплений и движения склона.
 
-Если Вы рассматриваете дом для семьи, переезда на Пхукет или редкий видовой актив с долгосрочным спросом, Canopy Hills стоит посмотреть отдельно.
-
-Презентация проекта:
-https://drive.google.com/file/d/1jlBF9tc1mtX-ygI1kletcuqf9skex58T/view"""
+Если Вы рассматриваете дом для семьи, переезда на Пхукет или редкий видовой актив с долгосрочным спросом, Canopy Hills стоит посмотреть отдельно."""
     return """Canopy Hills Villas is a club-style estate of 9 hillside view villas near British International School Phuket and central Phuket family infrastructure.
 
 It is designed for long-term family living: open valley, lake, hill and sunset views, 650-750 sqm homes, 20-30 sqm bedrooms, a 7m living-room ceiling, privacy, storage, laundry, Thai kitchen and a covered poolside area.
 
 For a hillside project, the usable land matters: the villa/platform structure helps reduce exposure to wet soil, flooding and slope movement risks.
 
-If you are considering a family home, Phuket relocation or a rare view residence with long-term demand, Canopy Hills is worth reviewing in detail.
-
-Project presentation:
-https://drive.google.com/file/d/1c1djBre5fRbmeoLXPsLYAczRFFIXbUvL/view"""
+If you are considering a family home, Phuket relocation or a rare view residence with long-term demand, Canopy Hills is worth reviewing in detail."""
 
 
 def agent_carousel_template(language="en"):
@@ -1457,6 +1445,40 @@ def send_agent_carousel_v11(to, language="en"):
     )
 
 
+def send_agent_carousel_v12(to, language="en"):
+    base = f"{BASE_URL}/assets/carousel_v9_main"
+    image_names = [f"card_{index:02d}.jpg" for index in range(1, 11)]
+    components = [
+        {
+            "type": "carousel",
+            "cards": [
+                {
+                    "card_index": index,
+                    "components": [
+                        {
+                            "type": "header",
+                            "parameters": [
+                                {
+                                    "type": "image",
+                                    "image": {"link": f"{base}/{name}"},
+                                }
+                            ],
+                        }
+                    ],
+                }
+                for index, name in enumerate(image_names)
+            ],
+        },
+    ]
+    template_language = "ru" if language == "ru" else "en_US"
+    return send_whatsapp_template(
+        to,
+        "canopy_agent_advantages_carousel_10_v12",
+        template_language,
+        components,
+    )
+
+
 def send_client_carousel_v1(to, language="en"):
     base = f"{BASE_URL}/assets/carousel_v9_main"
     image_names = [f"card_{index:02d}.jpg" for index in range(1, 11)]
@@ -1525,6 +1547,40 @@ def send_client_carousel_v2(to, language="en"):
     )
 
 
+def send_client_carousel_v3(to, language="en"):
+    base = f"{BASE_URL}/assets/carousel_v9_main"
+    image_names = [f"card_{index:02d}.jpg" for index in range(1, 11)]
+    components = [
+        {
+            "type": "carousel",
+            "cards": [
+                {
+                    "card_index": index,
+                    "components": [
+                        {
+                            "type": "header",
+                            "parameters": [
+                                {
+                                    "type": "image",
+                                    "image": {"link": f"{base}/{name}"},
+                                }
+                            ],
+                        }
+                    ],
+                }
+                for index, name in enumerate(image_names)
+            ],
+        },
+    ]
+    template_language = "ru" if language == "ru" else "en_US"
+    return send_whatsapp_template(
+        to,
+        "canopy_client_advantages_carousel_10_v3",
+        template_language,
+        components,
+    )
+
+
 def send_agent_carousel_v6(to):
     return send_agent_carousel_v7(to, "en")
 
@@ -1544,6 +1600,25 @@ def send_client_intro_video(to, language="en"):
         "video",
         f"{BASE_URL}/assets/agent_intro_video.mp4",
         client_intro_video_caption(language),
+    )
+
+
+def project_presentation_filename(language="en"):
+    return "Canopy_Hills_RUS.pdf" if language == "ru" else "Canopy_Hills_ENG.pdf"
+
+
+def project_presentation_display_name(language="en"):
+    return "Canopy Hills Villas RUS.pdf" if language == "ru" else "Canopy Hills Villas ENG.pdf"
+
+
+def send_project_presentation_document(to, language="en"):
+    asset_name = project_presentation_filename(language)
+    return send_whatsapp_media(
+        to,
+        "document",
+        f"{BASE_URL}/assets/{asset_name}",
+        "",
+        project_presentation_display_name(language),
     )
 
 
@@ -1627,7 +1702,8 @@ def send_agent_welcome_pack(to, language="en"):
     results = []
     sends = [
         ("agent-intro-video", lambda: send_agent_intro_video(to, language)),
-        ("agent-carousel-v11", lambda: send_agent_carousel_v11(to, language)),
+        ("agent-presentation-pdf", lambda: send_project_presentation_document(to, language)),
+        ("agent-carousel-v12", lambda: send_agent_carousel_v12(to, language)),
     ]
     for label, send in sends:
         try:
@@ -1645,7 +1721,8 @@ def send_client_welcome_pack(to, language="en"):
     results = []
     sends = [
         ("client-intro-video", lambda: send_client_intro_video(to, language)),
-        ("client-carousel-v2", lambda: send_client_carousel_v2(to, language)),
+        ("client-presentation-pdf", lambda: send_project_presentation_document(to, language)),
+        ("client-carousel-v3", lambda: send_client_carousel_v3(to, language)),
     ]
     for label, send in sends:
         try:
@@ -4132,6 +4209,50 @@ def canopy_template_payload(template_key):
                 },
             ],
         },
+        "agent_advantages_carousel_10_v12_en": {
+            "name": "canopy_agent_advantages_carousel_10_v12",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card("__CAROUSEL10V3_ESTATE_HANDLE__", "Only 9 hillside view residences", buttons=carousel_advantage_buttons_v3("estate")),
+                        carousel_image_card("__CAROUSEL10V3_VIEW_HANDLE__", "Open valley, lake, hill and sunset views", buttons=carousel_advantage_buttons_v3("views")),
+                        carousel_image_card("__CAROUSEL10V3_PLOTS_HANDLE__", "Usable land plots, engineered for slope safety", buttons=carousel_advantage_buttons_v3("plots")),
+                        carousel_image_card("__CAROUSEL10V3_SCALE_HANDLE__", "650-750 sqm homes, 20-30 sqm bedrooms", buttons=carousel_advantage_buttons_v3("scale")),
+                        carousel_image_card("__CAROUSEL10V3_LIVING_HANDLE__", "7m living room ceiling", buttons=carousel_advantage_buttons_v3("living")),
+                        carousel_image_card("__CAROUSEL10V3_INVEST_HANDLE__", "Investment appeal: views + school-family demand", buttons=carousel_advantage_buttons_v3("investment")),
+                        carousel_image_card("__CAROUSEL10V3_GREEN_HANDLE__", "Family infrastructure within 10-15 minutes", buttons=carousel_advantage_buttons_v3("location")),
+                        carousel_image_card("__CAROUSEL10V3_INSULATION_HANDLE__", "Service zones for real long-term living", buttons=carousel_advantage_buttons_v3("insulation")),
+                        carousel_image_card("__CAROUSEL10V3_L_LAYOUT_HANDLE__", "L-size: 650 sqm, 4+1 bedrooms", buttons=carousel_l_layout_more_buttons),
+                        carousel_image_card("__CAROUSEL10V3_XL_LAYOUT_HANDLE__", "XL-size: 750 sqm, 5+1 bedrooms", buttons=carousel_xl_layout_more_buttons),
+                    ],
+                },
+            ],
+        },
+        "agent_advantages_carousel_10_v12_ru": {
+            "name": "canopy_agent_advantages_carousel_10_v12",
+            "language": "ru",
+            "category": "MARKETING",
+            "components": [
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card("__CAROUSEL10V3_ESTATE_HANDLE__", "Только 9 видовых резиденций на холме", buttons=carousel_advantage_buttons_v3_ru("estate")),
+                        carousel_image_card("__CAROUSEL10V3_VIEW_HANDLE__", "Открытые виды: долина, озера, холмы и закат", buttons=carousel_advantage_buttons_v3_ru("views")),
+                        carousel_image_card("__CAROUSEL10V3_PLOTS_HANDLE__", "Юзабельные участки и безопасность склона", buttons=carousel_advantage_buttons_v3_ru("plots")),
+                        carousel_image_card("__CAROUSEL10V3_SCALE_HANDLE__", "650-750 м², спальни 20-30 м²", buttons=carousel_advantage_buttons_v3_ru("scale")),
+                        carousel_image_card("__CAROUSEL10V3_LIVING_HANDLE__", "Гостиная с потолком 7 м", buttons=carousel_advantage_buttons_v3_ru("living")),
+                        carousel_image_card("__CAROUSEL10V3_INVEST_HANDLE__", "Инвестиционная привлекательность", buttons=carousel_advantage_buttons_v3_ru("investment")),
+                        carousel_image_card("__CAROUSEL10V3_GREEN_HANDLE__", "Семейная инфраструктура в 10-15 минутах", buttons=carousel_advantage_buttons_v3_ru("location")),
+                        carousel_image_card("__CAROUSEL10V3_INSULATION_HANDLE__", "Сервисные зоны для долгой жизни", buttons=carousel_advantage_buttons_v3_ru("insulation")),
+                        carousel_image_card("__CAROUSEL10V3_L_LAYOUT_HANDLE__", "L-size: 650 м², 4+1 спальни", buttons=carousel_l_layout_more_buttons_ru),
+                        carousel_image_card("__CAROUSEL10V3_XL_LAYOUT_HANDLE__", "XL-size: 750 м², 5+1 спален", buttons=carousel_xl_layout_more_buttons_ru),
+                    ],
+                },
+            ],
+        },
         "client_advantages_carousel_10_v1_en": {
             "name": "canopy_client_advantages_carousel_10_v1",
             "language": "en_US",
@@ -4207,6 +4328,50 @@ def canopy_template_payload(template_key):
             "category": "MARKETING",
             "components": [
                 {"type": "BODY", "text": "Ключевые преимущества Canopy Hills для жизни на Пхукете:"},
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card("__CAROUSEL10V3_ESTATE_HANDLE__", "9 видовых резиденций на холме", buttons=client_advantage_buttons_v2_ru("estate")),
+                        carousel_image_card("__CAROUSEL10V3_VIEW_HANDLE__", "Открытые виды каждый день", buttons=client_advantage_buttons_v2_ru("views")),
+                        carousel_image_card("__CAROUSEL10V3_PLOTS_HANDLE__", "Юзабельный участок и безопасность склона", buttons=client_advantage_buttons_v2_ru("plots")),
+                        carousel_image_card("__CAROUSEL10V3_SCALE_HANDLE__", "Простор для семьи", buttons=client_advantage_buttons_v2_ru("scale")),
+                        carousel_image_card("__CAROUSEL10V3_LIVING_HANDLE__", "Гостиная с потолком 7 м", buttons=client_advantage_buttons_v2_ru("living")),
+                        carousel_image_card("__CAROUSEL10V3_INVEST_HANDLE__", "Инвестиционная привлекательность", buttons=client_advantage_buttons_v2_ru("investment")),
+                        carousel_image_card("__CAROUSEL10V3_GREEN_HANDLE__", "Семейная инфраструктура в 10-15 минутах", buttons=client_advantage_buttons_v2_ru("location")),
+                        carousel_image_card("__CAROUSEL10V3_INSULATION_HANDLE__", "Комфорт и сервисные зоны дома", buttons=client_advantage_buttons_v2_ru("insulation")),
+                        carousel_image_card("__CAROUSEL10V3_L_LAYOUT_HANDLE__", "L-size: 650 м², 4+1 спальни", buttons=client_advantage_buttons_v2_ru("l-layout")),
+                        carousel_image_card("__CAROUSEL10V3_XL_LAYOUT_HANDLE__", "XL-size: 750 м², 5+1 спален", buttons=client_advantage_buttons_v2_ru("xl-layout")),
+                    ],
+                },
+            ],
+        },
+        "client_advantages_carousel_10_v3_en": {
+            "name": "canopy_client_advantages_carousel_10_v3",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card("__CAROUSEL10V3_ESTATE_HANDLE__", "9 hillside view residences", buttons=client_advantage_buttons_v2("estate")),
+                        carousel_image_card("__CAROUSEL10V3_VIEW_HANDLE__", "Open views every day", buttons=client_advantage_buttons_v2("views")),
+                        carousel_image_card("__CAROUSEL10V3_PLOTS_HANDLE__", "Usable land, engineered for slope safety", buttons=client_advantage_buttons_v2("plots")),
+                        carousel_image_card("__CAROUSEL10V3_SCALE_HANDLE__", "Space for family life", buttons=client_advantage_buttons_v2("scale")),
+                        carousel_image_card("__CAROUSEL10V3_LIVING_HANDLE__", "Living room with 7m ceiling", buttons=client_advantage_buttons_v2("living")),
+                        carousel_image_card("__CAROUSEL10V3_INVEST_HANDLE__", "Investment appeal", buttons=client_advantage_buttons_v2("investment")),
+                        carousel_image_card("__CAROUSEL10V3_GREEN_HANDLE__", "Family infrastructure in 10-15 minutes", buttons=client_advantage_buttons_v2("location")),
+                        carousel_image_card("__CAROUSEL10V3_INSULATION_HANDLE__", "Comfort and service zones inside the home", buttons=client_advantage_buttons_v2("insulation")),
+                        carousel_image_card("__CAROUSEL10V3_L_LAYOUT_HANDLE__", "L-size: 650 sqm, 4+1 bedrooms", buttons=client_advantage_buttons_v2("l-layout")),
+                        carousel_image_card("__CAROUSEL10V3_XL_LAYOUT_HANDLE__", "XL-size: 750 sqm, 5+1 bedrooms", buttons=client_advantage_buttons_v2("xl-layout")),
+                    ],
+                },
+            ],
+        },
+        "client_advantages_carousel_10_v3_ru": {
+            "name": "canopy_client_advantages_carousel_10_v3",
+            "language": "ru",
+            "category": "MARKETING",
+            "components": [
                 {
                     "type": "CAROUSEL",
                     "cards": [
@@ -4671,10 +4836,14 @@ def create_canopy_template(template_key):
         "agent_advantages_carousel_10_v10_ru",
         "agent_advantages_carousel_10_v11_en",
         "agent_advantages_carousel_10_v11_ru",
+        "agent_advantages_carousel_10_v12_en",
+        "agent_advantages_carousel_10_v12_ru",
         "client_advantages_carousel_10_v1_en",
         "client_advantages_carousel_10_v1_ru",
         "client_advantages_carousel_10_v2_en",
         "client_advantages_carousel_10_v2_ru",
+        "client_advantages_carousel_10_v3_en",
+        "client_advantages_carousel_10_v3_ru",
     ):
         if template_key in (
             "agent_advantages_carousel_10_v9_en",
@@ -4683,10 +4852,14 @@ def create_canopy_template(template_key):
             "agent_advantages_carousel_10_v10_ru",
             "agent_advantages_carousel_10_v11_en",
             "agent_advantages_carousel_10_v11_ru",
+            "agent_advantages_carousel_10_v12_en",
+            "agent_advantages_carousel_10_v12_ru",
             "client_advantages_carousel_10_v1_en",
             "client_advantages_carousel_10_v1_ru",
             "client_advantages_carousel_10_v2_en",
             "client_advantages_carousel_10_v2_ru",
+            "client_advantages_carousel_10_v3_en",
+            "client_advantages_carousel_10_v3_ru",
         ):
             carousel_samples = [
                 ("__CAROUSEL10V3_ESTATE_HANDLE__", ASSET_DIR / "carousel_v9_main/card_01.jpg"),
@@ -6380,6 +6553,27 @@ class Handler(BaseHTTPRequestHandler):
             result = whatsapp_templates("canopy_agent_advantages_carousel_10_v11")
             self.send_json(200 if result.get("ok") else 502, result)
             return
+        if path == "/create-agent-carousel-v12-en-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = create_canopy_template("agent_advantages_carousel_10_v12_en")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/create-agent-carousel-v12-ru-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = create_canopy_template("agent_advantages_carousel_10_v12_ru")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/agent-carousel-v12-template-status-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = whatsapp_templates("canopy_agent_advantages_carousel_10_v12")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
         if path == "/create-client-carousel-v1-en-template-test":
             if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
                 self.send_json(401, {"error": "unauthorized"})
@@ -6420,6 +6614,27 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(401, {"error": "unauthorized"})
                 return
             result = whatsapp_templates("canopy_client_advantages_carousel_10_v2")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/create-client-carousel-v3-en-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = create_canopy_template("client_advantages_carousel_10_v3_en")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/create-client-carousel-v3-ru-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = create_canopy_template("client_advantages_carousel_10_v3_ru")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/client-carousel-v3-template-status-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = whatsapp_templates("canopy_client_advantages_carousel_10_v3")
             self.send_json(200 if result.get("ok") else 502, result)
             return
         if path == "/create-agent-video-cta-template-test":
@@ -6500,7 +6715,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self.send_json(200, {"ok": True, "meta": result})
             return
-        if path in {"/codex-manual-carousel-v9", "/codex-manual-agent-carousel-v11"}:
+        if path in {"/codex-manual-carousel-v9", "/codex-manual-agent-carousel-v11", "/codex-manual-agent-carousel-v12"}:
             payload = self.read_authorized_json()
             if payload is None:
                 return
@@ -6516,13 +6731,13 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(400, {"error": "language must be ru or en"})
                 return
             try:
-                result = send_agent_carousel_v11(to, language)
+                result = send_agent_carousel_v12(to, language)
             except Exception as exc:
                 self.send_json(502, {"ok": False, "error": str(exc)})
                 return
             self.send_json(200, {"ok": True, "meta": result})
             return
-        if path in {"/codex-manual-client-carousel-v1", "/codex-manual-client-carousel-v2"}:
+        if path in {"/codex-manual-client-carousel-v1", "/codex-manual-client-carousel-v2", "/codex-manual-client-carousel-v3"}:
             payload = self.read_authorized_json()
             if payload is None:
                 return
@@ -6538,7 +6753,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(400, {"error": "language must be ru or en"})
                 return
             try:
-                result = send_client_carousel_v2(to, language)
+                result = send_client_carousel_v3(to, language)
             except Exception as exc:
                 self.send_json(502, {"ok": False, "error": str(exc)})
                 return
