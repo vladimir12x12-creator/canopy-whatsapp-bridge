@@ -1221,14 +1221,20 @@ def agent_intro_video_caption(language="en"):
 
 Это большой семейный дом для жизни, а не вилла на отпуск: 650-750 м², спальни около 20-30 м², приватность, шумо- и теплоизоляция, хранение, laundry, Thai kitchen и крытая зона у бассейна.
 
-Важный аргумент для hillside-формата: участок остается юзабельным, а структура виллы и платформы помогает снизить риски намокания грунта, подтоплений и движения склона."""
+Важный аргумент для hillside-формата: участок остается юзабельным, а структура виллы и платформы помогает снизить риски намокания грунта, подтоплений и движения склона.
+
+SalesKit для агентов:
+https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5"""
     return """Canopy Hills Villas is a club-style estate of 9 view villas on a hillside near British International School Phuket and other international schools.
 
 It fits families who live in Phuket or plan to relocate: open valley, lake, hill and sunset views, with schools, Central, marinas, golf, sport and daily family infrastructure nearby.
 
 This is a large family home for everyday living, not a holiday villa: 650-750 sqm homes, 20-30 sqm bedrooms, privacy, sound/thermal insulation, storage, laundry, Thai kitchen and a covered poolside area.
 
-For a hillside project, the usable land is important: the villa/platform structure helps reduce exposure to wet soil, flooding and slope movement risks."""
+For a hillside project, the usable land is important: the villa/platform structure helps reduce exposure to wet soil, flooding and slope movement risks.
+
+Agent SalesKit:
+https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5"""
 
 
 def client_intro_video_caption(language="en"):
@@ -1702,7 +1708,6 @@ def send_agent_welcome_pack(to, language="en"):
     results = []
     sends = [
         ("agent-intro-video", lambda: send_agent_intro_video(to, language)),
-        ("agent-presentation-pdf", lambda: send_project_presentation_document(to, language)),
         ("agent-carousel-v12", lambda: send_agent_carousel_v12(to, language)),
     ]
     for label, send in sends:
