@@ -1215,7 +1215,7 @@ def is_agent_materials_scenario(text):
 
 def agent_intro_video_caption(language="en"):
     if language == "ru":
-        return """Canopy Hills Villas - клубный поселок из 9 видовых вилл на холме в Ko Kaeo, рядом с BISP и другими международными школами. Из вилл открываются виды на зеленую долину, озера, холмы и закат.
+        return """Canopy Hills Villas - клубный поселок из 9 видовых вилл на холме, рядом с British International School Phuket и другими международными школами. Из вилл открываются виды на зеленую долину, озера, холмы и закат.
 
 Проект хорошо подходит семьям с детьми и клиентам, которые живут на Пхукете или планируют переезд: рядом школы, Central, марины, гольф и вся повседневная инфраструктура. При этом локация спокойная, зеленая и без туристической суеты.
 
@@ -1225,7 +1225,7 @@ def agent_intro_video_caption(language="en"):
 
 Full Sales Kit:
 https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5"""
-    return """Canopy Hills Villas is a club-style estate of 9 view villas on a hillside in Ko Kaeo, close to BISP and other international schools. The villas open to views of the green valley, lakes, hills and sunset.
+    return """Canopy Hills Villas is a club-style estate of 9 view villas on a hillside, close to British International School Phuket and other international schools. The villas open to views of the green valley, lakes, hills and sunset.
 
 The project is a strong fit for families with children and clients who live in Phuket or plan to relocate: schools, Central, marinas, golf and everyday infrastructure are all nearby, while the location remains quiet, green and away from tourist areas.
 
@@ -1235,6 +1235,30 @@ It is worth offering to clients who value views, space, quiet surroundings, conv
 
 Full Sales Kit:
 https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5"""
+
+
+def client_intro_video_caption(language="en"):
+    if language == "ru":
+        return """Canopy Hills Villas - клубный поселок из 9 видовых вилл на холме, рядом с British International School Phuket и повседневной инфраструктурой центральной части Пхукета.
+
+Проект создан для долгосрочной семейной жизни на острове: просторные виллы, приватные участки, открытые виды на зеленую долину, озера, холмы и закат, спокойная среда без туристической суеты.
+
+Это не формат короткой отпускной виллы, а большой дом для жизни: 4+1 и 5+1 спальни, просторные общие зоны, потолок 7 м в гостиной, качественные материалы, хорошая шумо- и теплоизоляция и много места для хранения.
+
+Если Вы рассматриваете дом для семьи, переезда на Пхукет, жизни рядом со школами или как редкий видовой актив для долгосрочного спроса, Canopy Hills стоит посмотреть отдельно.
+
+Презентация проекта:
+https://drive.google.com/file/d/1jlBF9tc1mtX-ygI1kletcuqf9skex58T/view"""
+    return """Canopy Hills Villas is a club-style estate of 9 hillside view villas, close to British International School Phuket and the everyday infrastructure of central Phuket.
+
+The project is designed for long-term family living on the island: spacious villas, private land plots, open views over the green valley, lakes, hills and sunset, and a calm residential setting away from tourist noise.
+
+This is not a compact holiday-villa format, but a large home for daily life: 4+1 and 5+1 bedrooms, generous shared spaces, a 7m living-room ceiling, quality materials, strong sound and thermal insulation, and practical storage.
+
+If you are considering a home for your family, relocation to Phuket, school-side living or a rare view residence with long-term demand, Canopy Hills is worth reviewing in detail.
+
+Project presentation:
+https://drive.google.com/file/d/1c1djBre5fRbmeoLXPsLYAczRFFIXbUvL/view"""
 
 
 def agent_carousel_template(language="en"):
@@ -1446,6 +1470,15 @@ def send_agent_intro_video(to, language="en"):
     )
 
 
+def send_client_intro_video(to, language="en"):
+    return send_whatsapp_media(
+        to,
+        "video",
+        f"{BASE_URL}/assets/agent_intro_video.mp4",
+        client_intro_video_caption(language),
+    )
+
+
 def agent_layout_document_caption(language="en"):
     if language == "ru":
         return "Читаемая PDF-планировка для увеличения и пересылки клиенту."
@@ -1527,6 +1560,24 @@ def send_agent_welcome_pack(to, language="en"):
     sends = [
         ("agent-intro-video", lambda: send_agent_intro_video(to, language)),
         ("agent-carousel-v10", lambda: send_agent_carousel_v10(to, language)),
+    ]
+    for label, send in sends:
+        try:
+            meta = send()
+            if isinstance(meta, list):
+                results.extend({"label": item.get("label", label), "ok": True, "meta": item.get("meta", item)} for item in meta)
+            else:
+                results.append({"label": label, "ok": True, "meta": meta})
+        except Exception as exc:
+            results.append({"label": label, "ok": False, "error": str(exc)})
+    return results
+
+
+def send_client_welcome_pack(to, language="en"):
+    results = []
+    sends = [
+        ("client-intro-video", lambda: send_client_intro_video(to, language)),
+        ("client-carousel-v1", lambda: send_client_carousel_v1(to, language)),
     ]
     for label, send in sends:
         try:
@@ -6288,6 +6339,28 @@ class Handler(BaseHTTPRequestHandler):
                 return
             try:
                 result = send_agent_welcome_pack(to, language)
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc)})
+                return
+            self.send_json(200, {"ok": all(item.get("ok") for item in result), "results": result})
+            return
+        if path == "/codex-manual-client-welcome-pack":
+            payload = self.read_authorized_json()
+            if payload is None:
+                return
+            if self.headers.get("X-Codex-Manual-Send", "") != "1":
+                self.send_json(403, {"error": "manual send header is required"})
+                return
+            to = str(payload.get("to", "")).strip()
+            language = str(payload.get("language", "ru")).strip().lower()
+            if to != "66628512432":
+                self.send_json(403, {"error": "manual Codex client pack is restricted to Vladimir"})
+                return
+            if language not in {"ru", "en"}:
+                self.send_json(400, {"error": "language must be ru or en"})
+                return
+            try:
+                result = send_client_welcome_pack(to, language)
             except Exception as exc:
                 self.send_json(502, {"ok": False, "error": str(exc)})
                 return
