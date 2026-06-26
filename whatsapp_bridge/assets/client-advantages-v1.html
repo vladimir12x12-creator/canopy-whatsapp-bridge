@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Canopy Hills | Client Advantages</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17231d;
+      --muted: #657067;
+      --line: #d9ded7;
+      --bg: #f7f8f4;
+      --panel: #ffffff;
+      --accent: #5f7f31;
+      --accent-dark: #33491f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.45;
+    }
+    header {
+      padding: 26px 18px 18px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+    }
+    .wrap {
+      width: min(1080px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--accent-dark);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+    .lead {
+      max-width: 780px;
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 17px;
+    }
+    nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 16px 0 4px;
+    }
+    nav a, .cta a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    nav a:hover, .cta a:hover { border-color: var(--accent); }
+    section {
+      padding: 30px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    h2 {
+      margin: 0 0 8px;
+      font-size: clamp(24px, 3vw, 34px);
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.02fr) minmax(300px, .98fr);
+      gap: 24px;
+      align-items: start;
+    }
+    .copy p { margin: 0 0 12px; }
+    .point {
+      padding: 14px 16px;
+      border-left: 4px solid var(--accent);
+      background: #fff;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+    .client-line {
+      margin-top: 14px;
+      padding: 14px 16px;
+      background: #edf2e6;
+      border-radius: 6px;
+      color: var(--accent-dark);
+      font-weight: 700;
+    }
+    .visual {
+      display: grid;
+      gap: 10px;
+    }
+    .visual img {
+      width: 100%;
+      display: block;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: #e9ece6;
+    }
+    .thumbs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .thumbs img { aspect-ratio: 16 / 10; }
+    .cta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    .cta a.primary {
+      background: var(--accent-dark);
+      border-color: var(--accent-dark);
+      color: #fff;
+    }
+    @media (max-width: 760px) {
+      .grid { grid-template-columns: 1fr; }
+      .thumbs { grid-template-columns: 1fr; }
+    }
+    body.focus-mode header .lead,
+    body.focus-mode header nav,
+    body.focus-mode main > section { display: none; }
+    body.focus-mode main > section:target { display: block; }
+    body.focus-mode header {
+      padding-bottom: 14px;
+    }
+    body.focus-mode header h1 {
+      font-size: 24px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <p class="eyebrow">Canopy Hills Villas Phuket</p>
+      <h1>Ключевые преимущества Canopy Hills для жизни на Пхукете</h1>
+      <p class="lead">Короткая версия для покупателя: что важно в проекте, если выбирать дом для семьи, приватности, комфорта и долгосрочной ценности.</p>
+      <nav aria-label="Advantages">
+        <a href="#estate">9 резиденций</a>
+        <a href="#views">Виды</a>
+        <a href="#plots">Участки</a>
+        <a href="#scale">Простор</a>
+        <a href="#living">7 м гостиная</a>
+        <a href="#investment">Локация</a>
+        <a href="#location">Среда</a>
+        <a href="#insulation">Комфорт</a>
+        <a href="#l-layout">L-size</a>
+        <a href="#xl-layout">XL-size</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section id="estate">
+      <div class="wrap grid">
+        <div class="copy">
+          <h2>9 видовых резиденций на холме</h2>
+          <div class="point">Canopy Hills - клубный поселок из 9 домов для постоянной жизни на Пхукете: приватность, виды и спокойная среда.</div>
+          <p>Небольшой формат важен для семейной жизни: меньше соседей, спокойнее атмосфера и проще сохранять ощущение частного дома, а не большого village.</p>
+          <p>Проект расположен на холме, поэтому каждая резиденция воспринимается не только как дом, но и как личное пространство с воздухом, зеленью и открытой перспективой.</p>
+          <div class="client-line">Подходит тем, кто ищет не туристическую виллу на короткий сезон, а редкую резиденцию для жизни на Пхукете.</div>
+          <div class="cta"><a class="primary" href="https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5">Sales Kit</a><a href="#views">Следующее преимущество</a></div>
+        </div>
+        <div class="visual">
+          <img src="carousel_v9_detail/card_01_main.jpg" alt="Canopy Hills top view">
+          <div class="thumbs">
+            <img src="carousel_v9_detail/card_01_support_1.jpg" alt="Canopy Hills hillside perspective">
+            <img src="carousel_v9_detail/card_01_support_2.jpg" alt="Canopy Hills village scale">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="views">
+      <div class="wrap grid">
+        <div class="copy">
+          <h2>Открытые виды каждый день</h2>
+          <div class="point">Долина, озера, холмы и закат - не как бонус, а как ежедневное ощущение пространства дома.</div>
+          <p>Вид нельзя добавить после покупки. Именно поэтому видовая позиция Canopy Hills является частью ценности дома, а не просто красивой картинкой в презентации.</p>
+          <p>Открытая перспектива меняет ощущение жизни: больше света, больше воздуха, больше дистанции от соседей и туристического шума.</p>
+          <div class="client-line">Если для вас важны приватность, тишина и ощущение пространства, виды здесь являются одним из главных аргументов.</div>
+          <div class="cta"><a class="primary" href="https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5">Sales Kit</a><a href="#plots">Про участки</a></div>
+        </div>
+        <div class="visual">
+          <img src="carousel_v9_detail/card_02_main.jpg" alt="Canopy Hills sunset view">
+          <div class="thumbs">
+            <img src="carousel_v9_detail/card_02_support_1.jpg" alt="Canopy Hills real daytime view">
+            <img src="carousel_v9_detail/card_02_support_2.jpg" alt="Canopy Hills view terrace">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="plots">
+      <div class="wrap grid">
+        <div class="copy">
+          <h2>Большие приватные участки</h2>
+          <div class="point">Участки около 670-1,214 м² дают больше воздуха, приватности, сада, террас и outdoor-сценариев.</div>
+          <p>Большой участок важен не только как цифра в спецификации. Он определяет, насколько комфортно жить с семьей: где отдыхать, где принимать гостей, где детям проводить время на улице.</p>
+          <p>Пространство вокруг дома помогает сохранить приватность и дает больше гибкости для повседневной жизни, сада, бассейна, террас и парковки.</p>
+          <div class="client-line">Это дом, где внешнее пространство работает как полноценная часть жизни, а не как узкая декоративная зона.</div>
+          <div class="cta"><a class="primary" href="https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5">Sales Kit</a><a href="#scale">Форматы домов</a></div>
+        </div>
+        <div class="visual">
+          <img src="carousel_v9_detail/card_03_main.jpg" alt="Canopy Hills usable plot">
+          <div class="thumbs">
+            <img src="carousel_v9_detail/card_03_support_1.jpg" alt="Canopy Hills exterior and plot at night">
+            <img src="carousel_v9_detail/card_03_support_2.jpg" alt="Canopy Hills usable land context">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="scale">
+      <div class="wrap grid">
+        <div class="copy">
+          <h2>Простор для семьи</h2>
+          <div class="point">Два формата: L-size около 650 м² и XL-size около 750 м² - под разные семейные сценарии.</div>
+          <p>L-size подойдет семье, которой нужен большой дом с 4+1 спальнями, общими зонами, террасами и бассейном. XL-size дает больше масштаба: 5+1 спальни, больше пространства для гостей, работы и личной приватности.</p>
+          <p>Это не компактная holiday villa, а полноценная резиденция, где у каждого члена семьи есть свое пространство.</p>
+          <div class="client-line">Формат дома можно выбирать по реальному образу жизни: семья, гости, работа из дома, long stay или постоянное проживание.</div>
+          <div class="cta"><a class="primary" href="#l-layout">L-size</a><a class="primary" href="#xl-layout">XL-size</a></div>
+        </div>
+        <div class="visual">
+          <img src="carousel_v9_detail/card_04_main.jpg" alt="Canopy Hills bedroom">
+          <div class="thumbs">
+            <img src="carousel_v9_detail/card_04_support_1.jpg" alt="Canopy Hills private bedroom">
+            <img src="carousel_v9_detail/card_04_support_2.jpg" alt="Canopy Hills hall gallery">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="living">
+      <div class="wrap grid">
+        <div class="copy">
+          <h2>Гостиная с потолком 7 м</h2>
+          <div class="point">Главное пространство дома: свет, воздух, вид и ощущение настоящей резиденции.</div>
+          <p>Гостиная с двойной высотой создает масштаб, который чувствуется сразу на входе. Это место для семьи, гостей, спокойных вечеров и повседневной жизни с открытой перспективой.</p>
+          <p>В премиальном доме важны не только спальни и метраж. Главное общее пространство должно давать эмоцию, свет и ощущение уровня.</p>
+          <div class="client-line">Это та часть дома, которую сложно передать цифрами, но легко почувствовать на просмотре.</div>
+          <div class="cta"><a class="primary" href="https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5">Sales Kit</a><a href="#investment">Локация</a></div>
+        </div>
+        <div class="visual">
+          <img src="carousel_v9_detail/card_05_main.jpg" alt="Canopy Hills 7m living room">
+          <div class="thumbs">
+            <img src="carousel_v9_detail/card_05_support_1.jpg" alt="Canopy Hills living room interior">
+            <img src="carousel_v9_detail/card_05_support_2.jpg" alt="Canopy Hills open living space">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="investment">
+      <div class="wrap grid">
+        <div class="copy">
+          <h2>Локация для жизни и долгосрочного спроса</h2>
+          <div class="point">Рядом British International School Phuket, международные школы и ежедневная инфраструктура.</div>
+          <p>Для семьи на Пхукете локация рядом со школами и повседневной инфраструктурой часто важнее близости к туристическим пляжам.</p>
+          <p>Такая позиция поддерживает не только удобство жизни, но и долгосрочный спрос: дома рядом с международными школами понятны семьям, которые переезжают на остров надолго.</p>
+          <div class="client-line">Canopy Hills удобно рассматривать как дом для жизни, а не только как объект для сезонного отдыха.</div>
+          <div class="cta"><a class="primary" href="https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5">Sales Kit</a><a href="#location">Среда вокруг</a></div>
+        </div>
+        <div class="visual">
+          <img src="carousel_v9_detail/card_06_main.jpg" alt="Canopy Hills family location">
+          <div class="thumbs">
+            <img src="carousel_v9_detail/card_06_support_1.jpg" alt="Canopy Hills Phuket location">
+            <img src="carousel_v9_detail/card_06_support_2.jpg" alt="Canopy Hills long-term demand">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="location">
+      <div class="wrap grid">
+        <div class="copy">
+          <h2>Спокойная зеленая среда</h2>
+          <div class="point">Жилая локация вдали от туристического шума, но рядом с тем, что нужно каждый день.</div>
+          <p>Canopy Hills ориентирован на спокойную повседневную жизнь: зелень, приватность, холм, виды и доступ к инфраструктуре без ощущения плотной туристической зоны.</p>
+          <p>Это особенно важно для семей, которые выбирают Пхукет как место для жизни, учебы детей и долгого пребывания.</p>
+          <div class="client-line">Смысл локации - не название района, а качество ежедневной среды рядом с домом.</div>
+          <div class="cta"><a class="primary" href="https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5">Sales Kit</a><a href="#insulation">Комфорт дома</a></div>
+        </div>
+        <div class="visual">
+          <img src="carousel_v9_detail/card_07_main.jpg" alt="Canopy Hills green residential setting">
+          <div class="thumbs">
+            <img src="carousel_v9_detail/card_07_support_1.jpg" alt="Canopy Hills green surroundings">
+            <img src="carousel_v9_detail/card_07_support_2.jpg" alt="Canopy Hills calm environment">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="insulation">
+      <div class="wrap grid">
+        <div class="copy">
+          <h2>Комфорт внутри дома</h2>
+          <div class="point">Шумо- и теплоизоляция, материалы и инженерия рассчитаны на повседневную жизнь, а не только на красивый визуал.</div>
+          <p>Для постоянного проживания на Пхукете важны детали, которые не всегда видны на рендерах: температура внутри дома, тишина, качество материалов, инженерия и эксплуатационный комфорт.</p>
+          <p>Canopy Hills делает акцент на доме как на месте для ежедневной жизни: спокойные спальни, комфортные общие зоны и более предсказуемое ощущение внутри в жарком климате.</p>
+          <div class="client-line">Красивый вид привлекает внимание, но качество жизни каждый день создают инженерия и комфорт внутри дома.</div>
+          <div class="cta"><a class="primary" href="https://drive.google.com/drive/folders/1oSpCppxgLdRXUrHyxn8tFftyPLB4PiP5">Sales Kit</a><a href="#l-layout">L-size</a></div>
+        </div>
+        <div class="visual">
+          <img src="carousel_v9_detail/card_08_main.jpg" alt="Canopy Hills interior comfort">
+          <div class="thumbs">
+            <img src="carousel_v9_detail/card_08_support_1.jpg" alt="Canopy Hills materials and comfort">
+            <img src="carousel_v9_detail/card_08_support_2.jpg" alt="Canopy Hills bedroom comfort">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="l-layout">
+      <div class="wrap grid">
+        <div class="copy">
+          <h2>L-size: семейная резиденция</h2>
+          <div class="point">Около 650 м², 4+1 спальни, просторные общие зоны, террасы, бассейн и вид.</div>
+          <p>L-size - это сбалансированный формат для семьи: достаточно пространства для жизни, гостей, работы из дома и отдыха, без ощущения избыточного масштаба.</p>
+          <p>Планировка подходит для покупателей, которым нужен полноценный дом на Пхукете с приватностью и понятным ежедневным сценарием.</p>
+          <div class="client-line">Хороший выбор для семьи, которая хочет жить просторно, но рационально.</div>
+          <div class="cta"><a class="primary" href="canopy_layouts_l.html">Открыть L layout</a><a href="#xl-layout">XL-size</a></div>
+        </div>
+        <div class="visual">
+          <img src="carousel_v9_main/card_09.jpg" alt="Canopy Hills L-size layout">
+        </div>
+      </div>
+    </section>
+
+    <section id="xl-layout">
+      <div class="wrap grid">
+        <div class="copy">
+          <h2>XL-size: больше масштаба</h2>
+          <div class="point">Около 750 м², 5+1 спальни, больше пространства для семьи, гостей, работы и приватной жизни.</div>
+          <p>XL-size подходит тем, кому нужен максимум личного пространства: больше спален, больше гибкости, больше возможностей разделить семейные, гостевые и рабочие зоны.</p>
+          <p>Это формат для покупателей, которые хотят не просто виллу, а крупную резиденцию на Пхукете с запасом пространства на годы вперед.</p>
+          <div class="client-line">Выбор для семьи, которой важны масштаб, приватность и гибкость дома.</div>
+          <div class="cta"><a class="primary" href="canopy_layouts_xl.html">Открыть XL layout</a><a href="#estate">В начало</a></div>
+        </div>
+        <div class="visual">
+          <img src="carousel_v9_main/card_10.jpg" alt="Canopy Hills XL-size layout">
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    if (window.location.hash) {
+      document.body.classList.add("focus-mode");
+    }
+    window.addEventListener("hashchange", function () {
+      document.body.classList.toggle("focus-mode", Boolean(window.location.hash));
+    });
+  </script>
+</body>
+</html>

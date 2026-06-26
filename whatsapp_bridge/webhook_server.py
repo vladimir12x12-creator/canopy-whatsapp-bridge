@@ -1399,6 +1399,40 @@ def send_agent_carousel_v10(to, language="en"):
     )
 
 
+def send_client_carousel_v1(to, language="en"):
+    base = f"{BASE_URL}/assets/carousel_v9_main"
+    image_names = [f"card_{index:02d}.jpg" for index in range(1, 11)]
+    components = [
+        {
+            "type": "carousel",
+            "cards": [
+                {
+                    "card_index": index,
+                    "components": [
+                        {
+                            "type": "header",
+                            "parameters": [
+                                {
+                                    "type": "image",
+                                    "image": {"link": f"{base}/{name}"},
+                                }
+                            ],
+                        }
+                    ],
+                }
+                for index, name in enumerate(image_names)
+            ],
+        },
+    ]
+    template_language = "ru" if language == "ru" else "en_US"
+    return send_whatsapp_template(
+        to,
+        "canopy_client_advantages_carousel_10_v1",
+        template_language,
+        components,
+    )
+
+
 def send_agent_carousel_v6(to):
     return send_agent_carousel_v7(to, "en")
 
@@ -2410,6 +2444,12 @@ def canopy_template_payload(template_key):
 
     def carousel_advantage_buttons_v2_ru(slug):
         return [{"type": "URL", "text": "Узнать подробнее", "url": f"{BASE_URL}/assets/advantages-v2.html#{slug}"}]
+
+    def client_advantage_buttons_v1(slug):
+        return [{"type": "URL", "text": "Learn more", "url": f"{BASE_URL}/assets/client-advantages-v1.html#{slug}"}]
+
+    def client_advantage_buttons_v1_ru(slug):
+        return [{"type": "URL", "text": "Узнать подробнее", "url": f"{BASE_URL}/assets/client-advantages-v1.html#{slug}"}]
 
     carousel_xl_layout_more_buttons = [
         {"type": "URL", "text": "Learn more", "url": f"{BASE_URL}/assets/canopy_layouts_xl.html"},
@@ -3915,6 +3955,52 @@ def canopy_template_payload(template_key):
                 },
             ],
         },
+        "client_advantages_carousel_10_v1_en": {
+            "name": "canopy_client_advantages_carousel_10_v1",
+            "language": "en_US",
+            "category": "MARKETING",
+            "components": [
+                {"type": "BODY", "text": "Key Canopy Hills advantages for living in Phuket:"},
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card("__CAROUSEL10V3_ESTATE_HANDLE__", "9 view residences on the hillside", buttons=client_advantage_buttons_v1("estate")),
+                        carousel_image_card("__CAROUSEL10V3_VIEW_HANDLE__", "Open views every day", buttons=client_advantage_buttons_v1("views")),
+                        carousel_image_card("__CAROUSEL10V3_PLOTS_HANDLE__", "Large private land plots", buttons=client_advantage_buttons_v1("plots")),
+                        carousel_image_card("__CAROUSEL10V3_SCALE_HANDLE__", "Space for family life", buttons=client_advantage_buttons_v1("scale")),
+                        carousel_image_card("__CAROUSEL10V3_LIVING_HANDLE__", "Living room with 7m ceiling", buttons=client_advantage_buttons_v1("living")),
+                        carousel_image_card("__CAROUSEL10V3_INVEST_HANDLE__", "Location for life and long-term demand", buttons=client_advantage_buttons_v1("investment")),
+                        carousel_image_card("__CAROUSEL10V3_GREEN_HANDLE__", "Calm green residential setting", buttons=client_advantage_buttons_v1("location")),
+                        carousel_image_card("__CAROUSEL10V3_INSULATION_HANDLE__", "Comfort inside the home", buttons=client_advantage_buttons_v1("insulation")),
+                        carousel_image_card("__CAROUSEL10V3_L_LAYOUT_HANDLE__", "L-size family residence", buttons=client_advantage_buttons_v1("l-layout")),
+                        carousel_image_card("__CAROUSEL10V3_XL_LAYOUT_HANDLE__", "XL-size with more scale", buttons=client_advantage_buttons_v1("xl-layout")),
+                    ],
+                },
+            ],
+        },
+        "client_advantages_carousel_10_v1_ru": {
+            "name": "canopy_client_advantages_carousel_10_v1",
+            "language": "ru",
+            "category": "MARKETING",
+            "components": [
+                {"type": "BODY", "text": "Ключевые преимущества Canopy Hills для жизни на Пхукете:"},
+                {
+                    "type": "CAROUSEL",
+                    "cards": [
+                        carousel_image_card("__CAROUSEL10V3_ESTATE_HANDLE__", "9 видовых резиденций на холме", buttons=client_advantage_buttons_v1_ru("estate")),
+                        carousel_image_card("__CAROUSEL10V3_VIEW_HANDLE__", "Открытые виды каждый день", buttons=client_advantage_buttons_v1_ru("views")),
+                        carousel_image_card("__CAROUSEL10V3_PLOTS_HANDLE__", "Большие приватные участки", buttons=client_advantage_buttons_v1_ru("plots")),
+                        carousel_image_card("__CAROUSEL10V3_SCALE_HANDLE__", "Простор для семьи", buttons=client_advantage_buttons_v1_ru("scale")),
+                        carousel_image_card("__CAROUSEL10V3_LIVING_HANDLE__", "Гостиная с потолком 7 м", buttons=client_advantage_buttons_v1_ru("living")),
+                        carousel_image_card("__CAROUSEL10V3_INVEST_HANDLE__", "Локация для жизни и долгосрочного спроса", buttons=client_advantage_buttons_v1_ru("investment")),
+                        carousel_image_card("__CAROUSEL10V3_GREEN_HANDLE__", "Спокойная зеленая среда", buttons=client_advantage_buttons_v1_ru("location")),
+                        carousel_image_card("__CAROUSEL10V3_INSULATION_HANDLE__", "Комфорт внутри дома", buttons=client_advantage_buttons_v1_ru("insulation")),
+                        carousel_image_card("__CAROUSEL10V3_L_LAYOUT_HANDLE__", "L-size: семейная резиденция", buttons=client_advantage_buttons_v1_ru("l-layout")),
+                        carousel_image_card("__CAROUSEL10V3_XL_LAYOUT_HANDLE__", "XL-size: больше масштаба", buttons=client_advantage_buttons_v1_ru("xl-layout")),
+                    ],
+                },
+            ],
+        },
         "agent_intro_carousel_test": {
             "name": "canopy_agent_intro_carousel_test",
             "language": "en_US",
@@ -4360,12 +4446,16 @@ def create_canopy_template(template_key):
         "agent_advantages_carousel_10_v9_ru",
         "agent_advantages_carousel_10_v10_en",
         "agent_advantages_carousel_10_v10_ru",
+        "client_advantages_carousel_10_v1_en",
+        "client_advantages_carousel_10_v1_ru",
     ):
         if template_key in (
             "agent_advantages_carousel_10_v9_en",
             "agent_advantages_carousel_10_v9_ru",
             "agent_advantages_carousel_10_v10_en",
             "agent_advantages_carousel_10_v10_ru",
+            "client_advantages_carousel_10_v1_en",
+            "client_advantages_carousel_10_v1_ru",
         ):
             carousel_samples = [
                 ("__CAROUSEL10V3_ESTATE_HANDLE__", ASSET_DIR / "carousel_v9_main/card_01.jpg"),
@@ -6038,6 +6128,27 @@ class Handler(BaseHTTPRequestHandler):
             result = whatsapp_templates("canopy_agent_advantages_carousel_10_v10")
             self.send_json(200 if result.get("ok") else 502, result)
             return
+        if path == "/create-client-carousel-v1-en-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = create_canopy_template("client_advantages_carousel_10_v1_en")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/create-client-carousel-v1-ru-template-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = create_canopy_template("client_advantages_carousel_10_v1_ru")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
+        if path == "/client-carousel-v1-template-status-test":
+            if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            result = whatsapp_templates("canopy_client_advantages_carousel_10_v1")
+            self.send_json(200 if result.get("ok") else 502, result)
+            return
         if path == "/create-agent-video-cta-template-test":
             if self.headers.get("X-Agent-Test", "") != "canopy-agent-packet-v1":
                 self.send_json(401, {"error": "unauthorized"})
@@ -6133,6 +6244,28 @@ class Handler(BaseHTTPRequestHandler):
                 return
             try:
                 result = send_agent_carousel_v10(to, language)
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc)})
+                return
+            self.send_json(200, {"ok": True, "meta": result})
+            return
+        if path == "/codex-manual-client-carousel-v1":
+            payload = self.read_authorized_json()
+            if payload is None:
+                return
+            if self.headers.get("X-Codex-Manual-Send", "") != "1":
+                self.send_json(403, {"error": "manual send header is required"})
+                return
+            to = str(payload.get("to", "")).strip()
+            language = str(payload.get("language", "ru")).strip().lower()
+            if to != "66628512432":
+                self.send_json(403, {"error": "manual Codex client carousel is restricted to Vladimir"})
+                return
+            if language not in {"ru", "en"}:
+                self.send_json(400, {"error": "language must be ru or en"})
+                return
+            try:
+                result = send_client_carousel_v1(to, language)
             except Exception as exc:
                 self.send_json(502, {"ok": False, "error": str(exc)})
                 return
