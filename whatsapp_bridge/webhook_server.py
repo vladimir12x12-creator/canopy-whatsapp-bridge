@@ -1210,7 +1210,7 @@ def send_whatsapp_template(to, template_name, language_code="en_US", components=
         "type": "template",
         "template": template,
     }
-    response = send_whatsapp_payload(payload)
+    response = send_whatsapp_payload_with_test_recipient_alias(payload, to)
     label = f"template:{template_name}:{language_code}"
     store_outbound_message(to, "template", label, response, "Outbound template sent from bridge.")
     return response
@@ -1231,7 +1231,7 @@ def send_whatsapp_media(to, media_type, link, caption="", filename=""):
         "type": media_type,
         media_type: media,
     }
-    response = send_whatsapp_payload(payload)
+    response = send_whatsapp_payload_with_test_recipient_alias(payload, to)
     label = f"{media_type}:{link}"
     store_outbound_message(to, media_type, label, response, "Outbound media sent from bridge.")
     return response
