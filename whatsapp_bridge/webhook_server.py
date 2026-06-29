@@ -1683,6 +1683,45 @@ def send_client_carousel_v3(to, language="en"):
     )
 
 
+def send_visual_advantage_image_pack(to, language="en", audience="client"):
+    if audience not in {"agent", "client"}:
+        raise ValueError("audience must be agent or client")
+    folder = "carousel_v9_main" if audience == "agent" else "carousel_v10_main"
+    base = f"{BASE_URL}/assets/{folder}"
+    results = []
+    for index in range(1, 11):
+        results.append(
+            {
+                "label": f"{audience}-visual-card-{index:02d}",
+                "meta": send_whatsapp_media(
+                    to,
+                    "image",
+                    f"{base}/card_{index:02d}.jpg",
+                    "",
+                ),
+            }
+        )
+    return results
+
+
+def send_agent_visual_advantages(to, language="en"):
+    try:
+        return send_agent_carousel_v12(to, language)
+    except RuntimeError as exc:
+        if "standalone dot BODY" not in str(exc):
+            raise
+        return send_visual_advantage_image_pack(to, language, "agent")
+
+
+def send_client_visual_advantages(to, language="en"):
+    try:
+        return send_client_carousel_v3(to, language)
+    except RuntimeError as exc:
+        if "standalone dot BODY" not in str(exc):
+            raise
+        return send_visual_advantage_image_pack(to, language, "client")
+
+
 def send_agent_carousel_v6(to):
     return send_agent_carousel_v7(to, "en")
 
@@ -1804,7 +1843,7 @@ def send_agent_welcome_pack(to, language="en"):
     results = []
     sends = [
         ("agent-intro-video", lambda: send_agent_intro_video(to, language)),
-        ("agent-carousel-v12", lambda: send_agent_carousel_v12(to, language)),
+        ("agent-visual-advantages", lambda: send_agent_visual_advantages(to, language)),
     ]
     for label, send in sends:
         try:
@@ -1823,7 +1862,7 @@ def send_client_welcome_pack(to, language="en"):
     sends = [
         ("client-intro-video", lambda: send_client_intro_video(to, language)),
         ("client-presentation-pdf", lambda: send_project_presentation_document(to, language)),
-        ("client-carousel-v3", lambda: send_client_carousel_v3(to, language)),
+        ("client-visual-advantages", lambda: send_client_visual_advantages(to, language)),
     ]
     for label, send in sends:
         try:
