@@ -63,6 +63,8 @@ Endpoints:
 - `POST /send-text` - disabled legacy free-text relay; returns 410 because WhatsApp is transport only.
 - `POST /codex-manual-text` - protected manual Codex text to Vladimir/operator only.
 - `POST /codex-manual-lead-text` - protected manual Codex text to an external lead/contact with an existing inbound conversation and an open 24-hour customer-service window.
+- `POST /codex-manual-lead-agent-welcome-pack` - protected manual agent package attempt for an external lead/contact with an existing inbound conversation and an open 24-hour customer-service window. Current carousel may return a blocker if the only available template has a visible dot body.
+- `POST /codex-manual-lead-client-welcome-pack` - protected manual client package attempt for an external lead/contact with an existing inbound conversation and an open 24-hour customer-service window. Current carousel may return a blocker if the only available template has a visible dot body.
 - `POST /send-template` - protected outbound template send for first contact or closed windows.
 - `POST /send-media` - protected outbound image/video/document send by public HTTPS link. Use only inside a 24-hour customer-service window.
 - `POST /create-canopy-template` - protected helper to submit built-in Canopy templates to Meta.

@@ -6888,6 +6888,52 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self.send_json(200, {"ok": all(item.get("ok") for item in result), "results": result})
             return
+        if path == "/codex-manual-lead-agent-welcome-pack":
+            payload = self.read_authorized_json()
+            if payload is None:
+                return
+            if self.headers.get("X-Codex-Manual-Send", "") != "1":
+                self.send_json(403, {"error": "manual send header is required"})
+                return
+            to = str(payload.get("to", "")).strip()
+            language = str(payload.get("language", "ru")).strip().lower()
+            if language not in {"ru", "en"}:
+                self.send_json(400, {"error": "language must be ru or en"})
+                return
+            code, validation = validate_manual_lead_text_target(to)
+            if code is not None:
+                self.send_json(code, validation)
+                return
+            try:
+                result = send_agent_welcome_pack(to, language)
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc), **validation})
+                return
+            self.send_json(200, {"ok": all(item.get("ok") for item in result), "results": result, **validation})
+            return
+        if path == "/codex-manual-lead-client-welcome-pack":
+            payload = self.read_authorized_json()
+            if payload is None:
+                return
+            if self.headers.get("X-Codex-Manual-Send", "") != "1":
+                self.send_json(403, {"error": "manual send header is required"})
+                return
+            to = str(payload.get("to", "")).strip()
+            language = str(payload.get("language", "ru")).strip().lower()
+            if language not in {"ru", "en"}:
+                self.send_json(400, {"error": "language must be ru or en"})
+                return
+            code, validation = validate_manual_lead_text_target(to)
+            if code is not None:
+                self.send_json(code, validation)
+                return
+            try:
+                result = send_client_welcome_pack(to, language)
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc), **validation})
+                return
+            self.send_json(200, {"ok": all(item.get("ok") for item in result), "results": result, **validation})
+            return
         if path == "/codex-fetch-latest-audio":
             payload = self.read_authorized_json()
             if payload is None:
