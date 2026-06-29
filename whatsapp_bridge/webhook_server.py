@@ -117,6 +117,7 @@ AI_OPERATOR_WA_IDS = {
 AI_AGENT_WA_ID_ALLOWLIST = {
     x.strip() for x in os.environ.get("AI_AGENT_WA_ID_ALLOWLIST", "").split(",") if x.strip()
 }
+MANUAL_LEAD_TEXT_WINDOW_HOURS = int(os.environ.get("MANUAL_LEAD_TEXT_WINDOW_HOURS", "24"))
 
 
 def utc_now():
@@ -992,6 +993,52 @@ def send_whatsapp_text(to, body):
     response = send_whatsapp_payload(payload)
     store_outbound_message(to, "text", body, response, "Outbound text sent from bridge.")
     return response
+
+
+def latest_inbound_for_contact(wa_id):
+    con = db()
+    row = con.execute(
+        """
+        SELECT id, wa_id, message_type, text, received_at
+        FROM messages
+        WHERE wa_id = ? AND direction = 'inbound'
+        ORDER BY received_at DESC
+        LIMIT 1
+        """,
+        (wa_id,),
+    ).fetchone()
+    con.close()
+    return dict(row) if row else None
+
+
+def parse_iso_datetime(value):
+    if not value:
+        return None
+    return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+
+
+def validate_manual_lead_text_target(to):
+    if not to:
+        return 400, {"ok": False, "error": "to is required"}
+    if to in AI_OPERATOR_WA_IDS:
+        return 403, {"ok": False, "error": "use /codex-manual-text for operator messages"}
+    latest = latest_inbound_for_contact(to)
+    if not latest:
+        return 404, {"ok": False, "error": "no inbound conversation found for this wa_id"}
+    received_at = parse_iso_datetime(latest.get("received_at"))
+    if not received_at:
+        return 409, {"ok": False, "error": "latest inbound timestamp is invalid", "latest_inbound": latest}
+    age_seconds = (datetime.now(timezone.utc) - received_at).total_seconds()
+    window_seconds = MANUAL_LEAD_TEXT_WINDOW_HOURS * 60 * 60
+    if age_seconds > window_seconds:
+        return 409, {
+            "ok": False,
+            "error": "customer service window expired",
+            "reason": "free-text replies to external WhatsApp contacts require a fresh inbound message or an approved template",
+            "latest_inbound": latest,
+            "window_hours": MANUAL_LEAD_TEXT_WINDOW_HOURS,
+        }
+    return None, {"latest_inbound": latest}
 
 
 CANOPY_MARKET_INTEL_OUTREACH_20260617 = [
@@ -6729,6 +6776,29 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(502, {"error": str(exc)})
                 return
             self.send_json(200, {"ok": True, "meta": result})
+            return
+        if path == "/codex-manual-lead-text":
+            payload = self.read_authorized_json()
+            if payload is None:
+                return
+            if self.headers.get("X-Codex-Manual-Send", "") != "1":
+                self.send_json(403, {"error": "manual send header is required"})
+                return
+            to = str(payload.get("to", "")).strip()
+            text = str(payload.get("text", "")).strip()
+            if not text:
+                self.send_json(400, {"error": "text is required"})
+                return
+            code, validation = validate_manual_lead_text_target(to)
+            if code is not None:
+                self.send_json(code, validation)
+                return
+            try:
+                result = send_whatsapp_text(to, text)
+            except Exception as exc:
+                self.send_json(502, {"ok": False, "error": str(exc), **validation})
+                return
+            self.send_json(200, {"ok": True, "meta": result, **validation})
             return
         if path in {"/codex-manual-carousel-v9", "/codex-manual-agent-carousel-v11", "/codex-manual-agent-carousel-v12"}:
             payload = self.read_authorized_json()

@@ -60,7 +60,9 @@ Endpoints:
 - `GET /ai-agent-events` - recent AI-agent send/dry-run/error log.
 - `GET /health` - deployment and env diagnostics.
 - `GET /templates?name=...` - protected template status check from Meta WhatsApp Manager.
-- `POST /send-text` - protected outbound free-text send. Use only inside a 24-hour customer-service window.
+- `POST /send-text` - disabled legacy free-text relay; returns 410 because WhatsApp is transport only.
+- `POST /codex-manual-text` - protected manual Codex text to Vladimir/operator only.
+- `POST /codex-manual-lead-text` - protected manual Codex text to an external lead/contact with an existing inbound conversation and an open 24-hour customer-service window.
 - `POST /send-template` - protected outbound template send for first contact or closed windows.
 - `POST /send-media` - protected outbound image/video/document send by public HTTPS link. Use only inside a 24-hour customer-service window.
 - `POST /create-canopy-template` - protected helper to submit built-in Canopy templates to Meta.
@@ -183,6 +185,7 @@ Outbound constraint:
 
 - Do not use `canopy-whatsapp-bridge` for Hugs Management developer outreach.
 - The staging Cloud API number `+1 555 639 8541` is still limited by Meta recipient permissions. It can send to allowed/operator recipients, but external developer numbers returned `(#131030) Recipient phone number not in allowed list`.
+- For external Canopy lead tests, first verify the contact appears in `/operator-feed` or `/messages?wa_id=...`; then use `/codex-manual-lead-text` while the 24-hour customer-service window is open. Do not look only at Vladimir's `wa_id`, because a real lead appears as a separate conversation.
 - The one-off market-intel batch endpoint is disabled and returns 410.
 - Build a separate Hugs Management bridge/service for the dedicated research number.
 
