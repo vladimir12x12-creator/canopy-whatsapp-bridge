@@ -990,9 +990,52 @@ def send_whatsapp_text(to, body):
         "type": "text",
         "text": {"preview_url": True, "body": body},
     }
-    response = send_whatsapp_payload(payload)
+    response = send_whatsapp_payload_with_test_recipient_alias(payload, to)
     store_outbound_message(to, "text", body, response, "Outbound text sent from bridge.")
     return response
+
+
+def meta_test_recipient_aliases(to):
+    """Return safe Meta test-recipient input aliases for the same WhatsApp wa_id.
+
+    Meta's WhatsApp test-recipient UI can store Russian +7 mobile numbers with a
+    national trunk prefix in the allowed-recipient list, while inbound webhooks still
+    expose the canonical wa_id without that prefix. Example:
+    input 789263426010 -> canonical wa_id 79263426010.
+    """
+    value = str(to or "").strip()
+    aliases = []
+    if value.startswith("79") and len(value) == 11:
+        aliases.append("78" + value[1:])
+    return aliases
+
+
+def response_canonical_wa_id(response):
+    contacts = response.get("contacts") if isinstance(response, dict) else None
+    if not contacts:
+        return ""
+    first = contacts[0] if contacts else {}
+    return str(first.get("wa_id", "")).strip()
+
+
+def is_meta_allowed_recipient_error(exc):
+    text = str(exc)
+    return "131030" in text and "Recipient phone number not in allowed list" in text
+
+
+def send_whatsapp_payload_with_test_recipient_alias(payload, canonical_to):
+    try:
+        return send_whatsapp_payload(payload)
+    except Exception as exc:
+        if not is_meta_allowed_recipient_error(exc):
+            raise
+        for alias in meta_test_recipient_aliases(canonical_to):
+            retry_payload = dict(payload)
+            retry_payload["to"] = alias
+            response = send_whatsapp_payload(retry_payload)
+            if response_canonical_wa_id(response) == str(canonical_to):
+                return response
+        raise
 
 
 def latest_inbound_for_contact(wa_id):
