@@ -344,16 +344,86 @@ def build_template_payload(body):
     }
 
 
+def build_payload_from_item(item):
+    kind = item.get("type", "")
+    if kind == "text":
+        return build_text_payload(item)
+    if kind == "image":
+        return build_media_payload(item, "image")
+    if kind == "video":
+        return build_media_payload(item, "video")
+    if kind == "document":
+        return build_media_payload(item, "document")
+    if kind == "template":
+        return build_template_payload(item)
+    raise ValueError("package item type must be text, image, video, document, or template")
+
+
+def send_payload_with_idempotency(handler, payload, to, message_type, label, key):
+    existing, created = store_outbound_attempt(key, to, payload)
+    if not created:
+        if existing.get("error"):
+            existing["error"] = safe_error(existing["error"])
+        return {"ok": True, "idempotent": True, "attempt": existing}
+    try:
+        response = meta_send(payload)
+        finish_outbound_attempt(key, to, message_type, label, payload, response=response)
+        return {"ok": True, "idempotency_key": key, "meta": response}
+    except Exception as exc:
+        error_text = safe_error(exc)
+        finish_outbound_attempt(key, to, message_type, label, payload, error=error_text)
+        return {"ok": False, "idempotency_key": key, "error": error_text}
+
+
+def send_package(handler, package_kind, body):
+    to = body.get("to", "")
+    items = body.get("items") or []
+    if not to:
+        raise ValueError("to is required")
+    if not isinstance(items, list) or not items:
+        raise ValueError("items must be a non-empty list")
+
+    base_key = handler.headers.get("Idempotency-Key", "").strip()
+    if not base_key:
+        material = json.dumps({"package_kind": package_kind, "to": to, "items": items}, sort_keys=True, ensure_ascii=False)
+        base_key = hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+    results = []
+    for index, original_item in enumerate(items, start=1):
+        item = dict(original_item)
+        item["to"] = to
+        item_key = f"{base_key}:{index}"
+        item_to, message_type, label, payload = build_payload_from_item(item)
+        result = send_payload_with_idempotency(handler, payload, item_to, message_type, label, item_key)
+        result["index"] = index
+        result["type"] = item.get("type")
+        results.append(result)
+        if not result.get("ok"):
+            return {"ok": False, "package_kind": package_kind, "idempotency_key": base_key, "results": results}
+    return {"ok": True, "package_kind": package_kind, "idempotency_key": base_key, "results": results}
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "CanopyWhatsAppTransport/0.1"
 
     def log_message(self, fmt, *args):
         sys.stderr.write("%s %s\n" % (self.address_string(), fmt % args))
 
+    def do_HEAD(self):
+        parsed = urlparse(self.path)
+        if parsed.path in {"/", "/health"}:
+            self.send_response(200)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+        self.send_response(404)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def do_GET(self):
         parsed = urlparse(self.path)
         qs = parse_qs(parsed.query)
-        if parsed.path == "/health":
+        if parsed.path in {"/", "/health"}:
             return json_response(
                 self,
                 200,
@@ -435,6 +505,10 @@ class Handler(BaseHTTPRequestHandler):
 
         try:
             body = read_json(self)
+            if parsed.path in {"/send/package/agent", "/send/package/client"}:
+                package_kind = parsed.path.rsplit("/", 1)[-1]
+                result = send_package(self, package_kind, body)
+                return json_response(self, 200 if result.get("ok") else 502, result)
             if parsed.path == "/send/text":
                 to, message_type, label, payload = build_text_payload(body)
             elif parsed.path == "/send/media":
@@ -450,19 +524,8 @@ class Handler(BaseHTTPRequestHandler):
                 return json_response(self, 404, {"ok": False, "error": "not found"})
 
             key = idempotency_key_for(self, payload)
-            existing, created = store_outbound_attempt(key, to, payload)
-            if not created:
-                if existing.get("error"):
-                    existing["error"] = safe_error(existing["error"])
-                return json_response(self, 200, {"ok": True, "idempotent": True, "attempt": existing})
-            try:
-                response = meta_send(payload)
-                finish_outbound_attempt(key, to, message_type, label, payload, response=response)
-                return json_response(self, 200, {"ok": True, "idempotency_key": key, "meta": response})
-            except Exception as exc:
-                error_text = safe_error(exc)
-                finish_outbound_attempt(key, to, message_type, label, payload, error=error_text)
-                return json_response(self, 502, {"ok": False, "idempotency_key": key, "error": error_text})
+            result = send_payload_with_idempotency(self, payload, to, message_type, label, key)
+            return json_response(self, 200 if result.get("ok") else 502, result)
         except Exception as exc:
             return json_response(self, 400, {"ok": False, "error": str(exc)})
 
