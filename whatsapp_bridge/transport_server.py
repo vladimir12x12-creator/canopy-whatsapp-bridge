@@ -11,15 +11,15 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 
-HOST = os.environ.get("CANOPY_TRANSPORT_HOST", "127.0.0.1")
-PORT = int(os.environ.get("CANOPY_TRANSPORT_PORT", "8091"))
-DB_PATH = os.environ.get("CANOPY_TRANSPORT_DB", "./canopy_whatsapp_transport.sqlite")
-ENVIRONMENT = os.environ.get("CANOPY_ENV", "staging")
-GRAPH_VERSION = os.environ.get("WHATSAPP_GRAPH_VERSION", "v25.0")
-PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "")
-ACCESS_TOKEN = os.environ.get("WHATSAPP_ACCESS_TOKEN", "")
-WEBHOOK_VERIFY_TOKEN = os.environ.get("WHATSAPP_WEBHOOK_VERIFY_TOKEN", "")
-INTERNAL_TOKEN = os.environ.get("CANOPY_TRANSPORT_INTERNAL_TOKEN", "")
+HOST = os.environ.get("CANOPY_TRANSPORT_HOST", "127.0.0.1").strip()
+PORT = int(os.environ.get("CANOPY_TRANSPORT_PORT", "8091").strip())
+DB_PATH = os.environ.get("CANOPY_TRANSPORT_DB", "./canopy_whatsapp_transport.sqlite").strip()
+ENVIRONMENT = os.environ.get("CANOPY_ENV", "staging").strip()
+GRAPH_VERSION = os.environ.get("WHATSAPP_GRAPH_VERSION", "v25.0").strip()
+PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "").strip()
+ACCESS_TOKEN = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
+WEBHOOK_VERIFY_TOKEN = os.environ.get("WHATSAPP_WEBHOOK_VERIFY_TOKEN", "").strip()
+INTERNAL_TOKEN = os.environ.get("CANOPY_TRANSPORT_INTERNAL_TOKEN", "").strip()
 
 
 def utc_now():
@@ -97,6 +97,13 @@ def read_json(handler):
         return {}
     raw = handler.rfile.read(length).decode("utf-8")
     return json.loads(raw) if raw else {}
+
+
+def safe_error(exc):
+    text = str(exc)
+    if "Invalid header value" in text or "Authorization" in text or "Bearer " in text:
+        return "Meta request failed before send: invalid authorization header"
+    return text
 
 
 def require_internal_auth(handler):
@@ -202,7 +209,7 @@ def meta_send(payload):
         body = exc.read().decode("utf-8")
         raise RuntimeError(body) from exc
     except urllib.error.URLError as exc:
-        raise RuntimeError(str(exc.reason)) from exc
+        raise RuntimeError(safe_error(exc.reason)) from exc
 
 
 def idempotency_key_for(handler, payload):
@@ -238,6 +245,7 @@ def store_outbound_attempt(key, to, payload):
 
 def finish_outbound_attempt(key, to, message_type, label, payload, response=None, error=""):
     now = utc_now()
+    error = safe_error(error) if error else ""
     status = "sent" if not error else "error"
     response_json = json.dumps(response or {}, ensure_ascii=False)
     con = db()
@@ -444,14 +452,17 @@ class Handler(BaseHTTPRequestHandler):
             key = idempotency_key_for(self, payload)
             existing, created = store_outbound_attempt(key, to, payload)
             if not created:
+                if existing.get("error"):
+                    existing["error"] = safe_error(existing["error"])
                 return json_response(self, 200, {"ok": True, "idempotent": True, "attempt": existing})
             try:
                 response = meta_send(payload)
                 finish_outbound_attempt(key, to, message_type, label, payload, response=response)
                 return json_response(self, 200, {"ok": True, "idempotency_key": key, "meta": response})
             except Exception as exc:
-                finish_outbound_attempt(key, to, message_type, label, payload, error=str(exc))
-                return json_response(self, 502, {"ok": False, "idempotency_key": key, "error": str(exc)})
+                error_text = safe_error(exc)
+                finish_outbound_attempt(key, to, message_type, label, payload, error=error_text)
+                return json_response(self, 502, {"ok": False, "idempotency_key": key, "error": error_text})
         except Exception as exc:
             return json_response(self, 400, {"ok": False, "error": str(exc)})
 
