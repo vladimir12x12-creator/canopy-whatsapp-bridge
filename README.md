@@ -94,6 +94,47 @@ Keep these disabled for normal operation:
 - `ENABLE_BRIDGE_AUTONOMOUS_REPLIES=0`;
 - `ENABLE_AI_AGENT_TOOLS=0`.
 
+## Thin Transport Service
+
+Status as of 2026-07-01: implemented as a separate Render service in `render.yaml`:
+
+- old service remains `canopy-whatsapp-bridge`;
+- new service is `canopy-whatsapp-transport`;
+- new code entrypoint: `whatsapp_bridge/transport_server.py`.
+
+The thin transport is deliberately not a sales bot. It only receives Meta webhooks,
+stores inbound/outbound messages by `wa_id`, exposes history, and sends text/media/
+document/template payloads to Meta Cloud API.
+
+Required Render env for `canopy-whatsapp-transport`:
+
+- `CANOPY_ENV=staging`
+- `CANOPY_TRANSPORT_DB=/var/data/canopy_whatsapp_transport.sqlite`
+- `WHATSAPP_GRAPH_VERSION=v25.0`
+- `WHATSAPP_PHONE_NUMBER_ID=1183823618137845` for current staging Cloud API sender
+  `+66 98 098 7456`
+- `WHATSAPP_ACCESS_TOKEN` from secure secret storage
+- `WHATSAPP_WEBHOOK_VERIFY_TOKEN`
+- `CANOPY_TRANSPORT_INTERNAL_TOKEN`
+
+Local verification completed on 2026-07-01:
+
+- `GET /health` returned configured staging sender and access token present.
+- Meta read-only verification:
+  - `+66 98 098 7456` / `1183823618137845` is `platform_type=CLOUD_API`;
+  - live `+66 61 997 8591` / `159253397267238` is visible but
+    `platform_type=ON_PREMISE`.
+- Outbound template smoke test through the new transport succeeded to Vladimir's
+  `wa_id=66628512432` using approved template `hello_world`; Meta returned
+  `message_status=accepted`.
+
+Safety rule:
+
+- Do not switch the live public `+66 61 997 8591` number to this service until Meta
+  Cloud API coexistence/migration is understood and Vladimir explicitly approves the
+  irreversible production change.
+- Continue Cloud API tests on staging sender `+66 98 098 7456`.
+
 Production check after deploy:
 
 ```bash

@@ -14,3 +14,25 @@ services:
         sync: false
       - key: WHATSAPP_BRIDGE_DB
         value: /var/data/leads.sqlite
+
+  - type: web
+    name: canopy-whatsapp-transport
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r whatsapp_bridge/requirements.txt"
+    startCommand: "CANOPY_TRANSPORT_HOST=0.0.0.0 CANOPY_TRANSPORT_PORT=$PORT python whatsapp_bridge/transport_server.py"
+    envVars:
+      - key: CANOPY_ENV
+        value: staging
+      - key: CANOPY_TRANSPORT_DB
+        value: /tmp/canopy_whatsapp_transport.sqlite
+      - key: WHATSAPP_GRAPH_VERSION
+        value: v25.0
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_WEBHOOK_VERIFY_TOKEN
+        sync: false
+      - key: CANOPY_TRANSPORT_INTERNAL_TOKEN
+        sync: false
