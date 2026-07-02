@@ -18,14 +18,18 @@ services:
   - type: web
     name: canopy-whatsapp-transport
     runtime: python
-    plan: free
+    plan: starter
     buildCommand: "pip install -r whatsapp_bridge/requirements.txt"
     startCommand: "CANOPY_TRANSPORT_HOST=0.0.0.0 CANOPY_TRANSPORT_PORT=$PORT python whatsapp_bridge/transport_server.py"
+    disk:
+      name: canopy-whatsapp-transport-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: CANOPY_ENV
         value: staging
       - key: CANOPY_TRANSPORT_DB
-        value: /tmp/canopy_whatsapp_transport.sqlite
+        value: /var/data/canopy_whatsapp_transport.sqlite
       - key: WHATSAPP_GRAPH_VERSION
         value: v25.0
       - key: WHATSAPP_PHONE_NUMBER_ID

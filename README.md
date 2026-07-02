@@ -106,6 +106,13 @@ The thin transport is deliberately not a sales bot. It only receives Meta webhoo
 stores inbound/outbound messages by `wa_id`, exposes history, and sends text/media/
 document/template payloads to Meta Cloud API.
 
+Render storage rule for the thin transport:
+
+- do not point `CANOPY_TRANSPORT_DB` at `/tmp`;
+- use mounted persistent storage such as `/var/data/canopy_whatsapp_transport.sqlite`;
+- otherwise `/operator-feed` and `/messages` can look healthy but come back empty after
+  restart/redeploy because the SQLite history file is lost.
+
 Required Render env for `canopy-whatsapp-transport`:
 
 - `CANOPY_ENV=staging`
