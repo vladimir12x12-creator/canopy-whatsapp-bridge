@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import hashlib
 import json
+import mimetypes
 import os
 import sqlite3
 import sys
@@ -8,7 +9,8 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlparse
+from pathlib import Path
+from urllib.parse import parse_qs, unquote, urlparse
 
 
 HOST = os.environ.get("CANOPY_TRANSPORT_HOST", "127.0.0.1").strip()
@@ -20,6 +22,7 @@ PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "").strip()
 ACCESS_TOKEN = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
 WEBHOOK_VERIFY_TOKEN = os.environ.get("WHATSAPP_WEBHOOK_VERIFY_TOKEN", "").strip()
 INTERNAL_TOKEN = os.environ.get("CANOPY_TRANSPORT_INTERNAL_TOKEN", "").strip()
+ASSETS_DIR = Path(__file__).resolve().parent / "assets"
 
 
 def utc_now():
@@ -89,6 +92,38 @@ def json_response(handler, code, data):
     handler.send_header("Content-Length", str(len(body)))
     handler.end_headers()
     handler.wfile.write(body)
+
+
+def resolve_asset(request_path):
+    rel = unquote(request_path[len("/assets/") :])
+    if not rel or rel.startswith("/") or ".." in Path(rel).parts:
+        return None
+    asset_path = (ASSETS_DIR / rel).resolve()
+    try:
+        asset_path.relative_to(ASSETS_DIR.resolve())
+    except ValueError:
+        return None
+    if not asset_path.is_file():
+        return None
+    return asset_path
+
+
+def serve_static_asset(handler, request_path, head_only=False):
+    asset_path = resolve_asset(request_path)
+    if not asset_path:
+        return json_response(handler, 404, {"ok": False, "error": "asset not found"})
+
+    content_type = mimetypes.guess_type(str(asset_path))[0] or "application/octet-stream"
+    size = asset_path.stat().st_size
+    handler.send_response(200)
+    handler.send_header("Content-Type", content_type)
+    handler.send_header("Content-Length", str(size))
+    handler.send_header("Cache-Control", "public, max-age=3600")
+    handler.end_headers()
+    if not head_only:
+        with asset_path.open("rb") as src:
+            handler.wfile.write(src.read())
+    return None
 
 
 def read_json(handler):
@@ -411,6 +446,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_HEAD(self):
         parsed = urlparse(self.path)
+        if parsed.path.startswith("/assets/"):
+            return serve_static_asset(self, parsed.path, head_only=True)
         if parsed.path in {"/", "/health"}:
             self.send_response(200)
             self.send_header("Content-Length", "0")
@@ -423,6 +460,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         qs = parse_qs(parsed.query)
+        if parsed.path.startswith("/assets/"):
+            return serve_static_asset(self, parsed.path)
         if parsed.path in {"/", "/health"}:
             return json_response(
                 self,
