@@ -82,6 +82,32 @@ def db():
         )
         """
     )
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS message_statuses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            meta_message_id TEXT NOT NULL,
+            wa_id TEXT,
+            status TEXT NOT NULL,
+            status_timestamp TEXT,
+            raw_json TEXT NOT NULL,
+            environment TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    con.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_message_statuses_meta_message_id
+        ON message_statuses(meta_message_id)
+        """
+    )
+    con.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_message_statuses_wa_id
+        ON message_statuses(wa_id)
+        """
+    )
     return con
 
 
@@ -177,6 +203,59 @@ def extract_messages(payload):
                     }
                 )
     return messages
+
+
+def extract_statuses(payload):
+    statuses = []
+    for entry in payload.get("entry", []) or []:
+        for change in entry.get("changes", []) or []:
+            value = change.get("value", {}) or {}
+            for status in value.get("statuses", []) or []:
+                statuses.append(
+                    {
+                        "meta_message_id": status.get("id", ""),
+                        "wa_id": status.get("recipient_id", ""),
+                        "status": status.get("status", "unknown"),
+                        "timestamp": status.get("timestamp", ""),
+                        "raw": status,
+                    }
+                )
+    return statuses
+
+
+def store_status_payload(payload):
+    con = db()
+    now = utc_now()
+    stored = []
+    for status in extract_statuses(payload):
+        if not status["meta_message_id"]:
+            continue
+        con.execute(
+            """
+            INSERT INTO message_statuses
+              (meta_message_id, wa_id, status, status_timestamp, raw_json, environment, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                status["meta_message_id"],
+                status["wa_id"],
+                status["status"],
+                status["timestamp"],
+                json.dumps(status["raw"], ensure_ascii=False),
+                ENVIRONMENT,
+                now,
+            ),
+        )
+        stored.append(
+            {
+                "meta_message_id": status["meta_message_id"],
+                "wa_id": status["wa_id"],
+                "status": status["status"],
+            }
+        )
+    con.commit()
+    con.close()
+    return stored
 
 
 def store_inbound_payload(payload):
@@ -525,6 +604,34 @@ class Handler(BaseHTTPRequestHandler):
             ).fetchall()
             con.close()
             return json_response(self, 200, {"ok": True, "messages": [dict(r) for r in rows]})
+        if parsed.path == "/statuses":
+            wa_id = qs.get("wa_id", [""])[0]
+            meta_message_id = qs.get("message_id", [""])[0]
+            if not wa_id and not meta_message_id:
+                return json_response(self, 400, {"ok": False, "error": "wa_id or message_id is required"})
+            con = db()
+            if meta_message_id:
+                rows = con.execute(
+                    """
+                    SELECT meta_message_id, wa_id, status, status_timestamp, raw_json, environment, created_at
+                    FROM message_statuses
+                    WHERE meta_message_id = ?
+                    ORDER BY created_at ASC
+                    """,
+                    (meta_message_id,),
+                ).fetchall()
+            else:
+                rows = con.execute(
+                    """
+                    SELECT meta_message_id, wa_id, status, status_timestamp, raw_json, environment, created_at
+                    FROM message_statuses
+                    WHERE wa_id = ?
+                    ORDER BY created_at ASC
+                    """,
+                    (wa_id,),
+                ).fetchall()
+            con.close()
+            return json_response(self, 200, {"ok": True, "statuses": [dict(r) for r in rows]})
         return json_response(self, 404, {"ok": False, "error": "not found"})
 
     def do_POST(self):
@@ -532,8 +639,13 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/webhook/meta":
             try:
                 payload = read_json(self)
-                stored = store_inbound_payload(payload)
-                return json_response(self, 200, {"ok": True, "stored": stored})
+                stored_messages = store_inbound_payload(payload)
+                stored_statuses = store_status_payload(payload)
+                return json_response(
+                    self,
+                    200,
+                    {"ok": True, "stored": stored_messages, "stored_statuses": stored_statuses},
+                )
             except Exception as exc:
                 return json_response(self, 500, {"ok": False, "error": str(exc)})
 
