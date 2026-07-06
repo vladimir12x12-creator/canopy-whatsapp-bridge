@@ -15,7 +15,12 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 HOST = os.environ.get("CANOPY_TRANSPORT_HOST", "127.0.0.1").strip()
 PORT = int(os.environ.get("CANOPY_TRANSPORT_PORT", "8091").strip())
-DB_PATH = os.environ.get("CANOPY_TRANSPORT_DB", "./canopy_whatsapp_transport.sqlite").strip()
+DEFAULT_RENDER_DB = "/var/data/canopy_whatsapp_transport.sqlite"
+LOCAL_DB = "./canopy_whatsapp_transport.sqlite"
+DB_PATH = os.environ.get(
+    "CANOPY_TRANSPORT_DB",
+    DEFAULT_RENDER_DB if Path("/var/data").is_dir() else LOCAL_DB,
+).strip()
 ENVIRONMENT = os.environ.get("CANOPY_ENV", "staging").strip()
 GRAPH_VERSION = os.environ.get("WHATSAPP_GRAPH_VERSION", "v25.0").strip()
 PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "").strip()
@@ -30,6 +35,7 @@ def utc_now():
 
 
 def db():
+    Path(DB_PATH).expanduser().parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(DB_PATH)
     con.row_factory = sqlite3.Row
     con.execute(
