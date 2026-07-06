@@ -326,6 +326,48 @@ def meta_send(payload):
         raise RuntimeError(safe_error(exc.reason)) from exc
 
 
+def graph_get_json(path):
+    if not ACCESS_TOKEN:
+        raise RuntimeError("WHATSAPP_ACCESS_TOKEN is not set")
+    clean_path = str(path).lstrip("/")
+    sep = "&" if "?" in clean_path else "?"
+    url = f"https://graph.facebook.com/{GRAPH_VERSION}/{clean_path}{sep}access_token={ACCESS_TOKEN}"
+    req = urllib.request.Request(url, method="GET")
+    try:
+        with urllib.request.urlopen(req, timeout=45) as res:
+            return json.loads(res.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8")
+        raise RuntimeError(body) from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(safe_error(exc.reason)) from exc
+
+
+def download_whatsapp_media(media_id, fallback_url=""):
+    if not ACCESS_TOKEN:
+        raise RuntimeError("WHATSAPP_ACCESS_TOKEN is not set")
+    media_url = fallback_url
+    if media_id:
+        media_meta = graph_get_json(media_id)
+        media_url = media_meta.get("url", "") or media_url
+    if not media_url:
+        raise RuntimeError("No media url is available for this WhatsApp media")
+    req = urllib.request.Request(
+        media_url,
+        headers={"Authorization": f"Bearer {ACCESS_TOKEN}"},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as res:
+            content_type = res.headers.get("Content-Type", "application/octet-stream")
+            return res.read(), content_type
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8")
+        raise RuntimeError(body) from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(safe_error(exc.reason)) from exc
+
+
 def idempotency_key_for(handler, payload):
     key = handler.headers.get("Idempotency-Key", "").strip()
     if key:
@@ -604,6 +646,80 @@ class Handler(BaseHTTPRequestHandler):
             ).fetchall()
             con.close()
             return json_response(self, 200, {"ok": True, "messages": [dict(r) for r in rows]})
+        if parsed.path == "/messages/raw":
+            ok, error = require_internal_auth(self)
+            if not ok:
+                code, body = error
+                return json_response(self, code, body)
+            wa_id = qs.get("wa_id", [""])[0]
+            message_id = qs.get("message_id", [""])[0]
+            if not wa_id and not message_id:
+                return json_response(self, 400, {"ok": False, "error": "wa_id or message_id is required"})
+            con = db()
+            if message_id:
+                rows = con.execute(
+                    """
+                    SELECT id, wa_id, direction, message_type, text, meta_message_id,
+                           raw_json, environment, created_at
+                    FROM messages
+                    WHERE id = ?
+                    ORDER BY created_at ASC
+                    """,
+                    (message_id,),
+                ).fetchall()
+            else:
+                rows = con.execute(
+                    """
+                    SELECT id, wa_id, direction, message_type, text, meta_message_id,
+                           raw_json, environment, created_at
+                    FROM messages
+                    WHERE wa_id = ?
+                    ORDER BY created_at ASC
+                    """,
+                    (wa_id,),
+                ).fetchall()
+            con.close()
+            return json_response(self, 200, {"ok": True, "messages": [dict(r) for r in rows]})
+        if parsed.path == "/media/download":
+            ok, error = require_internal_auth(self)
+            if not ok:
+                code, body = error
+                return json_response(self, code, body)
+            message_id = qs.get("message_id", [""])[0]
+            if not message_id:
+                return json_response(self, 400, {"ok": False, "error": "message_id is required"})
+            con = db()
+            row = con.execute(
+                """
+                SELECT id, message_type, raw_json
+                FROM messages
+                WHERE id = ? AND direction = 'inbound'
+                """,
+                (message_id,),
+            ).fetchone()
+            con.close()
+            if not row:
+                return json_response(self, 404, {"ok": False, "error": "inbound message not found"})
+            raw = json.loads(row["raw_json"])
+            message_type = row["message_type"]
+            media = raw.get(message_type, {}) if message_type else {}
+            if not isinstance(media, dict):
+                return json_response(self, 400, {"ok": False, "error": "message has no downloadable media"})
+            try:
+                media_bytes, content_type = download_whatsapp_media(
+                    str(media.get("id", "") or ""),
+                    str(media.get("url", "") or ""),
+                )
+            except Exception as exc:
+                return json_response(self, 502, {"ok": False, "error": str(exc)})
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(media_bytes)))
+            filename = f"{message_id}.{mimetypes.guess_extension(content_type) or 'bin'}"
+            self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+            self.end_headers()
+            self.wfile.write(media_bytes)
+            return
         if parsed.path == "/statuses":
             wa_id = qs.get("wa_id", [""])[0]
             meta_message_id = qs.get("message_id", [""])[0]
