@@ -118,10 +118,13 @@ AI_AGENT_WA_ID_ALLOWLIST = {
     x.strip() for x in os.environ.get("AI_AGENT_WA_ID_ALLOWLIST", "").split(",") if x.strip()
 }
 MANUAL_LEAD_TEXT_WINDOW_HOURS = int(os.environ.get("MANUAL_LEAD_TEXT_WINDOW_HOURS", "24"))
-TILDA_WEBHOOK_TOKEN = os.environ.get("TILDA_WEBHOOK_TOKEN", "").strip()
+TILDA_WEBHOOK_TOKEN = os.environ.get("TILDA_WEBHOOK_TOKEN", "").strip() or SEND_API_TOKEN
 TILDA_LEAD_NOTIFY_WA_IDS = {
     x.strip()
-    for x in os.environ.get("TILDA_LEAD_NOTIFY_WA_IDS", ",".join(sorted(AI_OPERATOR_WA_IDS))).split(",")
+    for x in os.environ.get(
+        "TILDA_LEAD_NOTIFY_WA_IDS",
+        ",".join(["66619978591", *sorted(AI_OPERATOR_WA_IDS)]),
+    ).split(",")
     if x.strip()
 }
 
