@@ -118,6 +118,12 @@ AI_AGENT_WA_ID_ALLOWLIST = {
     x.strip() for x in os.environ.get("AI_AGENT_WA_ID_ALLOWLIST", "").split(",") if x.strip()
 }
 MANUAL_LEAD_TEXT_WINDOW_HOURS = int(os.environ.get("MANUAL_LEAD_TEXT_WINDOW_HOURS", "24"))
+TILDA_WEBHOOK_TOKEN = os.environ.get("TILDA_WEBHOOK_TOKEN", "").strip()
+TILDA_LEAD_NOTIFY_WA_IDS = {
+    x.strip()
+    for x in os.environ.get("TILDA_LEAD_NOTIFY_WA_IDS", ",".join(sorted(AI_OPERATOR_WA_IDS))).split(",")
+    if x.strip()
+}
 
 
 def utc_now():
@@ -966,6 +972,147 @@ def store_payload(payload):
                     print(f"ai agent reply failed for {item['wa_id']}: {exc}")
     con.commit()
     con.close()
+
+
+def tilda_flatten(value):
+    if isinstance(value, list):
+        return ", ".join(str(x) for x in value if str(x).strip()).strip()
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def parse_tilda_payload(headers, raw):
+    content_type = headers.get("Content-Type", "")
+    if "application/json" in content_type:
+        try:
+            payload = json.loads(raw.decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            payload = {}
+    else:
+        payload = {
+            key: values[-1] if values else ""
+            for key, values in parse_qs(raw.decode("utf-8"), keep_blank_values=True).items()
+        }
+    return {str(k): tilda_flatten(v) for k, v in payload.items()}
+
+
+def normalize_phone_to_wa_id(value):
+    digits = "".join(ch for ch in str(value or "") if ch.isdigit())
+    if digits.startswith("00"):
+        digits = digits[2:]
+    return digits
+
+
+def first_present(fields, names):
+    for name in names:
+        value = tilda_flatten(fields.get(name, ""))
+        if value:
+            return value
+    lowered = {str(k).lower(): v for k, v in fields.items()}
+    for name in names:
+        value = tilda_flatten(lowered.get(str(name).lower(), ""))
+        if value:
+            return value
+    return ""
+
+
+def format_tilda_lead_text(fields):
+    name = first_present(fields, ["name", "Name", "Имя"])
+    phone = first_present(fields, ["Phone", "phone", "Телефон"])
+    message = first_present(fields, ["Textarea", "textarea", "Message", "message", "Комментарий"])
+    email = first_present(fields, ["email", "Email", "E-mail"])
+    page = first_present(fields, ["formurl", "referer", "page", "Page"])
+    lines = ["New website lead from canopy.villas"]
+    if name:
+        lines.append(f"Name: {name}")
+    if phone:
+        lines.append(f"Phone: {phone}")
+    if email:
+        lines.append(f"Email: {email}")
+    if message:
+        lines.append(f"Message: {message}")
+    if page:
+        lines.append(f"Page: {page}")
+    return "\n".join(lines)
+
+
+def store_tilda_lead(fields):
+    now = utc_now()
+    name = first_present(fields, ["name", "Name", "Имя"])
+    phone = first_present(fields, ["Phone", "phone", "Телефон"])
+    wa_id = normalize_phone_to_wa_id(phone) or f"tilda:{uuid.uuid4().hex[:12]}"
+    text = format_tilda_lead_text(fields)
+    classification = classify(text)
+    message_id = "tilda:" + (first_present(fields, ["tranid", "requestid"]) or uuid.uuid4().hex)
+    raw_json = json.dumps({"source": "tilda", "fields": fields}, ensure_ascii=False)
+
+    con = db()
+    con.execute(
+        "INSERT INTO webhook_events(raw_json, received_at) VALUES (?, ?)",
+        (raw_json, now),
+    )
+    con.execute(
+        """
+        INSERT OR IGNORE INTO messages
+          (id, wa_id, direction, message_type, text, raw_json, received_at)
+        VALUES (?, ?, 'inbound', 'tilda_form', ?, ?, ?)
+        """,
+        (message_id, wa_id, text, raw_json, now),
+    )
+    con.execute(
+        """
+        INSERT INTO contacts
+          (wa_id, profile_name, segment, priority, last_message_at,
+           escalation_required, next_action, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(wa_id) DO UPDATE SET
+          profile_name = COALESCE(NULLIF(excluded.profile_name, ''), contacts.profile_name),
+          segment = excluded.segment,
+          priority = excluded.priority,
+          last_message_at = excluded.last_message_at,
+          escalation_required = excluded.escalation_required,
+          next_action = excluded.next_action,
+          updated_at = excluded.updated_at
+        """,
+        (
+            wa_id,
+            name or "Tilda website lead",
+            classification["segment"],
+            classification["priority"],
+            now,
+            classification["escalation_required"],
+            classification["next_action"],
+            now,
+        ),
+    )
+    con.commit()
+    con.close()
+    return {
+        "wa_id": wa_id,
+        "message_id": message_id,
+        "text": text,
+        "classification": classification,
+    }
+
+
+def notify_tilda_lead(lead):
+    results = []
+    if not TILDA_LEAD_NOTIFY_WA_IDS:
+        return results
+    notification = (
+        "Canopy website lead\n\n"
+        f"{lead['text']}\n\n"
+        f"Segment: {lead['classification']['segment']} / {lead['classification']['priority']}\n"
+        f"Next: {lead['classification']['next_action']}"
+    )
+    for wa_id in sorted(TILDA_LEAD_NOTIFY_WA_IDS):
+        try:
+            meta = send_whatsapp_text(wa_id, notification)
+            results.append({"to": wa_id, "ok": True, "meta": meta})
+        except Exception as exc:
+            results.append({"to": wa_id, "ok": False, "error": str(exc)})
+    return results
 
 
 def mark_whatsapp_message_read(message_id):
@@ -6207,7 +6354,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(404, {"error": "not found"})
 
     def do_POST(self):
-        path = urlparse(self.path).path
+        parsed = urlparse(self.path)
+        path = parsed.path
         if path.startswith("/send-") and path.endswith("-test"):
             self.send_json(
                 410,
@@ -6215,6 +6363,33 @@ class Handler(BaseHTTPRequestHandler):
                     "ok": False,
                     "error": "disabled",
                     "reason": "legacy WhatsApp send test endpoints are disabled; WhatsApp is transport only",
+                },
+            )
+            return
+        if path == "/tilda-lead":
+            params = parse_qs(parsed.query)
+            token = self.headers.get("X-Tilda-Webhook-Token", "") or params.get("token", [""])[0]
+            if not TILDA_WEBHOOK_TOKEN:
+                self.send_json(500, {"ok": False, "error": "TILDA_WEBHOOK_TOKEN is not set"})
+                return
+            if token != TILDA_WEBHOOK_TOKEN:
+                self.send_json(401, {"ok": False, "error": "invalid tilda webhook token"})
+                return
+            length = int(self.headers.get("Content-Length", "0") or "0")
+            raw = self.rfile.read(length)
+            fields = parse_tilda_payload(self.headers, raw)
+            lead = store_tilda_lead(fields)
+            notifications = notify_tilda_lead(lead)
+            self.send_json(
+                200,
+                {
+                    "ok": True,
+                    "lead": {
+                        "wa_id": lead["wa_id"],
+                        "message_id": lead["message_id"],
+                        "classification": lead["classification"],
+                    },
+                    "notifications": notifications,
                 },
             )
             return
