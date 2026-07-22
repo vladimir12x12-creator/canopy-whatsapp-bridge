@@ -28,10 +28,14 @@ services:
     envVars:
       - key: CANOPY_ENV
         value: staging
+      - key: CANOPY_DEFAULT_SENDER
+        value: staging
       - key: CANOPY_TRANSPORT_DB
         value: /var/data/canopy_whatsapp_transport.sqlite
       - key: WHATSAPP_GRAPH_VERSION
         value: v25.0
+      - key: CANOPY_WHATSAPP_SENDERS_JSON
+        sync: false
       - key: WHATSAPP_PHONE_NUMBER_ID
         sync: false
       - key: WHATSAPP_ACCESS_TOKEN

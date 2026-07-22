@@ -116,13 +116,26 @@ Render storage rule for the thin transport:
 Required Render env for `canopy-whatsapp-transport`:
 
 - `CANOPY_ENV=staging`
+- `CANOPY_DEFAULT_SENDER=staging`
 - `CANOPY_TRANSPORT_DB=/var/data/canopy_whatsapp_transport.sqlite`
 - `WHATSAPP_GRAPH_VERSION=v25.0`
 - `WHATSAPP_PHONE_NUMBER_ID=1183823618137845` for current staging Cloud API sender
   `+66 98 098 7456`
 - `WHATSAPP_ACCESS_TOKEN` from secure secret storage
+- optional multi-sender mode: `CANOPY_WHATSAPP_SENDERS_JSON` with `staging` and, after
+  Meta coexistence/onboarding approval, `production` sender profiles. Keep token values
+  only in Render env/Keychain, never in repo files.
 - `WHATSAPP_WEBHOOK_VERIFY_TOKEN`
 - `CANOPY_TRANSPORT_INTERNAL_TOKEN`
+
+Multi-sender request rule:
+
+- keep `staging` for Hugs/competitor/agent-research work;
+- use `production` only after the live Canopy number `+66 61 997 8591` /
+  `159253397267238` is confirmed as `platform_type=CLOUD_API` while preserving
+  `is_on_biz_app=true`;
+- send endpoints may include `"sender": "staging"` or `"sender": "production"`;
+- if omitted, the service uses `CANOPY_DEFAULT_SENDER`.
 
 Local verification completed on 2026-07-01:
 

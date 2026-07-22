@@ -27,7 +27,59 @@ PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "").strip()
 ACCESS_TOKEN = os.environ.get("WHATSAPP_ACCESS_TOKEN", "").strip()
 WEBHOOK_VERIFY_TOKEN = os.environ.get("WHATSAPP_WEBHOOK_VERIFY_TOKEN", "").strip()
 INTERNAL_TOKEN = os.environ.get("CANOPY_TRANSPORT_INTERNAL_TOKEN", "").strip()
+DEFAULT_SENDER = os.environ.get("CANOPY_DEFAULT_SENDER", ENVIRONMENT).strip() or ENVIRONMENT
+SENDERS_JSON = os.environ.get("CANOPY_WHATSAPP_SENDERS_JSON", "").strip()
 ASSETS_DIR = Path(__file__).resolve().parent / "assets"
+
+
+def load_sender_configs():
+    senders = {}
+    if SENDERS_JSON:
+        raw = json.loads(SENDERS_JSON)
+        if not isinstance(raw, dict):
+            raise RuntimeError("CANOPY_WHATSAPP_SENDERS_JSON must be a JSON object")
+        for name, cfg in raw.items():
+            if not isinstance(cfg, dict):
+                raise RuntimeError(f"sender config for {name} must be an object")
+            clean_name = str(name).strip()
+            if not clean_name:
+                continue
+            senders[clean_name] = {
+                "environment": str(cfg.get("environment") or clean_name).strip() or clean_name,
+                "phone_number_id": str(cfg.get("phone_number_id") or "").strip(),
+                "access_token": str(cfg.get("access_token") or "").strip(),
+                "display_phone_number": str(cfg.get("display_phone_number") or "").strip(),
+            }
+    if PHONE_NUMBER_ID or ACCESS_TOKEN:
+        senders.setdefault(
+            ENVIRONMENT,
+            {
+                "environment": ENVIRONMENT,
+                "phone_number_id": PHONE_NUMBER_ID,
+                "access_token": ACCESS_TOKEN,
+                "display_phone_number": os.environ.get("WHATSAPP_DISPLAY_PHONE_NUMBER", "").strip(),
+            },
+        )
+    return senders
+
+
+SENDER_CONFIGS = load_sender_configs()
+
+
+def sender_config(sender_name=""):
+    name = (sender_name or DEFAULT_SENDER or ENVIRONMENT).strip()
+    cfg = SENDER_CONFIGS.get(name)
+    if not cfg:
+        available = ", ".join(sorted(SENDER_CONFIGS)) or "none"
+        raise RuntimeError(f"unknown WhatsApp sender '{name}'. Available senders: {available}")
+    return name, cfg
+
+
+def sender_for_phone_number_id(phone_number_id):
+    for name, cfg in SENDER_CONFIGS.items():
+        if cfg.get("phone_number_id") and cfg.get("phone_number_id") == phone_number_id:
+            return name
+    return DEFAULT_SENDER or ENVIRONMENT
 
 
 def utc_now():
@@ -187,6 +239,9 @@ def extract_messages(payload):
     for entry in payload.get("entry", []) or []:
         for change in entry.get("changes", []) or []:
             value = change.get("value", {}) or {}
+            metadata = value.get("metadata", {}) or {}
+            phone_number_id = str(metadata.get("phone_number_id") or "").strip()
+            sender = sender_for_phone_number_id(phone_number_id)
             contacts = {c.get("wa_id"): c for c in value.get("contacts", []) or []}
             for msg in value.get("messages", []) or []:
                 wa_id = msg.get("from", "")
@@ -205,6 +260,8 @@ def extract_messages(payload):
                         "profile_name": profile.get("name", ""),
                         "message_type": message_type,
                         "text": text,
+                        "sender": sender,
+                        "phone_number_id": phone_number_id,
                         "raw": msg,
                     }
                 )
@@ -216,6 +273,9 @@ def extract_statuses(payload):
     for entry in payload.get("entry", []) or []:
         for change in entry.get("changes", []) or []:
             value = change.get("value", {}) or {}
+            metadata = value.get("metadata", {}) or {}
+            phone_number_id = str(metadata.get("phone_number_id") or "").strip()
+            sender = sender_for_phone_number_id(phone_number_id)
             for status in value.get("statuses", []) or []:
                 statuses.append(
                     {
@@ -223,6 +283,8 @@ def extract_statuses(payload):
                         "wa_id": status.get("recipient_id", ""),
                         "status": status.get("status", "unknown"),
                         "timestamp": status.get("timestamp", ""),
+                        "sender": sender,
+                        "phone_number_id": phone_number_id,
                         "raw": status,
                     }
                 )
@@ -248,7 +310,7 @@ def store_status_payload(payload):
                 status["status"],
                 status["timestamp"],
                 json.dumps(status["raw"], ensure_ascii=False),
-                ENVIRONMENT,
+                status["sender"],
                 now,
             ),
         )
@@ -257,6 +319,7 @@ def store_status_payload(payload):
                 "meta_message_id": status["meta_message_id"],
                 "wa_id": status["wa_id"],
                 "status": status["status"],
+                "sender": status["sender"],
             }
         )
     con.commit()
@@ -286,7 +349,7 @@ def store_inbound_payload(payload):
                 msg["text"],
                 json.dumps(msg["raw"], ensure_ascii=False),
                 msg["id"],
-                ENVIRONMENT,
+                msg["sender"],
                 now,
             ),
         )
@@ -301,23 +364,26 @@ def store_inbound_payload(payload):
             """,
             (msg["wa_id"], msg["profile_name"], now, now),
         )
-        stored.append({"id": msg["id"], "wa_id": msg["wa_id"], "type": msg["message_type"]})
+        stored.append({"id": msg["id"], "wa_id": msg["wa_id"], "type": msg["message_type"], "sender": msg["sender"]})
     con.commit()
     con.close()
     return stored
 
 
-def meta_send(payload):
-    if not PHONE_NUMBER_ID:
+def meta_send(payload, sender_name=""):
+    sender_name, cfg = sender_config(sender_name)
+    phone_number_id = cfg.get("phone_number_id", "")
+    access_token = cfg.get("access_token", "")
+    if not phone_number_id:
         raise RuntimeError("WHATSAPP_PHONE_NUMBER_ID is not set")
-    if not ACCESS_TOKEN:
+    if not access_token:
         raise RuntimeError("WHATSAPP_ACCESS_TOKEN is not set")
-    url = f"https://graph.facebook.com/{GRAPH_VERSION}/{PHONE_NUMBER_ID}/messages"
+    url = f"https://graph.facebook.com/{GRAPH_VERSION}/{phone_number_id}/messages"
     req = urllib.request.Request(
         url,
         data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
         headers={
-            "Authorization": f"Bearer {ACCESS_TOKEN}",
+            "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
         },
         method="POST",
@@ -332,12 +398,14 @@ def meta_send(payload):
         raise RuntimeError(safe_error(exc.reason)) from exc
 
 
-def graph_get_json(path):
-    if not ACCESS_TOKEN:
+def graph_get_json(path, sender_name=""):
+    sender_name, cfg = sender_config(sender_name)
+    access_token = cfg.get("access_token", "")
+    if not access_token:
         raise RuntimeError("WHATSAPP_ACCESS_TOKEN is not set")
     clean_path = str(path).lstrip("/")
     sep = "&" if "?" in clean_path else "?"
-    url = f"https://graph.facebook.com/{GRAPH_VERSION}/{clean_path}{sep}access_token={ACCESS_TOKEN}"
+    url = f"https://graph.facebook.com/{GRAPH_VERSION}/{clean_path}{sep}access_token={access_token}"
     req = urllib.request.Request(url, method="GET")
     try:
         with urllib.request.urlopen(req, timeout=45) as res:
@@ -349,18 +417,20 @@ def graph_get_json(path):
         raise RuntimeError(safe_error(exc.reason)) from exc
 
 
-def download_whatsapp_media(media_id, fallback_url=""):
-    if not ACCESS_TOKEN:
+def download_whatsapp_media(media_id, fallback_url="", sender_name=""):
+    sender_name, cfg = sender_config(sender_name)
+    access_token = cfg.get("access_token", "")
+    if not access_token:
         raise RuntimeError("WHATSAPP_ACCESS_TOKEN is not set")
     media_url = fallback_url
     if media_id:
-        media_meta = graph_get_json(media_id)
+        media_meta = graph_get_json(media_id, sender_name)
         media_url = media_meta.get("url", "") or media_url
     if not media_url:
         raise RuntimeError("No media url is available for this WhatsApp media")
     req = urllib.request.Request(
         media_url,
-        headers={"Authorization": f"Bearer {ACCESS_TOKEN}"},
+        headers={"Authorization": f"Bearer {access_token}"},
         method="GET",
     )
     try:
@@ -374,15 +444,15 @@ def download_whatsapp_media(media_id, fallback_url=""):
         raise RuntimeError(safe_error(exc.reason)) from exc
 
 
-def idempotency_key_for(handler, payload):
+def idempotency_key_for(handler, payload, sender_name):
     key = handler.headers.get("Idempotency-Key", "").strip()
     if key:
-        return key
-    material = json.dumps(payload, sort_keys=True, ensure_ascii=False)
+        return f"{sender_name}:{key}"
+    material = json.dumps({"sender": sender_name, "payload": payload}, sort_keys=True, ensure_ascii=False)
     return hashlib.sha256(material.encode("utf-8")).hexdigest()
 
 
-def store_outbound_attempt(key, to, payload):
+def store_outbound_attempt(key, to, payload, sender_name):
     now = utc_now()
     con = db()
     existing = con.execute(
@@ -398,14 +468,14 @@ def store_outbound_attempt(key, to, payload):
           (idempotency_key, wa_id, payload_json, status, environment, created_at, updated_at)
         VALUES (?, ?, ?, 'pending', ?, ?, ?)
         """,
-        (key, to, json.dumps(payload, ensure_ascii=False), ENVIRONMENT, now, now),
+        (key, to, json.dumps(payload, ensure_ascii=False), sender_name, now, now),
     )
     con.commit()
     con.close()
     return None, True
 
 
-def finish_outbound_attempt(key, to, message_type, label, payload, response=None, error=""):
+def finish_outbound_attempt(key, to, message_type, label, payload, sender_name, response=None, error=""):
     now = utc_now()
     error = safe_error(error) if error else ""
     status = "sent" if not error else "error"
@@ -438,7 +508,7 @@ def finish_outbound_attempt(key, to, message_type, label, payload, response=None
                 label,
                 json.dumps(payload, ensure_ascii=False),
                 meta_id,
-                ENVIRONMENT,
+                sender_name,
                 now,
             ),
         )
@@ -521,25 +591,26 @@ def build_payload_from_item(item):
     raise ValueError("package item type must be text, image, video, document, or template")
 
 
-def send_payload_with_idempotency(handler, payload, to, message_type, label, key):
-    existing, created = store_outbound_attempt(key, to, payload)
+def send_payload_with_idempotency(handler, payload, to, message_type, label, key, sender_name):
+    existing, created = store_outbound_attempt(key, to, payload, sender_name)
     if not created:
         if existing.get("error"):
             existing["error"] = safe_error(existing["error"])
         return {"ok": True, "idempotent": True, "attempt": existing}
     try:
-        response = meta_send(payload)
-        finish_outbound_attempt(key, to, message_type, label, payload, response=response)
+        response = meta_send(payload, sender_name)
+        finish_outbound_attempt(key, to, message_type, label, payload, sender_name, response=response)
         return {"ok": True, "idempotency_key": key, "meta": response}
     except Exception as exc:
         error_text = safe_error(exc)
-        finish_outbound_attempt(key, to, message_type, label, payload, error=error_text)
+        finish_outbound_attempt(key, to, message_type, label, payload, sender_name, error=error_text)
         return {"ok": False, "idempotency_key": key, "error": error_text}
 
 
 def send_package(handler, package_kind, body):
     to = body.get("to", "")
     items = body.get("items") or []
+    sender_name, _ = sender_config(body.get("sender", ""))
     if not to:
         raise ValueError("to is required")
     if not isinstance(items, list) or not items:
@@ -547,8 +618,14 @@ def send_package(handler, package_kind, body):
 
     base_key = handler.headers.get("Idempotency-Key", "").strip()
     if not base_key:
-        material = json.dumps({"package_kind": package_kind, "to": to, "items": items}, sort_keys=True, ensure_ascii=False)
+        material = json.dumps(
+            {"sender": sender_name, "package_kind": package_kind, "to": to, "items": items},
+            sort_keys=True,
+            ensure_ascii=False,
+        )
         base_key = hashlib.sha256(material.encode("utf-8")).hexdigest()
+    else:
+        base_key = f"{sender_name}:{base_key}"
 
     results = []
     for index, original_item in enumerate(items, start=1):
@@ -556,13 +633,14 @@ def send_package(handler, package_kind, body):
         item["to"] = to
         item_key = f"{base_key}:{index}"
         item_to, message_type, label, payload = build_payload_from_item(item)
-        result = send_payload_with_idempotency(handler, payload, item_to, message_type, label, item_key)
+        result = send_payload_with_idempotency(handler, payload, item_to, message_type, label, item_key, sender_name)
         result["index"] = index
         result["type"] = item.get("type")
+        result["sender"] = sender_name
         results.append(result)
         if not result.get("ok"):
-            return {"ok": False, "package_kind": package_kind, "idempotency_key": base_key, "results": results}
-    return {"ok": True, "package_kind": package_kind, "idempotency_key": base_key, "results": results}
+            return {"ok": False, "sender": sender_name, "package_kind": package_kind, "idempotency_key": base_key, "results": results}
+    return {"ok": True, "sender": sender_name, "package_kind": package_kind, "idempotency_key": base_key, "results": results}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -597,6 +675,17 @@ class Handler(BaseHTTPRequestHandler):
                     "ok": True,
                     "service": "canopy-whatsapp-transport",
                     "environment": ENVIRONMENT,
+                    "default_sender": DEFAULT_SENDER,
+                    "senders": [
+                        {
+                            "name": name,
+                            "environment": cfg.get("environment", name),
+                            "phone_number_id": cfg.get("phone_number_id", ""),
+                            "display_phone_number": cfg.get("display_phone_number", ""),
+                            "has_access_token": bool(cfg.get("access_token")),
+                        }
+                        for name, cfg in sorted(SENDER_CONFIGS.items())
+                    ],
                     "has_phone_number_id": bool(PHONE_NUMBER_ID),
                     "has_access_token": bool(ACCESS_TOKEN),
                     "updated_at": utc_now(),
@@ -778,6 +867,7 @@ class Handler(BaseHTTPRequestHandler):
 
         try:
             body = read_json(self)
+            sender_name, _ = sender_config(body.get("sender", ""))
             if parsed.path in {"/send/package/agent", "/send/package/client"}:
                 package_kind = parsed.path.rsplit("/", 1)[-1]
                 result = send_package(self, package_kind, body)
@@ -796,8 +886,9 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 return json_response(self, 404, {"ok": False, "error": "not found"})
 
-            key = idempotency_key_for(self, payload)
-            result = send_payload_with_idempotency(self, payload, to, message_type, label, key)
+            key = idempotency_key_for(self, payload, sender_name)
+            result = send_payload_with_idempotency(self, payload, to, message_type, label, key, sender_name)
+            result["sender"] = sender_name
             return json_response(self, 200 if result.get("ok") else 502, result)
         except Exception as exc:
             return json_response(self, 400, {"ok": False, "error": str(exc)})
